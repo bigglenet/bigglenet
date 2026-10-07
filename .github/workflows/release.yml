@@ -1,0 +1,84 @@
+# Push a tag like v0.2.0 to build the desktop apps and publish them as a GitHub release.
+# The tag must match the version in desktop/src-tauri/tauri.conf.json.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            -f name="Bigglenet $GITHUB_REF_NAME" \
+            -F body=@.github/release-notes.md \
+            -F draft=true \
+            --jq .id)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            args: --target aarch64-apple-darwin
+          - os: macos-latest
+            args: --target x86_64-apple-darwin
+          - os: windows-latest
+            args: ''
+          - os: ubuntu-22.04
+            args: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Linux build dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          releaseId: ${{ needs.create-release.outputs.id }}
+          args: ${{ matrix.args }}
+
+  publish:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.create-release.outputs.id }}" -F draft=false

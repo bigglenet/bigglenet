@@ -1,0 +1,18 @@
+{
+  "name": "bigglenet",
+  "private": true,
+  "workspaces": [
+    "browser",
+    "server",
+    "desktop"
+  ],
+  "scripts": {
+    "setup": "npm run db:migrate -w server && npm run name -w server -- set hello http://localhost:8080/ \"Hello, Bigglenet\"",
+    "dev": "node scripts/dev.mjs",
+    "check": "npm run check -w server && npm run check -w browser",
+    "dev:live": "npm run dev:live -w browser",
+    "deploy": "npm run build -w browser && npm run deploy -w server",
+    "app:dev": "npm run dev -w desktop",
+    "app:build": "npm run build -w desktop"
+  }
+}
