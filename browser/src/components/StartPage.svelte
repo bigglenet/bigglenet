@@ -31,6 +31,14 @@
       </span>
       <Icon name="forward" />
     </button>
+    <button class="make" onclick={() => browser.go(tab, 'biggle://sites')}>
+      <span class="make-plus"><Icon name="plus" size={18} /></span>
+      <span class="home-text">
+        <strong>Make your own site</strong>
+        <span>Pick a name and a look. No code needed.</span>
+      </span>
+      <Icon name="forward" />
+    </button>
 
     <section>
       <h2>Sites on the Bigglenet</h2>
@@ -132,6 +140,32 @@
   }
   .home:hover {
     opacity: 0.92;
+  }
+  .make {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+    padding: 14px 18px 14px 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+  }
+  .make:hover {
+    border-color: var(--accent);
+  }
+  .make-plus {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-soft);
   }
   .home-mark {
     flex: none;

@@ -1,12 +1,18 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
+  import { browser } from '../lib/browser.svelte';
+  import { sites } from '../lib/sites.svelte';
   import Icon from './Icon.svelte';
 
-  type Name = { name: string; url: string; title: string | null };
+  type Name = { name: string; url: string | null; title: string | null; status: string; owner: string | null };
+  type Review = { name: string; title: string | null; owner: string | null; files: number; size: number; createdAt: number };
   type User = { username: string; admin: boolean; created_at: number };
 
   let names = $state<Name[]>([]);
+  let reviews = $state<Review[]>([]);
+  let rejecting = $state<string | null>(null);
+  let note = $state('');
   let users = $state<User[]>([]);
   let error = $state('');
 
@@ -19,20 +25,34 @@
   async function refresh() {
     error = '';
     try {
-      const [n, u] = await Promise.all([
+      const [n, u, r] = await Promise.all([
         api<{ names: Name[] }>('GET', '/api/admin/names'),
         api<{ users: User[] }>('GET', '/api/admin/users'),
+        api<{ sites: Review[] }>('GET', '/api/admin/reviews'),
       ]);
       names = n.names;
       users = u.users;
+      reviews = r.sites;
+      sites.reviews = r.sites.length;
     } catch (e) {
       error = errorText(e);
     }
   }
 
   $effect(() => {
+    void sites.reviewsChanged;
     if (isAdmin) refresh();
   });
+
+  async function approve(name: string) {
+    await run(() => api('POST', `/api/admin/sites/${encodeURIComponent(name)}/approve`));
+  }
+
+  async function reject(name: string) {
+    await run(() => api('POST', `/api/admin/sites/${encodeURIComponent(name)}/reject`, { note }));
+    rejecting = null;
+    note = '';
+  }
 
   async function saveName(e: SubmitEvent) {
     e.preventDefault();
@@ -75,8 +95,36 @@
       {/if}
 
       <section>
+        <h2>Waiting for approval</h2>
+        <p class="muted">New sites made in the site editor. Nobody else can see them until you approve.</p>
+        <ul class="list">
+          {#each reviews as r (r.name)}
+            <li class="review">
+              <div class="main">
+                <strong>{r.name}.biggle</strong>
+                <span class="muted small">
+                  {r.title ? `${r.title} · ` : ''}by {r.owner ?? 'a deleted account'} · {r.files} files · {Math.ceil(r.size / 1024)} KB
+                </span>
+              </div>
+              {#if rejecting === r.name}
+                <input class="note" bind:value={note} placeholder="Why? (they'll see this)" maxlength="300" />
+                <button class="danger" onclick={() => reject(r.name)}>Reject</button>
+                <button class="ghost" onclick={() => (rejecting = null)}>Cancel</button>
+              {:else}
+                <button class="ghost" onclick={() => browser.openPreview(r.name)}>Preview</button>
+                <button class="ghost" onclick={() => ((rejecting = r.name), (note = ''))}>Reject</button>
+                <button class="primary" onclick={() => approve(r.name)}>Approve</button>
+              {/if}
+            </li>
+          {:else}
+            <li class="muted">Nothing waiting. Nice.</li>
+          {/each}
+        </ul>
+      </section>
+
+      <section>
         <h2>Sites</h2>
-        <p class="muted">Point a .biggle name at the folder where someone's site files live.</p>
+        <p class="muted">Every .biggle name. You can also point one at a site hosted somewhere else.</p>
         <form class="name-form" onsubmit={saveName}>
           <label class="field">
             <span>Name</span>
@@ -103,9 +151,13 @@
             <li>
               <div class="main">
                 <strong>{n.name}.biggle</strong>
-                <span class="muted small">{n.title ? `${n.title} · ` : ''}{n.url}</span>
+                <span class="muted small">
+                  {n.title ? `${n.title} · ` : ''}{n.url ?? `made in the editor by ${n.owner ?? 'a deleted account'}`}{n.status !== 'live' ? ` · ${n.status === 'pending' ? 'waiting for approval' : 'not approved'}` : ''}
+                </span>
               </div>
-              <button class="ghost" onclick={() => (form = { name: n.name, url: n.url, title: n.title ?? '' })}>Edit</button>
+              {#if n.url}
+                <button class="ghost" onclick={() => (form = { name: n.name, url: n.url ?? '', title: n.title ?? '' })}>Edit</button>
+              {/if}
               <button
                 class="ghost icon"
                 aria-label="Delete {n.name}.biggle"
@@ -284,6 +336,18 @@
   }
   .ghost:hover {
     background: var(--hover);
+  }
+  .danger {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: #fff;
+  }
+  .review {
+    flex-wrap: wrap;
+  }
+  .note {
+    flex: 1 1 200px;
+    width: auto;
   }
   .icon {
     width: 34px;

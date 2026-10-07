@@ -43,7 +43,7 @@ export function preflight(): Response {
     status: 204,
     headers: {
       ...CORS,
-      'Access-Control-Allow-Methods': 'GET, HEAD, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type',
       'Access-Control-Max-Age': '86400',
     },
@@ -66,3 +66,8 @@ export const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 export const USERNAME_RE = /^[a-z0-9_]{2,24}$/;
+
+/** D1 hands back BLOB columns as either an ArrayBuffer or an array of bytes. */
+export function blobBytes(value: ArrayBuffer | ArrayLike<number>): Uint8Array {
+  return value instanceof ArrayBuffer ? new Uint8Array(value) : Uint8Array.from(value);
+}

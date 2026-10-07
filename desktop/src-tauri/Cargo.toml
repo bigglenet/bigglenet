@@ -1,6 +1,6 @@
 [package]
 name = "bigglenet"
-version = "0.1.1"
+version = "0.1.2"
 description = "The Biggle browser"
 license = "MIT"
 edition = "2021"

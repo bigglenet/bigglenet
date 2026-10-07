@@ -1,6 +1,7 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
   import { browser } from '../lib/browser.svelte';
+  import { sites } from '../lib/sites.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
 
@@ -23,10 +24,10 @@
     };
   });
 
-  function openAdmin() {
+  function openPage(href: string) {
     open = false;
     const tab = browser.active;
-    if (tab) browser.go(tab, 'biggle://admin');
+    if (tab) browser.go(tab, href);
   }
 
   function signOut() {
@@ -45,6 +46,7 @@
       onclick={() => (open = !open)}
     >
       <Avatar name={account.user.username} size={28} />
+      {#if sites.reviews}<span class="ping" aria-label="{sites.reviews} sites waiting for approval"></span>{/if}
     </button>
     {#if open}
       <div class="menu" role="menu">
@@ -55,14 +57,16 @@
             <span>{account.user.admin ? 'Admin' : 'Biggle ID'}</span>
           </div>
         </div>
+        <button role="menuitem" onclick={() => openPage('biggle://sites')}><Icon name="globe" size={16} /> My sites</button>
         {#if account.user.admin}
-          <button role="menuitem" onclick={openAdmin}><Icon name="settings" size={16} /> Admin</button>
+          <button role="menuitem" onclick={() => openPage('biggle://admin')}>
+            <Icon name="settings" size={16} /> Admin
+            {#if sites.reviews}<span class="count">{sites.reviews} to approve</span>{/if}
+          </button>
         {/if}
         <button role="menuitem" onclick={signOut}><Icon name="logout" size={16} /> Sign out</button>
       </div>
     {/if}
-  {:else}
-    <button class="signin" onclick={() => (account.dialog = 'signin')}>Sign in</button>
   {/if}
 </div>
 
@@ -81,22 +85,31 @@
     border-radius: 50%;
     background: none;
   }
+  .me {
+    position: relative;
+  }
   .me:hover {
     background: var(--hover);
   }
-  .signin {
-    height: 32px;
-    padding: 0 14px;
-    border: 0;
-    border-radius: 16px;
-    background: var(--accent);
-    color: var(--on-accent);
-    font: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    white-space: nowrap;
+  .ping {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 2px var(--toolbar);
   }
-
+  .count {
+    margin-left: auto;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
   .menu {
     position: absolute;
     right: 0;

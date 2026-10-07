@@ -1,5 +1,5 @@
 // Runs inside every BHTML page, before the page's own scripts.
-// The browser sets window.__BIGGLE_INIT__ = { url, site, server, search, hash, user } right before this.
+// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user } right before this.
 (() => {
   'use strict';
 
@@ -10,8 +10,10 @@
 
   const post = (msg) => parent.postMessage({ biggle: 1, ...msg }, '*');
 
-  // Same as fromGateway() in src/lib/url.ts.
+  // Same as fromGateway() in src/lib/url.ts. `init.base` is where this site's files come
+  // from: its normal gateway folder, or a signed preview folder.
   function toBiggle(href) {
+    if (href.startsWith(init.base)) return `biggle://${init.site}.biggle/${href.slice(init.base.length)}`;
     if (!href.startsWith(sitePrefix)) return null;
     const rest = href.slice(sitePrefix.length);
     const i = rest.search(/[/?#]/);
@@ -168,11 +170,19 @@
     return null;
   };
 
-  // --- Browser shortcuts still work while the page has focus ---
+  // --- Browser shortcuts and back/forward still work while the page has focus ---
+
+  const editing = (el) => el instanceof Element && el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
 
   addEventListener(
     'keydown',
     (e) => {
+      if ((e.altKey || e.metaKey) && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        if (editing(e.target)) return;
+        e.preventDefault();
+        post({ type: 'nav', dir: e.key === 'ArrowLeft' ? 'back' : 'forward' });
+        return;
+      }
       if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
       if (!/^([twlr[\]1-9])$/i.test(e.key)) return;
       e.preventDefault();
@@ -180,6 +190,16 @@
     },
     true,
   );
+
+  // Mouse back/forward buttons.
+  addEventListener('mouseup', (e) => {
+    if (e.button !== 3 && e.button !== 4) return;
+    e.preventDefault();
+    post({ type: 'nav', dir: e.button === 3 ? 'back' : 'forward' });
+  });
+  addEventListener('mousedown', (e) => {
+    if (e.button === 3 || e.button === 4) e.preventDefault();
+  });
 
   // --- Title and icon ---
 

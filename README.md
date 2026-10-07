@@ -5,8 +5,9 @@
 A small, friendly alternative to the web. Sites are written in **BHTML**, live at **`name.biggle`** addresses, and open in the **Biggle browser**, which blocks ads and trackers by design.
 
 - **BHTML pages:** normal HTML, CSS and JS with a `<!bhtml 1>` header, so they only open in Biggle.
-- **`.biggle` names:** host your files anywhere and the Bigglenet points your name at them.
-- **One Biggle ID:** sign in once and every site can greet you by name.
+- **A built-in site editor:** pick a name and a look, add text, pictures and buttons. No code or hosting needed. Admins approve every new site.
+- **`.biggle` names:** sites made in the editor get theirs straight away; you can also host files anywhere and point a name at them.
+- **One Biggle ID:** sign up with your email or Google, and every site can greet you by name.
 - **Friends and chat:** add friends and message them live, right in the browser.
 - **No ads, no tracking:** pages run sandboxed, with no cookies, and can't load anything from outside the Bigglenet.
 
@@ -15,9 +16,13 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 - **Mac, Windows, Linux:** download it from [Releases](https://github.com/bigglenet/bigglenet/releases/latest). It updates itself.
 - **Phone:** open [bigglenet.ethembeldagli.dev](https://bigglenet.ethembeldagli.dev) and add it to your home screen. The web version only runs as a home-screen app; in a normal browser tab it shows how to install it.
 
-Anyone can join: make a Biggle ID from the **Sign in** button. Then open **home.biggle** to look around.
+You need a Biggle ID to use it: sign up with your email address (we send a code to confirm it) or with Google. Then open **home.biggle** to look around.
 
 ## Make a site
+
+The easy way: in Biggle, open your account menu → **My sites** (or go to `biggle://sites`). Pick a name and a look, then add blocks. It saves as you go, and goes live once an admin approves it.
+
+The hands-on way: write the HTML yourself, in the editor's Code view or on your own host.
 
 ```html
 <!bhtml 1>
@@ -26,7 +31,7 @@ Anyone can join: make a Biggle ID from the **Sign in** button. Then open **home.
 <a href="about.bhtml">About me</a>
 ```
 
-Save it as `index.bhtml`, upload the folder to any static host (Cloudflare Pages, GitHub Pages…) and ask an admin to point your `.biggle` name at it. [spec/BHTML.md](spec/BHTML.md) has everything else, and [examples/hello](examples/hello) is a complete site.
+To host it yourself, save it as `index.bhtml`, upload the folder to any static host (Cloudflare Pages, GitHub Pages…) and ask an admin to point your `.biggle` name at it. [spec/BHTML.md](spec/BHTML.md) has everything else, and [examples/hello](examples/hello) is a complete site.
 
 ## How it fits together
 
@@ -40,7 +45,7 @@ spec/         the BHTML format
 brand/        logo and app icons
 ```
 
-The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`), which looks up where the name points and fetches the file from that host.
+The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`), which serves sites made in the editor from the database and fetches the rest from their own host. Sites waiting for approval are only reachable through signed preview links (`/preview/<token>/<path>`) given to their owner and admins.
 
 ## Develop
 
@@ -48,6 +53,13 @@ The browser renders each page in a sandboxed iframe with a strict Content-Securi
 npm install
 npm run setup     # local database, with hello.biggle pointing at the example site
 npm run dev       # example site :8080, server :8787, browser :5173
+```
+
+Put local settings in `server/.dev.vars`. With `EMAIL_DEV_MODE=1`, sign-up codes are shown in the app instead of emailed:
+
+```
+PREVIEW_SECRET=any-long-random-string
+EMAIL_DEV_MODE=1
 ```
 
 Chrome-based browsers stop sandboxed pages from reaching `localhost`, so locally a page's own CSS, images and scripts don't load there. To test pages, run the browser against the live server instead:
@@ -66,12 +78,17 @@ npm run app:build   # build it for this computer (needs the update signing key, 
 ## Run your own Bigglenet
 
 ```bash
-npm run deploy                                # build the PWA and deploy the Worker
 npm run db:migrate:remote -w server           # set up the database
+npx wrangler secret put PREVIEW_SECRET        # in server/: any long random string
+npm run deploy                                # build the PWA and deploy the Worker
 npm run promote -w server -- you --remote     # after signing up, make yourself an admin
 ```
 
-Admins hand out `.biggle` names from `biggle://admin` in the browser, or from the command line:
+**Email:** sign-up codes are sent with Cloudflare Email Sending. Onboard your sending domain in the Cloudflare dashboard (Email Service → Email Sending → Onboard Domain) and set `MAIL_FROM` in `server/wrangler.jsonc`.
+
+**Google sign-in (optional):** in Google Cloud Console, make an OAuth client of type *Web application* with the redirect URI `https://<your server>/api/auth/google/callback`, then in `server/` run `npx wrangler secret put GOOGLE_CLIENT_ID` and `npx wrangler secret put GOOGLE_CLIENT_SECRET`. The "Continue with Google" button appears once both are set.
+
+Admins approve new sites and hand out `.biggle` names for self-hosted sites from `biggle://admin` in the browser, or from the command line:
 
 ```bash
 npm run name -w server -- set ethem https://ethem.pages.dev/ "Ethem's site" --remote

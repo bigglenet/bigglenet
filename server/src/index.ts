@@ -2,16 +2,20 @@
 // this Worker only runs for /api/* and /site/*.
 //
 //   /api/names, /api/resolve/:name   Biggle DNS
-//   /site/:name/*path                site files, fetched from the site's host
+//   /site/:name/*path                site files, from the site's host or the database
+//   /preview/:token/*path            a site waiting for approval, for its owner and admins
+//   /api/sites*                      the Biggle site editor
 //   /api/auth/*, /api/me             Biggle ID
 //   /api/admin/*                     names and users (admins only)
 //   /api/friends*, /api/messages/*   friends and direct messages
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
-import { directory, gateway, resolveName } from './gateway';
+import { directory, gateway, preview, resolveName } from './gateway';
+import * as google from './google';
 import { fail, HttpError, preflight } from './http';
 import { connect } from './live';
+import * as sites from './sites';
 import * as social from './social';
 
 export { Live } from './live';
@@ -22,8 +26,19 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/names$/, directory],
   ['GET', /^\/api\/resolve\/([^/]+)$/, resolveName],
 
-  ['POST', /^\/api\/auth\/signup$/, auth.signup],
+  ['POST', /^\/api\/auth\/signup$/, auth.signupOld],
+  ['POST', /^\/api\/auth\/signup\/start$/, auth.signupStart],
+  ['POST', /^\/api\/auth\/signup\/finish$/, auth.signupFinish],
   ['POST', /^\/api\/auth\/login$/, auth.login],
+  ['POST', /^\/api\/auth\/email\/start$/, auth.emailStart],
+  ['POST', /^\/api\/auth\/email\/finish$/, auth.emailFinish],
+  ['POST', /^\/api\/auth\/reset\/start$/, auth.resetStart],
+  ['POST', /^\/api\/auth\/reset\/finish$/, auth.resetFinish],
+  ['GET', /^\/api\/auth\/options$/, google.options],
+  ['POST', /^\/api\/auth\/google\/start$/, google.start],
+  ['GET', /^\/api\/auth\/google\/callback$/, google.callback],
+  ['POST', /^\/api\/auth\/google\/poll$/, google.poll],
+  ['POST', /^\/api\/auth\/google\/finish$/, google.finish],
   ['POST', /^\/api\/auth\/logout$/, auth.logout],
   ['GET', /^\/api\/me$/, auth.me],
 
@@ -31,6 +46,21 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['PUT', /^\/api\/admin\/names\/([^/]+)$/, admin.setName],
   ['DELETE', /^\/api\/admin\/names\/([^/]+)$/, admin.deleteName],
   ['GET', /^\/api\/admin\/users$/, admin.listUsers],
+  ['GET', /^\/api\/admin\/reviews$/, sites.reviewList],
+  ['POST', /^\/api\/admin\/sites\/([^/]+)\/approve$/, sites.approveSite],
+  ['POST', /^\/api\/admin\/sites\/([^/]+)\/reject$/, sites.rejectSite],
+
+  ['GET', /^\/api\/sites$/, sites.mySites],
+  ['POST', /^\/api\/sites$/, sites.createSite],
+  ['GET', /^\/api\/sites\/available\/([^/]+)$/, sites.checkAvailable],
+  ['GET', /^\/api\/sites\/([^/]+)$/, sites.getSiteInfo],
+  ['PATCH', /^\/api\/sites\/([^/]+)$/, sites.updateSite],
+  ['DELETE', /^\/api\/sites\/([^/]+)$/, sites.deleteSite],
+  ['POST', /^\/api\/sites\/([^/]+)\/submit$/, sites.submitSite],
+  ['POST', /^\/api\/sites\/([^/]+)\/preview$/, sites.previewToken],
+  ['GET', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.readFile],
+  ['PUT', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.writeFile],
+  ['DELETE', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.deleteFile],
 
   ['GET', /^\/api\/friends$/, social.listFriends],
   ['POST', /^\/api\/friends$/, social.addFriend],
@@ -48,10 +78,11 @@ export default {
     if (req.method === 'OPTIONS') return preflight();
     const { pathname, search } = new URL(req.url);
 
-    const site = pathname.match(/^\/site\/([^/]+)(\/.*)?$/);
+    const site = pathname.match(/^\/(site|preview)\/([^/]+)(\/.*)?$/);
     if (site) {
       if (req.method !== 'GET' && req.method !== 'HEAD') return fail(405, 'method_not_allowed', 'Sites are read-only.');
-      return gateway(req, env, site[1], site[2] ?? '', search);
+      const handler = site[1] === 'site' ? gateway : preview;
+      return handler(req, env, site[2], site[3] ?? '', search);
     }
 
     let pathMatched = false;

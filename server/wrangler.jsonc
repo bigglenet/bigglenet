@@ -20,13 +20,17 @@
   "ratelimits": [
     { "name": "SIGNUP_LIMIT", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
     { "name": "LOGIN_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
-    { "name": "MESSAGE_LIMIT", "namespace_id": "1003", "simple": { "limit": 20, "period": 10 } }
+    { "name": "MESSAGE_LIMIT", "namespace_id": "1003", "simple": { "limit": 20, "period": 10 } },
+    { "name": "EMAIL_LIMIT", "namespace_id": "1004", "simple": { "limit": 5, "period": 60 } }
   ],
+  // Sign-up and password codes are emailed from here (Cloudflare Email Sending).
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": { "MAIL_FROM": "noreply@bigglenet.ethembeldagli.dev" },
   // The Biggle browser as a PWA. Everything except /api and /site is the app.
   "assets": {
     "directory": "../browser/dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/site/*"]
+    "run_worker_first": ["/api/*", "/site/*", "/preview/*"]
   },
   "routes": [{ "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }],
   "workers_dev": false

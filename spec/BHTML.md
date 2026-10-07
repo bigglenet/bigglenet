@@ -94,7 +94,9 @@ If you need a library, put a copy of it in your site's files.
 
 ## Hosting a site
 
-Upload your files to any static host. On Cloudflare Pages, add a `_headers` file so normal browsers show the source instead of rendering it:
+The easiest way is the site editor built into Biggle (`biggle://sites`): it hosts your files on the Bigglenet and gives you a name. New sites wait for an admin's approval before anyone else can see them.
+
+To host a site yourself, upload your files to any static host. On Cloudflare Pages, add a `_headers` file so normal browsers show the source instead of rendering it:
 
 ```
 /*.bhtml

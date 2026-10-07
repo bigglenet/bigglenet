@@ -1,12 +1,12 @@
 import { account } from './account.svelte';
-import { SITE_PREFIX } from './config';
-import { loadDirectory } from './directory';
+import { api } from './api';
+import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
+import { answerCall } from './frame';
 import { load, type PageError } from './loader';
-import { storageOp } from './storage';
 import { fromInput, parse, START, withHash, type InternalPage } from './url';
 
 export type View =
-  | { type: 'internal'; page: InternalPage }
+  | { type: 'internal'; page: InternalPage; path: string }
   | { type: 'page'; site: string; srcdoc: string }
   | { type: 'error'; error: PageError };
 
@@ -20,6 +20,8 @@ export type Tab = {
   loading: boolean;
   view: View;
   loadId: number;
+  /** Showing a site that's waiting for approval, through a signed preview link. */
+  preview: { site: string; base: string } | null;
 };
 
 type Mode = 'push' | 'replace' | 'none';
@@ -52,8 +54,9 @@ class Browser {
       history: [],
       index: -1,
       loading: false,
-      view: { type: 'internal', page: 'start' },
+      view: { type: 'internal', page: 'start', path: '' },
       loadId: 0,
+      preview: null,
     };
     const at = opts.after === undefined ? -1 : this.tabs.findIndex((t) => t.id === opts.after);
     if (at === -1) this.tabs.push(raw);
@@ -82,7 +85,7 @@ class Browser {
     else this.showError(tab, text, { code: 'bad_address' });
   }
 
-  go(tab: Tab, href: string, mode: Mode = 'push', fresh = false) {
+  go(tab: Tab, href: string, mode: Mode = 'push', fresh = false, retried = false) {
     const u = parse(href);
     if (!u) return this.showError(tab, href, { code: 'bad_address' });
 
@@ -98,11 +101,14 @@ class Browser {
     if (u.kind === 'internal') {
       tab.loadId++;
       tab.loading = false;
-      tab.view = { type: 'internal', page: u.page };
-      tab.title = u.page === 'start' ? 'New tab' : 'Admin';
+      tab.preview = null;
+      tab.view = { type: 'internal', page: u.page, path: u.path };
+      tab.title = u.page === 'start' ? 'New tab' : u.page === 'admin' ? 'Admin' : u.path ? `Editing ${u.path}.biggle` : 'My sites';
       tab.icon = null;
       return;
     }
+    // A preview only covers its own site. Following a link elsewhere leaves it.
+    if (tab.preview && tab.preview.site !== u.name) tab.preview = null;
 
     const controller = new AbortController();
     controllers.set(tab.id, controller);
@@ -112,8 +118,15 @@ class Browser {
     tab.icon = null;
 
     const user = account.user && { username: account.user.username };
-    load(u, { signal: controller.signal, fresh, user }).then((result) => {
+    load(u, { signal: controller.signal, fresh, user, preview: tab.preview?.base }).then(async (result) => {
       if (result.type === 'aborted' || tab.loadId !== loadId) return;
+      // Preview links last an hour. Get a fresh one and try again.
+      if (result.type === 'error' && result.error.code === 'preview_expired' && tab.preview && !retried) {
+        try {
+          tab.preview.base = await previewBase(tab.preview.site);
+          return this.go(tab, u.href, 'none', fresh, true);
+        } catch {}
+      }
       if (result.href !== tab.url) {
         tab.url = result.href;
         tab.history[tab.index] = result.href;
@@ -125,6 +138,14 @@ class Browser {
         tab.loading = false;
       }
     });
+  }
+
+  /** Open a site that's waiting for approval, as its owner or an admin. */
+  async openPreview(site: string, path = '/') {
+    const base = await previewBase(site);
+    const tab = this.newTab(START);
+    tab.preview = { site, base };
+    this.go(tab, `biggle://${site}.biggle${path}`, 'replace');
   }
 
   /** A biggle:// link from another app: reuse an empty new tab, or open one. */
@@ -201,12 +222,15 @@ class Browser {
         const fallback = u?.kind === 'site' ? `${u.name}.biggle` : 'Biggle';
         tab.title = typeof msg.title === 'string' && msg.title.trim() ? msg.title.trim().slice(0, 200) : fallback;
         const icon = msg.icon;
-        tab.icon = typeof icon === 'string' && (icon.startsWith(SITE_PREFIX) || icon.startsWith('data:image/')) ? icon : null;
+        const allowed = (i: string) => i.startsWith(SITE_PREFIX) || i.startsWith(PREVIEW_PREFIX) || i.startsWith('data:image/');
+        tab.icon = typeof icon === 'string' && allowed(icon) ? icon : null;
         break;
       }
       case 'navigate': {
         const u = typeof msg.url === 'string' ? parse(msg.url) : null;
-        if (u?.kind !== 'site') break;
+        // Pages can link to sites, the start page and the site editor, but not other built-in pages.
+        const allowed = u?.kind === 'site' || (u?.kind === 'internal' && (u.page === 'sites' || u.page === 'start'));
+        if (!u || !allowed) break;
         if (msg.newTab) this.newTab(u.href, { activate: !msg.background, after: tab.id });
         else this.go(tab, u.href);
         break;
@@ -226,27 +250,13 @@ class Browser {
         if (typeof msg.key === 'string') this.shortcut(msg.key);
         break;
       }
+      case 'nav': {
+        if (msg.dir === 'back') this.back(tab);
+        else if (msg.dir === 'forward') this.forward(tab);
+        break;
+      }
       case 'call': {
-        if (tab.view.type !== 'page') break;
-        const site = tab.view.site;
-        const args = Array.isArray(msg.args) ? msg.args : [];
-        const method = String(msg.method);
-        if (method.startsWith('storage.')) {
-          reply({ type: 'result', id: msg.id, ...storageOp(site, method.slice('storage.'.length), args[0], args[1]) });
-        } else if (method === 'copy') {
-          // A click in the page also activates the browser around it, so we're allowed to copy.
-          navigator.clipboard.writeText(String(args[0] ?? '')).then(
-            () => reply({ type: 'result', id: msg.id }),
-            () => reply({ type: 'result', id: msg.id, error: "Couldn't copy that." }),
-          );
-        } else if (method === 'sites') {
-          loadDirectory().then(
-            (sites) => reply({ type: 'result', id: msg.id, value: sites }),
-            () => reply({ type: 'result', id: msg.id, error: "Can't reach the Bigglenet right now." }),
-          );
-        } else {
-          reply({ type: 'result', id: msg.id, error: `biggle has no ${method}()` });
-        }
+        if (tab.view.type === 'page') answerCall(tab.view.site, msg, reply);
         break;
       }
     }
@@ -261,6 +271,11 @@ class Browser {
     tab.icon = null;
     tab.view = { type: 'error', error };
   }
+}
+
+async function previewBase(site: string): Promise<string> {
+  const { base } = await api<{ base: string }>('POST', `/api/sites/${encodeURIComponent(site)}/preview`);
+  return SERVER + base;
 }
 
 export const browser = new Browser();

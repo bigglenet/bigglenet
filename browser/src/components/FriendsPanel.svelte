@@ -45,10 +45,7 @@
     </header>
 
     {#if !account.user}
-      <div class="empty">
-        <p>Sign in to add friends and chat with them.</p>
-        <button class="primary" onclick={() => (account.dialog = 'signin')}>Sign in</button>
-      </div>
+      <div class="empty"><p>Sign in to add friends and chat with them.</p></div>
     {:else}
       <form class="add" onsubmit={submitAdd}>
         <input
@@ -270,12 +267,6 @@
   .empty {
     padding: 24px 18px;
     color: var(--muted);
-  }
-  .empty .primary {
-    padding: 9px 16px;
-    border-radius: 10px;
-    font: inherit;
-    font-weight: 600;
   }
   .status {
     margin: 0;

@@ -2,6 +2,7 @@
 import { account } from './account.svelte';
 import { api } from './api';
 import { SERVER } from './config';
+import { sites } from './sites.svelte';
 
 export type Friend = { username: string; unread: number; lastAt: number | null; online: boolean };
 export type Message = { id: number; from: string; to: string; body: string; at: number; pending?: boolean };
@@ -10,7 +11,9 @@ type LiveEvent =
   | { type: 'message'; message: Message }
   | { type: 'friends' }
   | { type: 'read'; username: string }
-  | { type: 'presence'; username: string; online: boolean };
+  | { type: 'presence'; username: string; online: boolean }
+  | { type: 'review' }
+  | { type: 'site'; name: string; status: string };
 
 const PING_MS = 30_000;
 
@@ -106,6 +109,8 @@ class Social {
     } else if (ev.type === 'presence') {
       const friend = this.friends.find((f) => f.username === ev.username);
       if (friend) friend.online = ev.online;
+    } else {
+      sites.onEvent(ev.type);
     }
   }
 

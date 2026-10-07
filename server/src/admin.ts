@@ -5,7 +5,10 @@ import { HttpError, json, NAME_RE, readJson, str } from './http';
 
 export async function listNames(req: Request, env: Env): Promise<Response> {
   await requireAdmin(req, env);
-  const { results } = await env.DB.prepare('SELECT name, url, title, updated_at FROM names ORDER BY name').all();
+  const { results } = await env.DB.prepare(
+    `SELECT n.name, n.url, n.title, n.status, n.updated_at, u.username AS owner
+     FROM names n LEFT JOIN users u ON u.id = n.owner_id ORDER BY n.name`,
+  ).all();
   return json({ names: results });
 }
 
@@ -32,8 +35,8 @@ export async function setName(req: Request, env: Env, rawName: string): Promise<
   const title = str(body.title).trim().slice(0, 100) || null;
 
   await env.DB.prepare(
-    `INSERT INTO names (name, url, title) VALUES (?, ?, ?)
-     ON CONFLICT(name) DO UPDATE SET url = excluded.url, title = excluded.title, updated_at = unixepoch()`,
+    `INSERT INTO names (name, url, title, status) VALUES (?, ?, ?, 'live')
+     ON CONFLICT(name) DO UPDATE SET url = excluded.url, title = excluded.title, status = 'live', updated_at = unixepoch()`,
   )
     .bind(name, url.href, title)
     .run();

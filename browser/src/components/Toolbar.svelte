@@ -108,6 +108,9 @@
         </div>
       {/if}
     </div>
+    {#if tab?.preview && site}
+      <span class="preview" title="This site is waiting for approval. Only its owner and admins can see it.">Preview</span>
+    {/if}
   </form>
 
   <div class="side">
@@ -287,6 +290,17 @@
   }
   input::placeholder {
     color: var(--muted);
+  }
+
+  .preview {
+    flex: none;
+    margin-right: 6px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 11.5px;
+    font-weight: 700;
   }
 
   .pretty {

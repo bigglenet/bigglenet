@@ -1,7 +1,9 @@
-// Biggle DNS (name → host) and the gateway that fetches site files from their host.
-import { CORS, fail, json, NAME_RE, redirect } from './http';
+// Biggle DNS (name → host) and the gateway that serves site files: either fetched from the
+// site's own host, or (for sites made in the Biggle editor) straight from the database.
+import { blobBytes, CORS, fail, json, NAME_RE, redirect } from './http';
+import { checkPreviewToken } from './sites';
 
-type Site = { name: string; url: string; title: string | null };
+type Site = { name: string; url: string | null; title: string | null; status: string };
 
 const USER_AGENT = 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
@@ -17,33 +19,35 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
   if (!NAME_RE.test(name)) return null;
   const hit = resolveCache.get(name);
   if (hit && Date.now() - hit.at < RESOLVE_TTL_MS) return hit.site;
-  const site = await env.DB.prepare('SELECT name, url, title FROM names WHERE name = ?').bind(name).first<Site>();
+  const site = await env.DB.prepare('SELECT name, url, title, status FROM names WHERE name = ?').bind(name).first<Site>();
   resolveCache.set(name, { site, at: Date.now() });
   return site;
 }
 
 /** Every name, for the browser's start page. */
 export async function directory(_req: Request, env: Env): Promise<Response> {
-  const { results } = await env.DB.prepare('SELECT name, title FROM names ORDER BY name').all<Site>();
+  const { results } = await env.DB.prepare("SELECT name, title FROM names WHERE status = 'live' ORDER BY name").all<Site>();
   return json({ names: results });
 }
 
 export async function resolveName(_req: Request, env: Env, name: string): Promise<Response> {
   const site = await resolve(env, name);
-  if (!site) return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
-  return json(site);
+  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
+  return json({ name: site.name, url: site.url, title: site.title });
 }
 
 export async function gateway(req: Request, env: Env, name: string, rest: string, search: string): Promise<Response> {
   const site = await resolve(env, name);
-  if (!site) return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
+  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
 
   // `/site/hello` → `/site/hello/`, so relative links in the page resolve inside the site.
   if (rest === '') return redirect(`/site/${site.name}/${search}`);
 
-  const base = new URL(site.url);
   let path = rest.slice(1);
   if (path === '' || path.endsWith('/')) path += 'index.bhtml';
+  if (!site.url) return serveHosted(req, env, site.name, path);
+
+  const base = new URL(site.url);
   const target = new URL(path + search, base);
   if (!inside(target, base)) return fail(400, 'bad_path', 'That path leaves the site.');
 
@@ -87,4 +91,48 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
 
 function inside(url: URL, base: URL): boolean {
   return url.origin === base.origin && url.pathname.startsWith(base.pathname);
+}
+
+/** /preview/<token>/<path>: a site before it's approved, for its owner and admins. */
+export async function preview(req: Request, env: Env, token: string, rest: string, search: string): Promise<Response> {
+  const name = await checkPreviewToken(env, token);
+  if (!name) return fail(403, 'preview_expired', 'This preview link has expired.');
+  if (rest === '') return redirect(`/preview/${token}/${search}`);
+  let path = rest.slice(1);
+  if (path === '' || path.endsWith('/')) path += 'index.bhtml';
+  return serveHosted(req, env, name, path);
+}
+
+async function serveHosted(req: Request, env: Env, site: string, rawPath: string): Promise<Response> {
+  let path: string;
+  try {
+    path = decodeURIComponent(rawPath);
+  } catch {
+    return fail(400, 'bad_path', "That address isn't valid.");
+  }
+  const file = await env.DB.prepare('SELECT type, content, updated_at FROM site_files WHERE site = ? AND path = ?')
+    .bind(site, path)
+    .first<{ type: string; content: ArrayBuffer | number[]; updated_at: number }>();
+  if (!file) {
+    // "/blog" → "/blog/" when there's a blog/index.bhtml.
+    if (!path.includes('.')) {
+      const index = await env.DB.prepare('SELECT 1 FROM site_files WHERE site = ? AND path = ?').bind(site, `${path}/index.bhtml`).first();
+      if (index) return redirect(new URL(req.url).pathname + '/');
+    }
+    return new Response('Not found', { status: 404, headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Security-Policy': 'sandbox' } });
+  }
+  const body = blobBytes(file.content);
+  const etag = `"${file.updated_at}-${body.length}"`;
+  const headers = new Headers({
+    ...CORS,
+    'Content-Type': file.type,
+    ETag: etag,
+    'Cache-Control': 'public, max-age=0, must-revalidate',
+    'Content-Security-Policy': 'sandbox',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+  });
+  if (req.headers.get('If-None-Match') === etag) return new Response(null, { status: 304, headers });
+  return new Response(req.method === 'HEAD' ? null : body, { headers });
 }

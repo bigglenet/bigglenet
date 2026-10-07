@@ -45,4 +45,26 @@ export async function api<T = Record<string, never>>(method: string, path: strin
   return data as T;
 }
 
+/** Like api(), but for raw file bodies. Returns the Response. */
+export async function apiFetch(method: string, path: string, body?: BodyInit, type?: string): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(SERVER + path, {
+      method,
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { ...(type ? { 'Content-Type': type } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body,
+    });
+  } catch {
+    throw new ApiError(0, 'offline', "Can't reach the Bigglenet. Check your connection.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && token) onSignedOut?.();
+    throw new ApiError(res.status, data.error ?? 'http', data.message ?? `Something went wrong (HTTP ${res.status}).`);
+  }
+  return res;
+}
+
 export const errorText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');

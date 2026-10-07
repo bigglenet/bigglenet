@@ -8,7 +8,9 @@ export type LiveEvent =
   | { type: 'message'; message: unknown }
   | { type: 'friends' }
   | { type: 'read'; username: string }
-  | { type: 'presence'; username: string; online: boolean };
+  | { type: 'presence'; username: string; online: boolean }
+  | { type: 'review' }
+  | { type: 'site'; name: string; status: string };
 
 type Attachment = { userId: number; username: string };
 
