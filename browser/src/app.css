@@ -1,0 +1,97 @@
+/* Bigglenet brand: cream #F6F4F0 and charcoal #222222. */
+:root {
+  color-scheme: light dark;
+  --chrome: #e7e4dd;
+  --toolbar: #f6f4f0;
+  --surface: #f6f4f0;
+  --card: #fdfcfa;
+  --field: #ebe8e2;
+  --field-hover: #e3e0d9;
+  --hover: rgb(34 34 34 / 0.07);
+  --text: #222222;
+  --muted: #6e6b65;
+  --faint: #bdb9b1;
+  --border: #dcd8d0;
+  --accent: #222222;
+  --accent-soft: rgb(34 34 34 / 0.09);
+  --on-accent: #f6f4f0;
+  --danger: #b3261e;
+  --online: #2f9e5b;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chrome: #161616;
+    --toolbar: #222222;
+    --surface: #1c1c1c;
+    --card: #262626;
+    --field: #2f2f2f;
+    --field-hover: #363636;
+    --hover: rgb(246 244 240 / 0.08);
+    --text: #f6f4f0;
+    --muted: #a5a29b;
+    --faint: #4d4b47;
+    --border: #333333;
+    --accent: #f6f4f0;
+    --accent-soft: rgb(246 244 240 / 0.12);
+    --on-accent: #222222;
+    --danger: #f2756a;
+    --online: #5ccf8a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--chrome);
+  color: var(--text);
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The brand marks are alpha masks, so they take the current text colour. */
+.logo-mark,
+.logo-word {
+  display: inline-block;
+  background: currentColor;
+  mask: center / contain no-repeat;
+  -webkit-mask: center / contain no-repeat;
+}
+.logo-mark {
+  mask-image: url(/mark.png);
+  -webkit-mask-image: url(/mark.png);
+  aspect-ratio: 647 / 1103;
+}
+.logo-word {
+  mask-image: url(/wordmark.png);
+  -webkit-mask-image: url(/wordmark.png);
+  aspect-ratio: 1356 / 1103;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
