@@ -1,0 +1,33 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>About · hello.biggle</title>
+  <link rel="icon" href="logo.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <p><a href="./">← Home</a></p>
+    <h1>About hello.biggle</h1>
+    <p class="said" hidden>You typed: <strong id="said"></strong></p>
+    <p>This is the first site on the Bigglenet. It's a folder of files on a normal web host, and the Biggle server maps <code>hello.biggle</code> to it.</p>
+
+    <h2 id="rules">The rules</h2>
+    <ol>
+      <li>Pages start with <code>&lt;!bhtml 1&gt;</code>.</li>
+      <li>Scripts, styles and images only load from Biggle sites.</li>
+      <li>No cookies. Sites store things with <code>biggle.storage</code>.</li>
+    </ol>
+
+    <biggle-signed-out><p class="note">Sign in to the Biggle browser and this page will greet you by name.</p></biggle-signed-out>
+    <biggle-signed-in><p class="note">Signed in as <biggle-me></biggle-me>.</p></biggle-signed-in>
+  </main>
+  <script>
+    const q = biggle.params.get('q');
+    if (q) {
+      document.getElementById('said').textContent = q;
+      document.querySelector('.said').hidden = false;
+    }
+  </script>
+</body>
+</html>

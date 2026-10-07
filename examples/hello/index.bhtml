@@ -1,0 +1,47 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Hello, Bigglenet</title>
+  <link rel="icon" href="logo.svg">
+  <link rel="stylesheet" href="style.css">
+  <script src="counter.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <img src="logo.svg" alt="" width="72" height="72">
+    <h1>Hello, <biggle-me>guest</biggle-me>.</h1>
+    <p>You're on the Bigglenet. This page is <code>index.bhtml</code>, and it only opens in the Biggle browser.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>What's different here</h2>
+      <ul>
+        <li>No ads, no trackers, no cookie banners. The browser blocks them.</li>
+        <li>Every site has a <code>.biggle</code> name.</li>
+        <li>Pages are plain HTML with a <code>&lt;!bhtml 1&gt;</code> header.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Your visits</h2>
+      <p>You've opened this page <strong id="visits">…</strong> times. That's kept in <code>biggle.storage</code>, not a cookie.</p>
+      <button id="reset" type="button">Reset</button>
+    </section>
+
+    <section class="card">
+      <h2>Look around</h2>
+      <ul class="links">
+        <li><a href="about.bhtml">About this site</a></li>
+        <li><a href="about.bhtml#rules">The rules</a></li>
+        <li><a href="#top">Back to top (same page)</a></li>
+        <li><a href="https://example.com/">A normal web link</a></li>
+      </ul>
+      <form action="about.bhtml" class="search">
+        <input name="q" placeholder="Type something…" aria-label="Something">
+        <button>Send it to the about page</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
