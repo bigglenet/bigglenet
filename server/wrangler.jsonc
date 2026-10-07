@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bigglenet",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bigglenet",
+      "database_id": "d68de7d5-a876-46e2-9689-95b8e81e5138",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "LIVE", "class_name": "Live" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Live"] }],
+  // The Biggle browser as a PWA. Everything except /api and /site is the app.
+  "assets": {
+    "directory": "../browser/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/site/*"]
+  },
+  "routes": [{ "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }],
+  "workers_dev": false
+}
