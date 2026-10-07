@@ -77,8 +77,11 @@
   <section class="make">
     <div>
       <h2>Make your own site</h2>
-      <p>A <code>.biggle</code> site is a folder of normal HTML with one extra line at the top. Host it anywhere, then get a name for it.</p>
-      <a class="button" href="make.bhtml">Show me how</a>
+      <p>Pick a name and a look, add some words and pictures, done. The site editor is built into Biggle, and nobody needs to know any code.</p>
+      <div class="buttons">
+        <a class="button" href="biggle://sites">Make a site</a>
+        <a class="button ghost" href="make.bhtml">How it works</a>
+      </div>
     </div>
     <pre class="code"><code><span class="c-head">&lt;!bhtml 1&gt;</span>
 &lt;title&gt;My site&lt;/title&gt;

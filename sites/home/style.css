@@ -399,6 +399,27 @@ code {
   }
 }
 
+.buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.button.ghost {
+  background: transparent;
+  color: var(--on-pop);
+  border: 1.5px solid color-mix(in srgb, var(--on-pop) 40%, transparent);
+}
+
+/* --- The easy way, on the guide page --- */
+.easy-way {
+  margin: 36px 0 44px;
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--pop);
+  color: var(--on-pop);
+}
+.easy-way h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.02em; }
+.easy-way p { margin: 0 0 18px; opacity: 0.8; }
+.easy-way .small { margin: 14px 0 0; font-size: 14px; opacity: 0.65; }
+.way { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; }
+.guide > p:not(.lede):not(.eyebrow) { color: var(--muted); }
+
 /* --- Get --- */
 .get-grid {
   display: grid;

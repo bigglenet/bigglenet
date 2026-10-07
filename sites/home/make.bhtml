@@ -22,8 +22,18 @@
 
   <main class="guide">
     <p class="eyebrow">Make a site</p>
-    <h1>Your own corner of the Bigglenet, in three steps.</h1>
-    <p class="lede">If you can write a bit of HTML, you can make a <code>.biggle</code> site. Here's the whole thing.</p>
+    <h1>Your own corner of the Bigglenet.</h1>
+    <p class="lede">Two ways to do it. Most people start with the easy one.</p>
+
+    <section class="easy-way">
+      <h2>The easy way: the site editor</h2>
+      <p>Right here in Biggle. Pick a name and a look, then add headings, text, pictures and buttons. No code, no hosting, and it saves as you go.</p>
+      <a class="button" href="biggle://sites">Open the site editor</a>
+      <p class="small">An admin checks new sites before anyone else can see them. You can keep editing yours while you wait.</p>
+    </section>
+
+    <h2 class="way">The hands-on way: write it yourself</h2>
+    <p>If you know a bit of HTML, you can build a site from scratch, either in the editor's Code view or on your own host.</p>
 
     <ol class="steps">
       <li>
@@ -51,7 +61,7 @@
       </li>
       <li>
         <h2>Get a name</h2>
-        <p>Ask a Bigglenet admin to point a name like <code>yourname.biggle</code> at your site's address. Once they do, anyone can type it into the Biggle address bar.</p>
+        <p>Ask a Bigglenet admin to point a name like <code>yourname.biggle</code> at your site's address. Once they do, anyone can type it into the Biggle address bar. (Sites made in the site editor get their name straight away.)</p>
       </li>
     </ol>
 
