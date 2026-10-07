@@ -103,7 +103,7 @@ class Browser {
       tab.loading = false;
       tab.preview = null;
       tab.view = { type: 'internal', page: u.page, path: u.path };
-      tab.title = u.page === 'start' ? 'New tab' : u.page === 'admin' ? 'Admin' : u.path ? `Editing ${u.path}.biggle` : 'My sites';
+      tab.title = internalTitle(u.page, u.path);
       tab.icon = null;
       return;
     }
@@ -271,6 +271,13 @@ class Browser {
     tab.icon = null;
     tab.view = { type: 'error', error };
   }
+}
+
+function internalTitle(page: InternalPage, path: string): string {
+  if (page === 'start') return 'New tab';
+  if (page === 'admin') return 'Admin';
+  if (page === 'nox') return 'Nox';
+  return path ? `Editing ${path}.biggle` : 'My sites';
 }
 
 async function previewBase(site: string): Promise<string> {

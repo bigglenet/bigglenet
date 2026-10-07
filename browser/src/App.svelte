@@ -11,6 +11,7 @@
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
   import FriendsPanel from './components/FriendsPanel.svelte';
+  import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
   import SiteEditor from './components/SiteEditor.svelte';
   import SitesPage from './components/SitesPage.svelte';
@@ -106,6 +107,8 @@
             {#if tab.view.type === 'internal'}
               {#if tab.view.page === 'admin'}
                 <AdminPage />
+              {:else if tab.view.page === 'nox'}
+                <NoxPage {tab} />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
