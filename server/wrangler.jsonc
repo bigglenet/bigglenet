@@ -25,7 +25,8 @@
   ],
   // Sign-up and password codes are emailed from here (Cloudflare Email Sending).
   "send_email": [{ "name": "EMAIL" }],
-  "vars": { "MAIL_FROM": "noreply@bigglenet.ethembeldagli.dev" },
+  // Set EMAIL_READY to "1" once Email Sending is onboarded for MAIL_FROM's domain.
+  "vars": { "MAIL_FROM": "noreply@bigglenet.ethembeldagli.dev", "EMAIL_READY": "0" },
   // The Biggle browser as a PWA. Everything except /api and /site is the app.
   "assets": {
     "directory": "../browser/dist",

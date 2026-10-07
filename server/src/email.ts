@@ -13,6 +13,9 @@ const LINES = {
   reset: 'Here is the code to reset your Bigglenet password.',
 };
 
+/** Whether emails can be sent. Off until the sending domain is onboarded (EMAIL_READY=1). */
+export const emailReady = (env: Env) => env.EMAIL_READY === '1' || env.EMAIL_DEV_MODE === '1';
+
 /**
  * Email a code. Returns null once sent. On a test server (EMAIL_DEV_MODE=1) nothing is sent
  * and the code comes back instead, so the flow can be tried without a mail setup.

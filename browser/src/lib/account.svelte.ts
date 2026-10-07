@@ -24,21 +24,26 @@ class Account {
   user = $state<Me | null>(null);
   /** Whether "Continue with Google" is available. */
   google = $state(false);
+  /** Whether email codes work: email sign-up, password resets, and confirming an email. */
+  email = $state(false);
 
   constructor() {
     const saved = loadSaved();
     if (saved) this.set(saved);
     onSessionExpired(() => this.clear());
     if (saved) this.refresh();
-    api<{ google: boolean }>('GET', '/api/auth/options').then(
-      (o) => (this.google = o.google),
+    api<{ google: boolean; email?: boolean }>('GET', '/api/auth/options').then(
+      (o) => {
+        this.google = o.google;
+        this.email = !!o.email;
+      },
       () => {},
     );
   }
 
-  /** Signed in, but the account still needs a confirmed email. */
+  /** Signed in, but the account still needs a confirmed email (once email is switched on). */
   get needsEmail(): boolean {
-    return !!this.user && this.user.emailVerified === false;
+    return this.email && !!this.user && this.user.emailVerified === false;
   }
 
   async refresh() {

@@ -1,6 +1,6 @@
 // Biggle ID: accounts and sessions. Every account has a confirmed email address
 // (checked with an emailed code) or signs in with Google.
-import { sendCode } from './email';
+import { emailReady, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 
 export type User = { id: number; username: string; is_admin: number; email: string | null; email_verified: number };
@@ -140,6 +140,9 @@ type CodeRow = { id: string; email: string; purpose: Purpose; code_hash: string;
 
 /** Make a code, email it (unless `send` is false) and return the ticket the app uses to finish. */
 async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true) {
+  if (!emailReady(env)) {
+    throw new HttpError(503, 'email_off', purpose === 'signup' ? 'New accounts open soon.' : "Email isn't switched on yet. Try again soon.");
+  }
   const id = randomId();
   const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
   const code = String(n).padStart(6, '0');

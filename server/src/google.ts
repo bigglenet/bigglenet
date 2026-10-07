@@ -2,6 +2,7 @@
 // polls until Google sends the browser back here. That works the same in the desktop app,
 // on phones and on the web, without the app having to receive the redirect itself.
 import { checkUsername, randomId, signedIn } from './auth';
+import { emailReady } from './email';
 import { HttpError, json, readJson, str } from './http';
 
 const REQUEST_TTL = 10 * 60;
@@ -21,7 +22,8 @@ const enabled = (env: Env) => !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRE
 const redirectUri = (req: Request) => `${new URL(req.url).origin}/api/auth/google/callback`;
 
 export async function options(_req: Request, env: Env): Promise<Response> {
-  return json({ google: enabled(env) });
+  // While email is off, nobody is asked to confirm one, and only Google can make new accounts.
+  return json({ google: enabled(env), email: emailReady(env) });
 }
 
 export async function start(req: Request, env: Env): Promise<Response> {

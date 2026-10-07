@@ -103,9 +103,16 @@
             Continue with Google
           </button>
         {/if}
-        <button class="primary" onclick={() => go('signup')}>Sign up with email</button>
-        <button class="secondary" onclick={() => go('signin')}>I already have an account</button>
+        {#if account.email}
+          <button class="primary" onclick={() => go('signup')}>Sign up with email</button>
+        {/if}
+        <button class={account.email || account.google ? 'secondary' : 'primary'} onclick={() => go('signin')}>
+          I already have an account
+        </button>
       </div>
+      {#if !account.email && !account.google}
+        <p class="note">New accounts open very soon.</p>
+      {/if}
     {:else if step === 'signin'}
       <h1>Welcome back</h1>
       <form class="stack" onsubmit={submit(() => account.signIn(username, password))}>
@@ -114,7 +121,7 @@
         <button class="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
       </form>
       <p class="links">
-        <button class="link" onclick={() => go('reset')}>Forgot your password?</button>
+        {#if account.email}<button class="link" onclick={() => go('reset')}>Forgot your password?</button>{/if}
         <button class="link" onclick={() => go('welcome')}>Back</button>
       </p>
     {:else if step === 'signup'}
@@ -330,6 +337,11 @@
   .error {
     margin: 16px 0 0;
     color: var(--danger);
+  }
+  .note {
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 14px;
   }
   .spinner {
     width: 32px;
