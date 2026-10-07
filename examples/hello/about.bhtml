@@ -4,30 +4,32 @@
   <title>About · hello.biggle</title>
   <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="style.css">
+  <script src="hello.js" defer></script>
 </head>
 <body>
-  <main>
-    <p><a href="./">← Home</a></p>
+  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <main class="about">
+    <p><a href="./" class="back">← Back to hello</a></p>
     <h1>About hello.biggle</h1>
     <p class="said" hidden>You typed: <strong id="said"></strong></p>
-    <p>This is the first site on the Bigglenet. It's a folder of files on a normal web host, and the Biggle server maps <code>hello.biggle</code> to it.</p>
+    <p>This was the very first site on the Bigglenet. It's a little folder of files: two <code>.bhtml</code> pages, a stylesheet, a script and a smiley.</p>
 
-    <h2 id="rules">The rules</h2>
+    <h2 id="rules">The rules of the Bigglenet</h2>
     <ol>
-      <li>Pages start with <code>&lt;!bhtml 1&gt;</code>.</li>
-      <li>Scripts, styles and images only load from Biggle sites.</li>
-      <li>No cookies. Sites store things with <code>biggle.storage</code>.</li>
+      <li>Pages start with <code>&lt;!bhtml 1&gt;</code>, so they only open in Biggle.</li>
+      <li>Scripts, styles and pictures only load from Biggle sites. No trackers, no ads.</li>
+      <li>No cookies. Sites remember things with <code>biggle.storage</code>.</li>
     </ol>
 
-    <biggle-signed-out><p class="note">Sign in to the Biggle browser and this page will greet you by name.</p></biggle-signed-out>
-    <biggle-signed-in><p class="note">Signed in as <biggle-me></biggle-me>.</p></biggle-signed-in>
+    <form class="ask" action="about.bhtml">
+      <label for="q">Say something to this page</label>
+      <div>
+        <input id="q" name="q" placeholder="Hi hello.biggle!">
+        <button>Send</button>
+      </div>
+    </form>
+
+    <biggle-signed-in><p class="note">Signed in as <biggle-me></biggle-me>. Hi!</p></biggle-signed-in>
   </main>
-  <script>
-    const q = biggle.params.get('q');
-    if (q) {
-      document.getElementById('said').textContent = q;
-      document.querySelector('.said').hidden = false;
-    }
-  </script>
 </body>
 </html>

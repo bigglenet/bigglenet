@@ -4,44 +4,71 @@
   <title>Hello, Bigglenet</title>
   <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="style.css">
-  <script src="counter.js" defer></script>
+  <script src="hello.js" defer></script>
 </head>
 <body>
+  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+
   <header class="hero">
-    <img src="logo.svg" alt="" width="72" height="72">
-    <h1>Hello, <biggle-me>guest</biggle-me>.</h1>
-    <p>You're on the Bigglenet. This page is <code>index.bhtml</code>, and it only opens in the Biggle browser.</p>
+    <img class="face" src="logo.svg" alt="" width="96" height="96">
+    <h1><span class="wave" aria-hidden="true">👋</span> Hello, <biggle-me>stranger</biggle-me>!</h1>
+    <p>This is <strong>hello.biggle</strong>, the first site on the Bigglenet. Poke at the cards below: each one shows off something Biggle pages can do that normal web pages can't.</p>
   </header>
 
-  <main>
-    <section class="card">
-      <h2>What's different here</h2>
-      <ul>
-        <li>No ads, no trackers, no cookie banners. The browser blocks them.</li>
-        <li>Every site has a <code>.biggle</code> name.</li>
-        <li>Pages are plain HTML with a <code>&lt;!bhtml 1&gt;</code> header.</li>
-      </ul>
+  <main class="grid">
+    <section class="card me">
+      <h2>Who's here?</h2>
+      <div class="who">
+        <span class="avatar" id="avatar">?</span>
+        <div>
+          <strong id="who-name">Checking…</strong>
+          <span id="who-note">Biggle tells pages who's visiting. Never your password.</span>
+        </div>
+      </div>
+      <code>await biggle.me()</code>
     </section>
 
-    <section class="card">
+    <section class="card visits">
       <h2>Your visits</h2>
-      <p>You've opened this page <strong id="visits">…</strong> times. That's kept in <code>biggle.storage</code>, not a cookie.</p>
-      <button id="reset" type="button">Reset</button>
+      <p class="big"><span id="visits">0</span></p>
+      <p class="small">Saved with <code>biggle.storage</code>, not a cookie. Only you see your count.</p>
+      <button id="reset" type="button">Start over</button>
     </section>
 
-    <section class="card">
+    <section class="card teleport">
+      <h2>Teleport</h2>
+      <p>Jump to a random site on the Bigglenet.</p>
+      <button id="teleport" type="button" class="loud">🎲 Take me somewhere</button>
+      <p class="small" id="site-count"></p>
+    </section>
+
+    <section class="card mood">
+      <h2>Pick a mood</h2>
+      <p>This page remembers your colour. Just for you, just here.</p>
+      <div class="moods" role="radiogroup" aria-label="Mood">
+        <button type="button" data-mood="sunny" aria-label="Sunny"></button>
+        <button type="button" data-mood="sea" aria-label="Sea"></button>
+        <button type="button" data-mood="grape" aria-label="Grape"></button>
+        <button type="button" data-mood="mint" aria-label="Mint"></button>
+      </div>
+    </section>
+
+    <section class="card copy">
+      <h2>Share the love</h2>
+      <p class="quote" id="quote">“I found a smaller, nicer internet.”</p>
+      <button id="copy" type="button">Copy it</button>
+    </section>
+
+    <section class="card more">
       <h2>Look around</h2>
-      <ul class="links">
+      <ul>
         <li><a href="about.bhtml">About this site</a></li>
-        <li><a href="about.bhtml#rules">The rules</a></li>
-        <li><a href="#top">Back to top (same page)</a></li>
-        <li><a href="https://example.com/">A normal web link</a></li>
+        <li><a href="biggle://home.biggle/">The Bigglenet homepage</a></li>
+        <li><a href="biggle://home.biggle/make.bhtml">Make your own site</a></li>
       </ul>
-      <form action="about.bhtml" class="search">
-        <input name="q" placeholder="Type something…" aria-label="Something">
-        <button>Send it to the about page</button>
-      </form>
     </section>
   </main>
+
+  <footer>Made with <code>&lt;!bhtml 1&gt;</code> and a lot of 👋</footer>
 </body>
 </html>
