@@ -69,6 +69,11 @@ function typeAddresses(names) {
 }
 
 async function loadSites() {
+  if (typeof biggle.sites !== 'function') {
+    const list = $('site-list');
+    if (list) list.innerHTML = '<li class="loading">Update your Biggle browser to see every site here.</li>';
+    return;
+  }
   try {
     const sites = await biggle.sites();
     renderSites(sites);
@@ -84,6 +89,7 @@ for (const button of document.querySelectorAll('[data-copy]')) {
     const block = $(button.dataset.copy);
     let copied = false;
     try {
+      if (typeof biggle.copy !== 'function') throw new Error('old browser');
       await biggle.copy(block.textContent);
       copied = true;
     } catch {
