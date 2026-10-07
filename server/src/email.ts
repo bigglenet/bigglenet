@@ -1,4 +1,4 @@
-// Sends sign-in codes with Cloudflare Email Sending.
+// Sends sign-in codes with Resend (https://resend.com).
 import { HttpError } from './http';
 
 const SUBJECTS = {
@@ -13,8 +13,8 @@ const LINES = {
   reset: 'Here is the code to reset your Bigglenet password.',
 };
 
-/** Whether emails can be sent. Off until the sending domain is onboarded (EMAIL_READY=1). */
-export const emailReady = (env: Env) => env.EMAIL_READY === '1' || env.EMAIL_DEV_MODE === '1';
+/** Whether emails can be sent: on once the RESEND_API_KEY secret is set. */
+export const emailReady = (env: Env) => !!env.RESEND_API_KEY || env.EMAIL_DEV_MODE === '1';
 
 /**
  * Email a code. Returns null once sent. On a test server (EMAIL_DEV_MODE=1) nothing is sent
@@ -29,10 +29,19 @@ export async function sendCode(env: Env, to: string, code: string, purpose: keyo
   <p style="font-size:34px;font-weight:800;letter-spacing:0.18em;margin:0 0 20px;padding:16px;text-align:center;background:#f6f4f0;border-radius:14px">${code}</p>
   <p style="margin:0;color:#888;font-size:14px">It works for 15 minutes. If you didn't ask for this, you can ignore this email.</p>
 </div>`;
+
+  let res: Response;
   try {
-    await env.EMAIL.send({ to, from: { email: env.MAIL_FROM, name: 'Bigglenet' }, subject: SUBJECTS[purpose], text, html });
-  } catch (e) {
-    console.error('Email failed', (e as { code?: string }).code, (e as Error).message);
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `Bigglenet <${env.MAIL_FROM}>`, to: [to], subject: SUBJECTS[purpose], html, text }),
+    });
+  } catch {
+    res = new Response(null, { status: 599 });
+  }
+  if (!res.ok) {
+    console.error('Email failed', res.status, await res.text().catch(() => ''));
     throw new HttpError(503, 'email_failed', "We couldn't send the email. Check the address and try again in a minute.");
   }
   return null;

@@ -6,8 +6,8 @@ interface Env {
   /** Google sign-in. Both must be set for "Continue with Google" to appear. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  /** "1" once Cloudflare Email Sending is set up for MAIL_FROM's domain. Turns on email sign-up and confirmation. */
-  EMAIL_READY?: string;
+  /** Resend API key. Setting it turns on email sign-up, password resets and email confirmation. */
+  RESEND_API_KEY?: string;
   /** "1" on test servers: don't send emails, return the code in the response instead. */
   EMAIL_DEV_MODE?: string;
 }
