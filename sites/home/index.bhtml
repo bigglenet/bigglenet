@@ -1,0 +1,113 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>home.biggle</title>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="home.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-home" href="./" aria-label="home.biggle"><span class="mark" aria-hidden="true"></span></a>
+    <div class="nav-links">
+      <a href="#sites">Sites</a>
+      <a href="make.bhtml">Make a site</a>
+      <a href="#get">Get Biggle</a>
+    </div>
+    <span class="nav-me">
+      <biggle-signed-in><span class="dot"></span><biggle-me></biggle-me></biggle-signed-in>
+      <biggle-signed-out>Not signed in</biggle-signed-out>
+    </span>
+  </nav>
+
+  <header class="hero">
+    <h1><span class="wordmark" aria-hidden="true"></span><span class="sr-only">bigglenet</span></h1>
+    <p class="tagline">The internet, but smaller and nicer.</p>
+    <p class="lede">
+      A little web of its own. Sites made by people, at <code>.biggle</code> addresses.
+      No ads, no trackers, no cookie banners. The browser simply won't load them.
+    </p>
+    <div class="fake-bar" aria-hidden="true">
+      <span class="fake-shield"></span>
+      <span class="fake-url"><span id="typed">biggle://home.biggle</span><span class="caret"></span></span>
+    </div>
+    <p class="hello">
+      <biggle-signed-in>Welcome back, <strong><biggle-me></biggle-me></strong>. </biggle-signed-in>
+      <biggle-signed-out>You're browsing as a guest. Sign in from the top right to get a Biggle ID. </biggle-signed-out>
+      <span id="visits"></span>
+    </p>
+  </header>
+
+  <section class="stats" aria-label="The Bigglenet right now">
+    <div><strong id="site-count">–</strong><span>sites</span></div>
+    <div><strong>0</strong><span>trackers</span></div>
+    <div><strong>0</strong><span>ads</span></div>
+    <div><strong>1</strong><span>login for everything</span></div>
+  </section>
+
+  <section class="features">
+    <article>
+      <h2>Ads and trackers can't get in</h2>
+      <p>Every page runs in a sealed box. It can't set cookies or load anything from outside the Bigglenet, so there's nothing to track you with.</p>
+    </article>
+    <article>
+      <h2>Everything has a name</h2>
+      <p>Sites live at short, memorable addresses like <code>hello.biggle</code>. Type one into the bar and you're there.</p>
+    </article>
+    <article>
+      <h2>One Biggle ID</h2>
+      <p>Make one account and every site can greet you by name. Sites never see your password.</p>
+    </article>
+    <article>
+      <h2>Friends built in</h2>
+      <p>Add friends and chat with them right in the browser. Open the people button next to the address bar.</p>
+    </article>
+  </section>
+
+  <section class="sites" id="sites">
+    <div class="section-head">
+      <h2>Sites on the Bigglenet</h2>
+      <p>Every <code>.biggle</code> site there is, right now.</p>
+    </div>
+    <ul id="site-list" class="site-list">
+      <li class="loading">Asking the Bigglenet…</li>
+    </ul>
+  </section>
+
+  <section class="make">
+    <div>
+      <h2>Make your own site</h2>
+      <p>A <code>.biggle</code> site is a folder of normal HTML with one extra line at the top. Host it anywhere, then get a name for it.</p>
+      <a class="button" href="make.bhtml">Show me how</a>
+    </div>
+    <pre class="code"><code><span class="c-head">&lt;!bhtml 1&gt;</span>
+&lt;title&gt;My site&lt;/title&gt;
+&lt;h1&gt;Hello, <span class="c-tag">&lt;biggle-me&gt;</span>guest<span class="c-tag">&lt;/biggle-me&gt;</span>!&lt;/h1&gt;
+&lt;a href="about.bhtml"&gt;About me&lt;/a&gt;</code></pre>
+  </section>
+
+  <section class="get" id="get">
+    <h2>Get Biggle</h2>
+    <p>You're probably already in it. To take it everywhere:</p>
+    <div class="get-grid">
+      <a class="get-card" href="https://github.com/bigglenet/bigglenet/releases/latest">
+        <strong>Mac, Windows, Linux</strong>
+        <span>Download the desktop app. Clicking a <code>biggle://</code> link anywhere opens it.</span>
+      </a>
+      <a class="get-card" href="https://bigglenet.ethembeldagli.dev">
+        <strong>Phone</strong>
+        <span>Open the Bigglenet in your phone's browser and add it to your home screen.</span>
+      </a>
+      <a class="get-card" href="https://github.com/bigglenet/bigglenet">
+        <strong>The code</strong>
+        <span>Everything is open source. Run your own Bigglenet if you like.</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <span class="mark small" aria-hidden="true"></span>
+    <span>home.biggle, made on the Bigglenet.</span>
+  </footer>
+</body>
+</html>

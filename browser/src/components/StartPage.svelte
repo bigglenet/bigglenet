@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
+  import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
 
@@ -22,6 +23,15 @@
       <button type="submit">Go</button>
     </form>
 
+    <button class="home" onclick={() => browser.go(tab, 'biggle://home.biggle/')}>
+      <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
+      <span class="home-text">
+        <strong>home.biggle</strong>
+        <span>New here? Start with the Bigglenet's homepage.</span>
+      </span>
+      <Icon name="forward" />
+    </button>
+
     <section>
       <h2>Sites on the Bigglenet</h2>
       {#await directory}
@@ -31,7 +41,7 @@
           <p class="muted">No sites yet.</p>
         {:else}
           <ul class="sites">
-            {#each sites as site (site.name)}
+            {#each sites.filter((s) => s.name !== 'home') as site (site.name)}
               <li>
                 <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
                   <span class="tile">{site.name[0].toUpperCase()}</span>
@@ -106,8 +116,50 @@
     font-weight: 600;
   }
 
+  .home {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 14px 18px 14px 14px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font: inherit;
+    text-align: left;
+  }
+  .home:hover {
+    opacity: 0.92;
+  }
+  .home-mark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--on-accent);
+    color: var(--accent);
+  }
+  .home-mark .logo-mark {
+    height: 26px;
+  }
+  .home-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .home-text span {
+    opacity: 0.75;
+    font-size: 14px;
+  }
+
   section {
-    margin-top: 44px;
+    margin-top: 40px;
   }
   h2 {
     margin: 0 0 12px;

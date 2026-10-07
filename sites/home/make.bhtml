@@ -1,0 +1,84 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Make a site · home.biggle</title>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="home.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-home" href="./" aria-label="home.biggle"><span class="mark" aria-hidden="true"></span></a>
+    <div class="nav-links">
+      <a href="./#sites">Sites</a>
+      <a href="make.bhtml" aria-current="page">Make a site</a>
+      <a href="./#get">Get Biggle</a>
+    </div>
+    <span class="nav-me">
+      <biggle-signed-in><span class="dot"></span><biggle-me></biggle-me></biggle-signed-in>
+      <biggle-signed-out>Not signed in</biggle-signed-out>
+    </span>
+  </nav>
+
+  <main class="guide">
+    <p class="eyebrow">Make a site</p>
+    <h1>Your own corner of the Bigglenet, in three steps.</h1>
+    <p class="lede">If you can write a bit of HTML, you can make a <code>.biggle</code> site. Here's the whole thing.</p>
+
+    <ol class="steps">
+      <li>
+        <h2>Write <code>index.bhtml</code></h2>
+        <p>It's normal HTML, CSS and JavaScript. The only rule is the first line: <code>&lt;!bhtml 1&gt;</code>. That line is what makes it a Biggle page, and why it won't open in a normal browser.</p>
+        <div class="copyable">
+          <pre class="code" id="starter"><code>&lt;!bhtml 1&gt;
+&lt;title&gt;My site&lt;/title&gt;
+&lt;link rel="stylesheet" href="style.css"&gt;
+
+&lt;h1&gt;Hello, &lt;biggle-me&gt;guest&lt;/biggle-me&gt;!&lt;/h1&gt;
+&lt;p&gt;Welcome to my corner of the Bigglenet.&lt;/p&gt;
+&lt;a href="about.bhtml"&gt;About me&lt;/a&gt;</code></pre>
+          <button class="copy" data-copy="starter" type="button">Copy</button>
+        </div>
+      </li>
+      <li>
+        <h2>Put it online</h2>
+        <p>Upload the folder to any free static host, like Cloudflare Pages, GitHub Pages or Netlify. Add a file called <code>_headers</code> so normal browsers show your code instead of trying to open it:</p>
+        <div class="copyable">
+          <pre class="code" id="headers"><code>/*.bhtml
+  Content-Type: text/bhtml; charset=utf-8</code></pre>
+          <button class="copy" data-copy="headers" type="button">Copy</button>
+        </div>
+      </li>
+      <li>
+        <h2>Get a name</h2>
+        <p>Ask a Bigglenet admin to point a name like <code>yourname.biggle</code> at your site's address. Once they do, anyone can type it into the Biggle address bar.</p>
+      </li>
+    </ol>
+
+    <section class="extras">
+      <h2>Biggle superpowers</h2>
+      <p>Things your pages can do that normal web pages can't:</p>
+      <dl>
+        <dt><code>&lt;biggle-me&gt;</code></dt>
+        <dd>Shows the visitor's username, or "guest".</dd>
+        <dt><code>&lt;biggle-signed-in&gt;</code>, <code>&lt;biggle-signed-out&gt;</code></dt>
+        <dd>Content only signed-in, or only signed-out, visitors see.</dd>
+        <dt><code>await biggle.me()</code></dt>
+        <dd>Who's visiting, from JavaScript.</dd>
+        <dt><code>biggle.storage</code></dt>
+        <dd>Save things for each visitor, without cookies.</dd>
+        <dt><code>await biggle.copy(text)</code></dt>
+        <dd>Copy to the clipboard. The Copy buttons on this page use it.</dd>
+        <dt><code>await biggle.sites()</code></dt>
+        <dd>Every site on the Bigglenet. This homepage uses it for its directory.</dd>
+      </dl>
+      <p><a href="https://github.com/bigglenet/bigglenet/blob/main/spec/BHTML.md">Read the full BHTML spec</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <span class="mark small" aria-hidden="true"></span>
+    <span>home.biggle, made on the Bigglenet.</span>
+  </footer>
+</body>
+</html>

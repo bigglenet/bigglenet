@@ -60,7 +60,9 @@ biggle.url               // "biggle://hello.biggle/about.bhtml?x=1"
 biggle.site              // "hello"
 biggle.params.get("x")   // "1" (a URLSearchParams of the query)
 await biggle.me()        // { username: "ethem" } or null
+await biggle.sites()     // [{ name: "hello", title: "Hello, Bigglenet" }, …] every .biggle site
 biggle.go("other.bhtml") // navigate (relative, biggle:// or https://)
+await biggle.copy("text") // copy to the clipboard (call it from a click)
 
 // Per-site storage, saved by the browser. Pages get no cookies or localStorage.
 await biggle.storage.set("visits", 3)  // any JSON value
@@ -99,6 +101,6 @@ Upload your files to any static host. On Cloudflare Pages, add a `_headers` file
   Content-Type: text/bhtml; charset=utf-8
 ```
 
-Then ask the admin to point `yourname.biggle` at the site's URL (for example `https://yourname.pages.dev/`).
+Then ask an admin to point `yourname.biggle` at the site's URL (for example `https://yourname.pages.dev/`).
 
 The Biggle server fetches your files through `https://bigglenet.ethembeldagli.dev/site/<name>/<path>`, so visitors never connect to your host directly.

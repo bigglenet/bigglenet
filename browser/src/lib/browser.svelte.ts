@@ -1,5 +1,6 @@
 import { account } from './account.svelte';
 import { SITE_PREFIX } from './config';
+import { loadDirectory } from './directory';
 import { load, type PageError } from './loader';
 import { storageOp } from './storage';
 import { fromInput, parse, START, withHash, type InternalPage } from './url';
@@ -225,9 +226,27 @@ class Browser {
         if (typeof msg.key === 'string') this.shortcut(msg.key);
         break;
       }
-      case 'storage': {
+      case 'call': {
         if (tab.view.type !== 'page') break;
-        reply({ type: 'storage-result', id: msg.id, ...storageOp(tab.view.site, msg.op, msg.key, msg.value) });
+        const site = tab.view.site;
+        const args = Array.isArray(msg.args) ? msg.args : [];
+        const method = String(msg.method);
+        if (method.startsWith('storage.')) {
+          reply({ type: 'result', id: msg.id, ...storageOp(site, method.slice('storage.'.length), args[0], args[1]) });
+        } else if (method === 'copy') {
+          // A click in the page also activates the browser around it, so we're allowed to copy.
+          navigator.clipboard.writeText(String(args[0] ?? '')).then(
+            () => reply({ type: 'result', id: msg.id }),
+            () => reply({ type: 'result', id: msg.id, error: "Couldn't copy that." }),
+          );
+        } else if (method === 'sites') {
+          loadDirectory().then(
+            (sites) => reply({ type: 'result', id: msg.id, value: sites }),
+            () => reply({ type: 'result', id: msg.id, error: "Can't reach the Bigglenet right now." }),
+          );
+        } else {
+          reply({ type: 'result', id: msg.id, error: `biggle has no ${method}()` });
+        }
         break;
       }
     }

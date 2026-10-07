@@ -42,32 +42,33 @@
     else if (!id || id.toLowerCase() === 'top') scrollTo(0, 0);
   }
 
-  // --- biggle.storage: kept by the browser, one store per site ---
+  // --- Asking the browser for things: storage, the site directory ---
 
   let nextCall = 0;
   const pending = new Map();
 
-  function call(op, key, value) {
+  function call(method, ...args) {
     return new Promise((resolve, reject) => {
       const id = ++nextCall;
       pending.set(id, { resolve, reject });
-      post({ type: 'storage', id, op, key, value });
+      post({ type: 'call', id, method, args });
     });
   }
 
+  // biggle.storage: kept by the browser, one store per site.
   const storage = Object.freeze({
     async get(key) {
-      const json = await call('get', String(key));
+      const json = await call('storage.get', String(key));
       return json === undefined ? undefined : JSON.parse(json);
     },
     async set(key, value) {
       const json = JSON.stringify(value);
       if (json === undefined) throw new TypeError('biggle.storage can only store JSON values');
-      await call('set', String(key), json);
+      await call('storage.set', String(key), json);
     },
-    remove: (key) => call('remove', String(key)).then(() => {}),
-    keys: () => call('keys'),
-    clear: () => call('clear').then(() => {}),
+    remove: (key) => call('storage.remove', String(key)).then(() => {}),
+    keys: () => call('storage.keys'),
+    clear: () => call('storage.clear').then(() => {}),
   });
 
   // --- Biggle tags ---
@@ -107,7 +108,7 @@
     if (e.source !== parent) return;
     const msg = e.data;
     if (!msg || msg.biggle !== 1) return;
-    if (msg.type === 'storage-result') {
+    if (msg.type === 'result') {
       const call = pending.get(msg.id);
       if (!call) return;
       pending.delete(msg.id);
@@ -216,6 +217,8 @@
       params: new URLSearchParams(init.search),
       me: async () => user && { ...user },
       go: (href) => go(href),
+      sites: () => call('sites'),
+      copy: (text) => call('copy', String(text)).then(() => {}),
       storage,
     }),
   });
