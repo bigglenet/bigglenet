@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Bigglenet",
+  "version": "0.1.0",
+  "identifier": "dev.ethembeldagli.bigglenet",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../browser run dev:live",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm --prefix ../browser run build",
+    "frontendDist": "../../browser/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Bigglenet",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 420,
+        "minHeight": 400,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 18, "y": 27 }
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "The Biggle browser",
+    "longDescription": "Browse .biggle sites on the Bigglenet, chat with friends, and leave ads and trackers behind.",
+    "copyright": "Copyright (c) 2026 bigglenet",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["biggle"]
+      }
+    }
+  }
+}
