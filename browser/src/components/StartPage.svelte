@@ -10,8 +10,7 @@
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
-    const q = query.trim();
-    if (q) browser.go(tab, `biggle://nox?q=${encodeURIComponent(q)}`);
+    browser.open(tab, query);
   }
 </script>
 

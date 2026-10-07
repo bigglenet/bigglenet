@@ -94,7 +94,7 @@
         }}
         onblur={() => (editing = false)}
         {onkeydown}
-        placeholder="Type a .biggle address"
+        placeholder="Search or type a .biggle address"
         aria-label="Address"
         spellcheck="false"
         autocomplete="off"

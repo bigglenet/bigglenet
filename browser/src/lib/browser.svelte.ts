@@ -3,7 +3,7 @@ import { api } from './api';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { answerCall } from './frame';
 import { load, type PageError } from './loader';
-import { fromInput, parse, START, withHash, type InternalPage } from './url';
+import { fromInput, looksLikeAddress, noxSearch, parse, START, withHash, type InternalPage } from './url';
 
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
@@ -77,8 +77,10 @@ class Browser {
     else if (this.activeId === id) this.activeId = this.tabs[Math.min(i, this.tabs.length - 1)].id;
   }
 
-  /** Handle whatever was typed into an address box. */
+  /** Handle whatever was typed into an address box: open an address, or search with Nox. */
   open(tab: Tab, text: string) {
+    if (!text.trim()) return;
+    if (!looksLikeAddress(text)) return this.go(tab, noxSearch(text));
     const target = fromInput(text);
     if (target?.kind === 'external') this.external = target.href;
     else if (target) this.go(tab, target.href);
@@ -228,8 +230,8 @@ class Browser {
       }
       case 'navigate': {
         const u = typeof msg.url === 'string' ? parse(msg.url) : null;
-        // Pages can link to sites, the start page and the site editor, but not other built-in pages.
-        const allowed = u?.kind === 'site' || (u?.kind === 'internal' && (u.page === 'sites' || u.page === 'start'));
+        // Pages can link to sites, the start page, Nox and the site editor, but not other built-in pages.
+        const allowed = u?.kind === 'site' || (u?.kind === 'internal' && ['sites', 'start', 'nox'].includes(u.page));
         if (!u || !allowed) break;
         if (msg.newTab) this.newTab(u.href, { activate: !msg.background, after: tab.id });
         else this.go(tab, u.href);

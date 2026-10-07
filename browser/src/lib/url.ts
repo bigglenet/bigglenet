@@ -67,6 +67,15 @@ export function fromGateway(href: string, previewBase?: string, previewSite?: st
   return `biggle://${name}.biggle${tail}`;
 }
 
+/** Whether typed text is an address to open, rather than something to search for with Nox. */
+export function looksLikeAddress(text: string): boolean {
+  const t = text.trim();
+  return /^(biggle:|https?:\/\/)/i.test(t) || /^[a-z0-9-]+\.biggle(?:[/?#]|$)/i.test(t) || isInternal(t.toLowerCase());
+}
+
+/** The Nox search page for some text. */
+export const noxSearch = (text: string) => `biggle://nox?q=${encodeURIComponent(text.trim())}`;
+
 export type InputTarget = { kind: 'biggle'; href: string } | { kind: 'external'; href: string } | null;
 
 /** What the user typed into an address box. */

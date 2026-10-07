@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory, type DirectoryEntry } from '../lib/directory';
-  import { fromInput } from '../lib/url';
+  import { looksLikeAddress, noxSearch } from '../lib/url';
 
   let { tab }: { tab: Tab } = $props();
 
@@ -14,26 +14,27 @@
     return new URLSearchParams(tab.url.slice(i + 1)).get('q') ?? '';
   }
 
+  // Follow the address (back/forward, links). Only reads the tab, so typing isn't overwritten.
   $effect(() => {
-    const current = qFromTab();
-    if (query !== current) query = current;
+    query = qFromTab();
   });
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const target = fromInput(q);
-    if (target?.kind === 'external') browser.external = target.href;
-    else if (target?.kind === 'biggle') browser.go(tab, target.href);
-    else browser.go(tab, `biggle://nox?q=${encodeURIComponent(q)}`, 'replace');
+    if (looksLikeAddress(q)) browser.open(tab, q);
+    else browser.go(tab, noxSearch(q), 'replace');
   }
 
   function results(sites: DirectoryEntry[]) {
-    const q = query.trim().toLowerCase();
-    const all = sites.filter((s) => s.name !== 'home');
-    if (!q) return all;
-    return all.filter((s) => s.name.includes(q) || s.title?.toLowerCase().includes(q));
+    const q = query.trim().toLowerCase().replace(/\.biggle$/, '');
+    if (!q) return sites;
+    // Exact names first, then names starting with the search, then everything else that matches.
+    const rank = (s: DirectoryEntry) => (s.name === q ? 0 : s.name.startsWith(q) ? 1 : 2);
+    return sites
+      .filter((s) => s.name.includes(q) || s.title?.toLowerCase().includes(q))
+      .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   }
 </script>
 
