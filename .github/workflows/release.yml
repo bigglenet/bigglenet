@@ -70,10 +70,16 @@ jobs:
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs updates so installed apps can trust them. See "Release" in the README.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         with:
           projectPath: desktop
           releaseId: ${{ needs.create-release.outputs.id }}
           args: ${{ matrix.args }}
+          # latest.json tells installed apps which version is newest and where to get it.
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
 
   publish:
     needs: [create-release, build]

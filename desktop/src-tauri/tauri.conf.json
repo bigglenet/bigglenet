@@ -20,7 +20,10 @@
         "minHeight": 400,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "trafficLightPosition": { "x": 18, "y": 27 }
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 27
+        }
       }
     ],
     "security": {
@@ -34,16 +37,34 @@
     "shortDescription": "The Biggle browser",
     "longDescription": "Browse .biggle sites on the Bigglenet, chat with friends, and leave ads and trackers behind.",
     "copyright": "Copyright (c) 2026 bigglenet",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "macOS": {
       "signingIdentity": "-",
       "minimumSystemVersion": "11.0"
-    }
+    },
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["biggle"]
+        "schemes": [
+          "biggle"
+        ]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlCNEY3Qjg4Qjc5RjA5RDUKUldUVkNaKzNpSHRQbTZVTm9rTmVNN0o2bE9HcDZMdVN1eVlEZXNyZUpYK3ZZVGFwdWJWeFNGeXQK",
+      "endpoints": [
+        "https://github.com/bigglenet/bigglenet/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

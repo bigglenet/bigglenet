@@ -13,14 +13,16 @@ export async function openExternal(url: string) {
   }
 }
 
+/** The PWA's offline cache. Registered even on the install screen, so phones can install it. */
+export function registerServiceWorker() {
+  if (!isApp && import.meta.env.PROD && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+}
+
 /** Set up the app shell. `open` is called with biggle:// links from other apps. */
 export async function initPlatform(open: (href: string) => void) {
-  if (!isApp) {
-    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-    return;
-  }
+  if (!isApp) return;
   // On macOS the tabs sit in the title bar, next to the window buttons.
   if (isMac) document.documentElement.dataset.titlebar = 'overlay';
 

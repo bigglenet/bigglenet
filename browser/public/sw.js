@@ -1,6 +1,6 @@
-// Keeps the Biggle browser itself available offline. Sites (/site/) and the API (/api/)
-// always go to the network.
-const CACHE = 'bigglenet-shell-v1';
+// Keeps the Biggle browser itself available offline. Sites (/site/), the API (/api/) and
+// /version.json always go to the network.
+const CACHE = 'bigglenet-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.png', '/mark.png', '/wordmark.png'];
 
 self.addEventListener('install', (event) => {
@@ -22,6 +22,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/site/')) return;
+  if (url.pathname === '/version.json') return;
 
   if (request.mode === 'navigate') {
     // Network first, so updates show up straight away.

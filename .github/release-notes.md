@@ -9,6 +9,8 @@ The Biggle browser for your computer. Pick the file for your system from **Asset
 
 On a phone, open **https://bigglenet.ethembeldagli.dev** and add it to your home screen.
 
+Bigglenet updates itself: when a new version is out, it downloads in the background and offers a restart.
+
 ### Opening it the first time
 
 The apps aren't signed by Apple or Microsoft yet, so your computer will warn you once.

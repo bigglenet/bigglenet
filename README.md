@@ -12,8 +12,8 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 
 ## Get the browser
 
-- **Mac, Windows, Linux:** download it from [Releases](https://github.com/bigglenet/bigglenet/releases/latest).
-- **Phone:** open [bigglenet.ethembeldagli.dev](https://bigglenet.ethembeldagli.dev) and add it to your home screen.
+- **Mac, Windows, Linux:** download it from [Releases](https://github.com/bigglenet/bigglenet/releases/latest). It updates itself.
+- **Phone:** open [bigglenet.ethembeldagli.dev](https://bigglenet.ethembeldagli.dev) and add it to your home screen. The web version only runs as a home-screen app; in a normal browser tab it shows how to install it.
 
 Anyone can join: make a Biggle ID from the **Sign in** button. Then open **home.biggle** to look around.
 
@@ -60,7 +60,7 @@ Desktop app:
 
 ```bash
 npm run app:dev     # live-reloading app
-npm run app:build   # build it for this computer
+npm run app:build   # build it for this computer (needs the update signing key, see below)
 ```
 
 ## Run your own Bigglenet
@@ -82,11 +82,19 @@ The two Bigglenet sites are static folders. Publish changes with `npm run deploy
 
 ## Release
 
-Bump the version in `desktop/src-tauri/tauri.conf.json` and push a matching tag. GitHub Actions builds the Mac, Windows and Linux apps and publishes them as a release.
+Bump the version in `desktop/src-tauri/tauri.conf.json` and push a matching tag. GitHub Actions builds the Mac, Windows and Linux apps, signs the updates and publishes them as a release. Installed apps check the latest release's `latest.json`, download the update in the background and offer a restart.
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.2.0 && git push origin v0.2.0
 ```
+
+Updates are signed with a private key kept outside the repo, in `~/.tauri/bigglenet.key`, and as the `TAURI_SIGNING_PRIVATE_KEY` Actions secret. Back it up: without it, installed apps can't receive updates. Building locally needs it too:
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/bigglenet.key)" npm run app:build
+```
+
+The web app updates itself on every deploy and offers a reload.
 
 ## License
 

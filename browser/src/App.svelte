@@ -3,6 +3,7 @@
   import { browser } from './lib/browser.svelte';
   import { initPlatform } from './lib/platform';
   import { social } from './lib/social.svelte';
+  import { updates } from './lib/updates.svelte';
   import { START } from './lib/url';
   import AdminPage from './components/AdminPage.svelte';
   import AuthDialog from './components/AuthDialog.svelte';
@@ -14,10 +15,12 @@
   import TabBar from './components/TabBar.svelte';
   import TabSwitcher from './components/TabSwitcher.svelte';
   import Toolbar from './components/Toolbar.svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
 
   // ?open=biggle://… opens that address in the first tab.
   browser.newTab(new URLSearchParams(location.search).get('open') ?? START);
   initPlatform((href) => browser.openFromOutside(href));
+  updates.start();
 
   // Friends and live updates follow the signed-in account.
   $effect(() => {
@@ -72,6 +75,9 @@
 {/if}
 {#if browser.external}
   <ExternalPrompt url={browser.external} />
+{/if}
+{#if updates.ready && !updates.dismissed}
+  <UpdateBanner />
 {/if}
 
 <style>
