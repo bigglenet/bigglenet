@@ -8,7 +8,6 @@
     "db:migrate": "wrangler d1 migrations apply bigglenet --local",
     "db:migrate:remote": "wrangler d1 migrations apply bigglenet --remote",
     "name": "node scripts/admin.mjs name",
-    "invite": "node scripts/admin.mjs invite",
     "promote": "node scripts/admin.mjs promote",
     "types": "wrangler types",
     "check": "wrangler types && tsc --noEmit"

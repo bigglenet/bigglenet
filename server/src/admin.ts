@@ -1,7 +1,7 @@
-// Admin-only: .biggle names, invite codes and the user list.
+// Admin-only: .biggle names and the user list.
 import { requireAdmin } from './auth';
 import { forget } from './gateway';
-import { HttpError, json, NAME_RE, randomCode, readJson, str } from './http';
+import { HttpError, json, NAME_RE, readJson, str } from './http';
 
 export async function listNames(req: Request, env: Env): Promise<Response> {
   await requireAdmin(req, env);
@@ -45,29 +45,6 @@ export async function deleteName(req: Request, env: Env, name: string): Promise<
   await requireAdmin(req, env);
   await env.DB.prepare('DELETE FROM names WHERE name = ?').bind(name.toLowerCase()).run();
   forget(name.toLowerCase());
-  return json({});
-}
-
-export async function listInvites(req: Request, env: Env): Promise<Response> {
-  await requireAdmin(req, env);
-  const { results } = await env.DB.prepare(
-    `SELECT i.code, i.created_at, i.used_at, u.username AS used_by
-     FROM invites i LEFT JOIN users u ON u.id = i.used_by
-     ORDER BY i.used_at IS NOT NULL, i.created_at DESC`,
-  ).all();
-  return json({ invites: results });
-}
-
-export async function createInvite(req: Request, env: Env): Promise<Response> {
-  const admin = await requireAdmin(req, env);
-  const code = randomCode(8);
-  await env.DB.prepare('INSERT INTO invites (code, created_by) VALUES (?, ?)').bind(code, admin.id).run();
-  return json({ code }, 201);
-}
-
-export async function deleteInvite(req: Request, env: Env, code: string): Promise<Response> {
-  await requireAdmin(req, env);
-  await env.DB.prepare('DELETE FROM invites WHERE code = ? AND used_at IS NULL').bind(code.toUpperCase()).run();
   return json({});
 }
 

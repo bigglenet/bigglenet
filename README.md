@@ -15,7 +15,7 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 - **Mac, Windows, Linux:** download it from [Releases](https://github.com/bigglenet/bigglenet/releases/latest).
 - **Phone:** open [bigglenet.ethembeldagli.dev](https://bigglenet.ethembeldagli.dev) and add it to your home screen.
 
-You need an invite code to make an account. Ask someone who's already on the Bigglenet.
+Anyone can join: make a Biggle ID from the **Sign in** button. Then open **home.biggle** to look around.
 
 ## Make a site
 
@@ -31,12 +31,13 @@ Save it as `index.bhtml`, upload the folder to any static host (Cloudflare Pages
 ## How it fits together
 
 ```
-browser/    the Biggle browser (Svelte), also served as the PWA
-desktop/    the desktop app (Tauri), wrapping the browser
-server/     Cloudflare Worker: Biggle DNS, site gateway, accounts, friends, chat
-spec/       the BHTML format
-examples/   example sites
-brand/      logo and app icons
+browser/      the Biggle browser (Svelte), also served as the PWA
+desktop/      the desktop app (Tauri), wrapping the browser
+server/       Cloudflare Worker: Biggle DNS, site gateway, accounts, friends, chat
+sites/home/   home.biggle, the Bigglenet's homepage
+examples/     example sites (hello.biggle)
+spec/         the BHTML format
+brand/        logo and app icons
 ```
 
 The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`), which looks up where the name points and fetches the file from that host.
@@ -67,15 +68,17 @@ npm run app:build   # build it for this computer
 ```bash
 npm run deploy                                # build the PWA and deploy the Worker
 npm run db:migrate:remote -w server           # set up the database
-npm run invite -w server -- --remote          # make the first invite code
+npm run promote -w server -- you --remote     # after signing up, make yourself an admin
 ```
 
-The first account created becomes the admin. Admins hand out `.biggle` names and invite codes from `biggle://admin` in the browser, or from the command line:
+Admins hand out `.biggle` names from `biggle://admin` in the browser, or from the command line:
 
 ```bash
 npm run name -w server -- set ethem https://ethem.pages.dev/ "Ethem's site" --remote
 npm run promote -w server -- someone --remote
 ```
+
+The two Bigglenet sites are static folders. Publish changes with `npm run deploy:home` or `npm run deploy:hello`.
 
 ## Release
 

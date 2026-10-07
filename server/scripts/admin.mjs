@@ -3,15 +3,12 @@
 //   npm run name -- list
 //   npm run name -- set <name> <url> ["Title"]
 //   npm run name -- rm <name>
-//   npm run invite                    make a one-time invite code
 //   npm run promote -- <username>     make someone an admin
 //
 // Works on the local dev database. Add --remote to change the live one.
 import { spawnSync } from 'node:child_process';
-import { randomInt } from 'node:crypto';
 
 const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const args = process.argv.slice(2);
 const remote = args.includes('--remote');
@@ -25,7 +22,6 @@ function usage(message) {
   npm run name -- list
   npm run name -- set <name> <url> ["Title"]
   npm run name -- rm <name>
-  npm run invite
   npm run promote -- <username>
 
 Add --remote to change the live database.`);
@@ -77,10 +73,6 @@ if (group === 'name') {
   } else {
     usage();
   }
-} else if (group === 'invite') {
-  const code = Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
-  run(`INSERT INTO invites (code) VALUES (${sql(code)})`);
-  console.log(`\nInvite code: ${code.slice(0, 4)}-${code.slice(4)}`);
 } else if (group === 'promote') {
   const username = (rest[0] ?? '').toLowerCase();
   if (!/^[a-z0-9_]{2,24}$/.test(username)) usage('Give the username to promote.');

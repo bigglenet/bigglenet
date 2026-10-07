@@ -76,6 +76,9 @@ export async function listFriends(req: Request, env: Env): Promise<Response> {
 /** Send a friend request, or accept theirs if they already asked. */
 export async function addFriend(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
+  if (!(await env.MESSAGE_LIMIT.limit({ key: `friend:${me.id}` })).success) {
+    throw new HttpError(429, 'slow_down', 'Too many friend requests. Wait a few seconds.');
+  }
   const other = await findUser(env, str((await readJson(req)).username));
   if (other.id === me.id) throw new HttpError(400, 'self', "You can't add yourself.");
   const status = await statusWith(env, me, other);
@@ -138,6 +141,9 @@ export async function listMessages(req: Request, env: Env, username: string): Pr
 
 export async function sendMessage(req: Request, env: Env, username: string): Promise<Response> {
   const me = await requireUser(req, env);
+  if (!(await env.MESSAGE_LIMIT.limit({ key: String(me.id) })).success) {
+    throw new HttpError(429, 'slow_down', "You're sending messages too fast. Wait a few seconds.");
+  }
   const other = await requireFriend(env, me, username);
   const body = str((await readJson(req)).body).trim();
   if (!body) throw new HttpError(400, 'empty', 'Write something first.');

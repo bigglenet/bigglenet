@@ -1,4 +1,4 @@
-// Biggle ID: accounts, invite codes and sessions.
+// Biggle ID: accounts and sessions.
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 
 export type User = { id: number; username: string; is_admin: number };
@@ -75,46 +75,48 @@ function checkPassword(password: string) {
   if (password.length > 200) throw new HttpError(400, 'weak_password', "That password's too long.");
 }
 
+const RESERVED = new Set([
+  'admin', 'administrator', 'root', 'system', 'support', 'help', 'staff', 'official',
+  'mod', 'moderator', 'biggle', 'bigglenet', 'home', 'me', 'everyone', 'nobody', 'null', 'undefined',
+]);
+
+/** One limit per client IP, so a single visitor can't hammer sign-up or sign-in. */
+async function limitByIp(req: Request, limiter: RateLimit, what: string) {
+  const ip = req.headers.get('CF-Connecting-IP') ?? 'local';
+  const { success } = await limiter.limit({ key: ip });
+  if (!success) throw new HttpError(429, 'slow_down', `Too many ${what} attempts. Wait a minute and try again.`);
+}
+
 export async function signup(req: Request, env: Env): Promise<Response> {
+  await limitByIp(req, env.SIGNUP_LIMIT, 'sign-up');
   const body = await readJson(req);
   const username = str(body.username).trim().toLowerCase();
   const password = str(body.password);
-  const invite = str(body.invite).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!USERNAME_RE.test(username)) {
     throw new HttpError(400, 'bad_username', 'Usernames are 2–24 characters: a–z, 0–9 and _.');
   }
+  if (RESERVED.has(username)) throw new HttpError(409, 'username_taken', 'That username is taken.');
   checkPassword(password);
-  if (!invite) throw new HttpError(400, 'bad_invite', 'You need an invite code to join.');
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const hash = await hashPassword(password, salt);
 
-  // Claim the invite and create the user in one transaction, so a code can only be used once.
-  let results;
+  // Nobody becomes an admin by signing up. Admins are made with `npm run promote`.
+  let created;
   try {
-    // The very first account becomes the admin.
-    results = await env.DB.batch<{ id: number; is_admin: number }>([
-      env.DB.prepare('UPDATE invites SET used_at = unixepoch() WHERE code = ? AND used_at IS NULL').bind(invite),
-      env.DB.prepare(
-        `INSERT INTO users (username, password_hash, password_salt, is_admin)
-         SELECT ?, ?, ?, NOT EXISTS (SELECT 1 FROM users) WHERE changes() = 1
-         RETURNING id, is_admin`,
-      ).bind(username, toBase64(hash), toBase64(salt)),
-    ]);
+    created = await env.DB.prepare('INSERT INTO users (username, password_hash, password_salt) VALUES (?, ?, ?) RETURNING id')
+      .bind(username, toBase64(hash), toBase64(salt))
+      .first<{ id: number }>();
   } catch (e) {
     if (String(e).includes('UNIQUE')) throw new HttpError(409, 'username_taken', 'That username is taken.');
     throw e;
   }
-  const created = results[1].results[0];
-  if (!created) throw new HttpError(400, 'bad_invite', "That invite code doesn't work. It may have been used already.");
-  const { id, is_admin } = created;
-  await env.DB.prepare('UPDATE invites SET used_by = ? WHERE code = ?').bind(id, invite).run();
-
-  const user: User = { id, username, is_admin };
-  return json({ token: await createSession(env, id), user: publicUser(user) }, 201);
+  const user: User = { id: created!.id, username, is_admin: 0 };
+  return json({ token: await createSession(env, user.id), user: publicUser(user) }, 201);
 }
 
 export async function login(req: Request, env: Env): Promise<Response> {
+  await limitByIp(req, env.LOGIN_LIMIT, 'sign-in');
   const body = await readJson(req);
   const username = str(body.username).trim().toLowerCase();
   const password = str(body.password);

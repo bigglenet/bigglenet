@@ -4,31 +4,26 @@
   import Icon from './Icon.svelte';
 
   type Name = { name: string; url: string; title: string | null };
-  type Invite = { code: string; created_at: number; used_at: number | null; used_by: string | null };
   type User = { username: string; admin: boolean; created_at: number };
 
   let names = $state<Name[]>([]);
-  let invites = $state<Invite[]>([]);
   let users = $state<User[]>([]);
   let error = $state('');
 
   let form = $state({ name: '', url: '', title: '' });
   let saving = $state(false);
   let formError = $state('');
-  let copied = $state<string | null>(null);
 
   const isAdmin = $derived(!!account.user?.admin);
 
   async function refresh() {
     error = '';
     try {
-      const [n, i, u] = await Promise.all([
+      const [n, u] = await Promise.all([
         api<{ names: Name[] }>('GET', '/api/admin/names'),
-        api<{ invites: Invite[] }>('GET', '/api/admin/invites'),
         api<{ users: User[] }>('GET', '/api/admin/users'),
       ]);
       names = n.names;
-      invites = i.invites;
       users = u.users;
     } catch (e) {
       error = errorText(e);
@@ -63,16 +58,6 @@
     } catch (e) {
       error = errorText(e);
     }
-  }
-
-  const pretty = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`;
-
-  async function copy(code: string) {
-    try {
-      await navigator.clipboard.writeText(pretty(code));
-      copied = code;
-      setTimeout(() => copied === code && (copied = null), 1500);
-    } catch {}
   }
 
   const date = (s: number) => new Date(s * 1000).toLocaleDateString([], { dateStyle: 'medium' });
@@ -136,40 +121,8 @@
       </section>
 
       <section>
-        <div class="section-head">
-          <h2>Invite codes</h2>
-          <button class="primary" onclick={() => run(() => api('POST', '/api/admin/invites'))}>New invite code</button>
-        </div>
-        <p class="muted">Each code lets one person create a Biggle account.</p>
-        <ul class="list">
-          {#each invites as i (i.code)}
-            <li>
-              <code class:used={i.used_at}>{pretty(i.code)}</code>
-              <span class="main muted small">
-                {i.used_at ? `Used by ${i.used_by ?? 'a deleted account'} on ${date(i.used_at)}` : `Made ${date(i.created_at)}`}
-              </span>
-              {#if !i.used_at}
-                <button class="ghost" onclick={() => copy(i.code)}>
-                  <Icon name={copied === i.code ? 'check' : 'copy'} size={15} />
-                  {copied === i.code ? 'Copied' : 'Copy'}
-                </button>
-                <button
-                  class="ghost icon"
-                  aria-label="Delete invite {pretty(i.code)}"
-                  onclick={() => run(() => api('DELETE', `/api/admin/invites/${i.code}`))}
-                >
-                  <Icon name="trash" size={16} />
-                </button>
-              {/if}
-            </li>
-          {:else}
-            <li class="muted">No invite codes yet.</li>
-          {/each}
-        </ul>
-      </section>
-
-      <section>
         <h2>People</h2>
+        <p class="muted">{users.length} {users.length === 1 ? 'person has' : 'people have'} a Biggle ID.</p>
         <ul class="list">
           {#each users as u (u.username)}
             <li>
@@ -206,12 +159,6 @@
   h2 {
     margin: 0 0 4px;
     font-size: 17px;
-  }
-  .section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
   }
   .muted {
     color: var(--muted);
@@ -302,14 +249,6 @@
     display: flex;
     flex-direction: column;
     overflow-wrap: anywhere;
-  }
-  code {
-    font: 600 14px/1 ui-monospace, Menlo, monospace;
-    letter-spacing: 0.06em;
-  }
-  code.used {
-    color: var(--muted);
-    text-decoration: line-through;
   }
   .tag {
     padding: 2px 8px;

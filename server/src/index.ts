@@ -4,7 +4,7 @@
 //   /api/names, /api/resolve/:name   Biggle DNS
 //   /site/:name/*path                site files, fetched from the site's host
 //   /api/auth/*, /api/me             Biggle ID
-//   /api/admin/*                     names, invites and users (admins only)
+//   /api/admin/*                     names and users (admins only)
 //   /api/friends*, /api/messages/*   friends and direct messages
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
@@ -30,9 +30,6 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/admin\/names$/, admin.listNames],
   ['PUT', /^\/api\/admin\/names\/([^/]+)$/, admin.setName],
   ['DELETE', /^\/api\/admin\/names\/([^/]+)$/, admin.deleteName],
-  ['GET', /^\/api\/admin\/invites$/, admin.listInvites],
-  ['POST', /^\/api\/admin\/invites$/, admin.createInvite],
-  ['DELETE', /^\/api\/admin\/invites\/([^/]+)$/, admin.deleteInvite],
   ['GET', /^\/api\/admin\/users$/, admin.listUsers],
 
   ['GET', /^\/api\/friends$/, social.listFriends],

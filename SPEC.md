@@ -10,7 +10,7 @@ A small alternative web for me and my friends. Sites are written in **BHTML**, l
 | Page format | `.bhtml`: normal HTML/CSS/JS plus Biggle-only features |
 | Hosting sites | Bring your own host (Cloudflare Pages, GitHub Pages, anywhere) |
 | `.biggle` names | Admin-only: admins hand names out and set where they point |
-| Accounts | Invite codes, one login everywhere (Biggle ID), friends and messaging |
+| Accounts | Open sign-up, one login everywhere (Biggle ID), friends and messaging |
 | "Better than the web" | No ads, no tracking, enforced by the browser |
 | Desktop app | Tauri |
 | Mobile | PWA |
@@ -74,12 +74,12 @@ bigglenet/
 
 ## Status
 
-All seven steps of the original plan are done and released as v0.1.0:
+All seven steps of the original plan are done. v0.1.1 added the home.biggle homepage and open sign-up.
 
 1. BHTML spec and an example site.
 2. Browser shell that renders `.bhtml` pages.
 3. Worker: Biggle DNS and the site gateway.
-4. Accounts (invite codes, first account is admin) and `biggle.me()`.
+4. Accounts and `biggle.me()`. Sign-up started invite-only and opened to everyone in v0.1.1.
 5. Friends and live messaging (Durable Object WebSockets).
 6. Tauri desktop app with the `biggle://` scheme.
 7. PWA served from `bigglenet.ethembeldagli.dev`.

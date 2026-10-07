@@ -16,4 +16,4 @@ The apps aren't signed by Apple or Microsoft yet, so your computer will warn you
 - **Mac:** open Bigglenet, close the warning, then go to **System Settings → Privacy & Security** and click **Open Anyway**. If macOS says the app is damaged, run `xattr -dr com.apple.quarantine /Applications/Bigglenet.app` in Terminal.
 - **Windows:** click **More info**, then **Run anyway**.
 
-You need an invite code to make an account. Ask someone who's already on the Bigglenet.
+Anyone can join: click **Sign in**, then **Create account**. Start exploring at **home.biggle**.

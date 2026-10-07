@@ -5,7 +5,6 @@
   let dialog = $state<HTMLDialogElement>();
   let username = $state('');
   let password = $state('');
-  let invite = $state('');
   let busy = $state(false);
   let error = $state('');
 
@@ -25,7 +24,7 @@
     busy = true;
     error = '';
     try {
-      if (signup) await account.signUp(username, password, invite);
+      if (signup) await account.signUp(username, password);
       else await account.signIn(username, password);
       dialog?.close();
     } catch (err) {
@@ -39,7 +38,7 @@
 <dialog bind:this={dialog} onclose={() => (account.dialog = null)} aria-labelledby="auth-title">
   <span class="logo-mark" aria-hidden="true"></span>
   <h2 id="auth-title">{signup ? 'Join the Bigglenet' : 'Sign in to the Bigglenet'}</h2>
-  <p class="lede">One Biggle ID works on every .biggle site.</p>
+  <p class="lede">{signup ? 'Anyone can join. ' : ''}One Biggle ID works on every .biggle site.</p>
 
   <div class="switch" role="tablist">
     <button role="tab" aria-selected={!signup} onclick={() => switchTo('signin')}>Sign in</button>
@@ -61,13 +60,6 @@
         required
       />
     </label>
-    {#if signup}
-      <label>
-        Invite code
-        <input bind:value={invite} placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required />
-        <span class="hint">Ask a friend who's already on the Bigglenet for one.</span>
-      </label>
-    {/if}
     {#if error}
       <p class="error" role="alert">{error}</p>
     {/if}
@@ -160,10 +152,6 @@
     outline: 0;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  .hint {
-    color: var(--muted);
-    font-weight: 400;
   }
   .error {
     margin: 0;

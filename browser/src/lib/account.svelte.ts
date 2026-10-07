@@ -41,8 +41,8 @@ class Account {
     this.set(r.token, r.user);
   }
 
-  async signUp(username: string, password: string, invite: string) {
-    const r = await api<{ token: string; user: Me }>('POST', '/api/auth/signup', { username, password, invite });
+  async signUp(username: string, password: string) {
+    const r = await api<{ token: string; user: Me }>('POST', '/api/auth/signup', { username, password });
     this.set(r.token, r.user);
   }
 

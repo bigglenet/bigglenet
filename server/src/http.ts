@@ -66,8 +66,3 @@ export const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 export const USERNAME_RE = /^[a-z0-9_]{2,24}$/;
-
-export function randomCode(length: number, alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(length));
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
-}
