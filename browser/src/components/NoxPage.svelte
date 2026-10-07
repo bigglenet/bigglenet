@@ -1,48 +1,63 @@
 <script lang="ts">
   import { browser, type Tab } from '../lib/browser.svelte';
-  import { loadDirectory } from '../lib/directory';
-  import Icon from './Icon.svelte';
+  import { loadDirectory, type DirectoryEntry } from '../lib/directory';
+  import { fromInput } from '../lib/url';
 
   let { tab }: { tab: Tab } = $props();
 
   let query = $state('');
   const directory = loadDirectory();
 
+  function qFromTab() {
+    const i = tab.url.indexOf('?');
+    if (i === -1) return '';
+    return new URLSearchParams(tab.url.slice(i + 1)).get('q') ?? '';
+  }
+
+  $effect(() => {
+    const current = qFromTab();
+    if (query !== current) query = current;
+  });
+
   function submit(e: SubmitEvent) {
     e.preventDefault();
     const q = query.trim();
-    if (q) browser.go(tab, `biggle://nox?q=${encodeURIComponent(q)}`);
+    if (!q) return;
+    const target = fromInput(q);
+    if (target?.kind === 'external') browser.external = target.href;
+    else if (target?.kind === 'biggle') browser.go(tab, target.href);
+    else browser.go(tab, `biggle://nox?q=${encodeURIComponent(q)}`, 'replace');
+  }
+
+  function results(sites: DirectoryEntry[]) {
+    const q = query.trim().toLowerCase();
+    const all = sites.filter((s) => s.name !== 'home');
+    if (!q) return all;
+    return all.filter((s) => s.name.includes(q) || s.title?.toLowerCase().includes(q));
   }
 </script>
 
 <div class="start">
   <div class="inner">
-    <h1 class="brand"><span class="logo-word" aria-hidden="true"></span><span class="sr-only">bigglenet</span></h1>
+    <h1>Nox</h1>
+    <p class="muted">Search the Bigglenet.</p>
 
     <form class="search" onsubmit={submit}>
-      <input bind:value={query} placeholder="Search with Nox or go to a .biggle address" aria-label="Search with Nox" spellcheck="false" />
-      <button type="submit">Nox</button>
+      <input bind:value={query} placeholder="Search names or type an address" aria-label="Search" spellcheck="false" />
+      <button type="submit">Go</button>
     </form>
 
-    <button class="home" onclick={() => browser.go(tab, 'biggle://home.biggle/')}>
-      <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
-      <span class="home-text">
-        <strong>home.biggle</strong>
-        <span>New here? Start with the Bigglenet's homepage.</span>
-      </span>
-      <Icon name="forward" />
-    </button>
-
     <section>
-      <h2>Sites on the Bigglenet</h2>
+      <h2>Results</h2>
       {#await directory}
         <p class="muted">Loading…</p>
       {:then sites}
-        {#if sites.length === 0}
-          <p class="muted">No sites yet.</p>
+        {@const matched = results(sites)}
+        {#if matched.length === 0}
+          <p class="muted">No results.</p>
         {:else}
           <ul class="sites">
-            {#each sites.filter((s) => s.name !== 'home') as site (site.name)}
+            {#each matched as site (site.name)}
               <li>
                 <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
                   <span class="tile">{site.name[0].toUpperCase()}</span>
@@ -73,19 +88,23 @@
     margin: 0 auto;
     padding: 12vh 20px 48px;
   }
-
-  .brand {
-    display: flex;
-    justify-content: center;
-    margin: 0 0 36px;
+  h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 46px;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
   }
-  .brand .logo-word {
-    height: 92px;
+  .muted {
+    margin: 10px 0 0;
+    text-align: center;
+    color: var(--muted);
   }
 
   .search {
     display: flex;
     gap: 8px;
+    margin-top: 28px;
     padding: 6px;
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -117,48 +136,6 @@
     font-weight: 600;
   }
 
-  .home {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 16px;
-    padding: 14px 18px 14px 14px;
-    border: 0;
-    border-radius: 16px;
-    background: var(--accent);
-    color: var(--on-accent);
-    font: inherit;
-    text-align: left;
-  }
-  .home:hover {
-    opacity: 0.92;
-  }
-  .home-mark {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--on-accent);
-    color: var(--accent);
-  }
-  .home-mark .logo-mark {
-    height: 26px;
-  }
-  .home-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .home-text span {
-    opacity: 0.75;
-    font-size: 14px;
-  }
-
   section {
     margin-top: 40px;
   }
@@ -169,9 +146,6 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-  }
-  .muted {
-    color: var(--muted);
   }
 
   .sites {

@@ -3,14 +3,14 @@ import { SITE_PREFIX } from './config';
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /** Built-in pages, addressed as `biggle://<page>` with no `.biggle`. */
-export type InternalPage = 'start' | 'admin';
-const INTERNAL_PAGES = new Set<string>(['start', 'admin']);
+export type InternalPage = 'start' | 'admin' | 'nox';
+const INTERNAL_PAGES = new Set<string>(['start', 'admin', 'nox']);
 export const START = 'biggle://start';
 
 const isInternal = (s: string): s is InternalPage => INTERNAL_PAGES.has(s);
 
 export type SiteUrl = { kind: 'site'; name: string; path: string; search: string; hash: string; href: string };
-export type InternalUrl = { kind: 'internal'; page: InternalPage; href: string };
+export type InternalUrl = { kind: 'internal'; page: InternalPage; search: string; hash: string; href: string };
 export type BiggleUrl = SiteUrl | InternalUrl;
 
 // Parsed by hand: browsers disagree on how to parse hosts in non-http URLs.
@@ -20,7 +20,11 @@ export function parse(input: string): BiggleUrl | null {
   const m = URL_RE.exec(input.trim());
   if (!m) return null;
   const host = m[1].toLowerCase();
-  if (isInternal(host)) return { kind: 'internal', page: host, href: `biggle://${host}` };
+  if (isInternal(host)) {
+    const search = m[3] && m[3] !== '?' ? m[3] : '';
+    const hash = m[4] && m[4] !== '#' ? m[4] : '';
+    return { kind: 'internal', page: host, search, hash, href: `biggle://${host}${search}${hash}` };
+  }
   if (!host.endsWith('.biggle')) return null;
   const name = host.slice(0, -'.biggle'.length);
   if (!NAME_RE.test(name)) return null;

@@ -10,6 +10,7 @@
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
   import FriendsPanel from './components/FriendsPanel.svelte';
+  import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
   import StartPage from './components/StartPage.svelte';
   import TabBar from './components/TabBar.svelte';
@@ -50,6 +51,8 @@
           {#if tab.view.type === 'internal'}
             {#if tab.view.page === 'admin'}
               <AdminPage />
+            {:else if tab.view.page === 'nox'}
+              <NoxPage {tab} />
             {:else}
               <StartPage {tab} />
             {/if}

@@ -99,7 +99,7 @@ class Browser {
       tab.loadId++;
       tab.loading = false;
       tab.view = { type: 'internal', page: u.page };
-      tab.title = u.page === 'start' ? 'New tab' : 'Admin';
+      tab.title = u.page === 'start' ? 'New tab' : u.page === 'admin' ? 'Admin' : 'Nox';
       tab.icon = null;
       return;
     }
