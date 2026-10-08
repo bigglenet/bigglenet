@@ -379,7 +379,7 @@
     overflow: auto;
   }
   /* Room for the window buttons in the desktop app. */
-  :global([data-titlebar='overlay']) .auth {
+  :global([data-titlebar]) .auth {
     padding-top: 48px;
   }
   main {

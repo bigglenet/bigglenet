@@ -1,7 +1,7 @@
 <script lang="ts">
   import { account } from './lib/account.svelte';
   import { browser } from './lib/browser.svelte';
-  import { initPlatform } from './lib/platform';
+  import { initPlatform, ownWindowButtons } from './lib/platform';
   import { sites } from './lib/sites.svelte';
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
@@ -20,6 +20,7 @@
   import TabSwitcher from './components/TabSwitcher.svelte';
   import Toolbar from './components/Toolbar.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
+  import WindowControls from './components/WindowControls.svelte';
 
   // ?open=biggle://… opens that address in the first tab.
   browser.newTab(new URLSearchParams(location.search).get('open') ?? START);
@@ -94,6 +95,9 @@
 </svelte:head>
 
 {#if !ready}
+  {#if ownWindowButtons}
+    <div class="titlebar" data-tauri-drag-region><WindowControls /></div>
+  {/if}
   <AuthScreen />
 {:else}
   <div class="app">
@@ -142,6 +146,17 @@
 {/if}
 
 <style>
+  /* Before signing in there's no tab bar, so this keeps the window draggable and closable. */
+  .titlebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    height: 40px;
+  }
+
   .app {
     display: flex;
     flex-direction: column;

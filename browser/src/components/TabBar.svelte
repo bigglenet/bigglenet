@@ -1,6 +1,8 @@
 <script lang="ts">
   import { browser } from '../lib/browser.svelte';
+  import { ownWindowButtons } from '../lib/platform';
   import Icon from './Icon.svelte';
+  import WindowControls from './WindowControls.svelte';
 
   function newTab() {
     browser.newTab();
@@ -41,6 +43,9 @@
   <button class="new-tab" aria-label="New tab" title="New tab" onclick={newTab}>
     <Icon name="plus" size={16} />
   </button>
+  {#if ownWindowButtons}
+    <WindowControls />
+  {/if}
 </div>
 
 <style>
@@ -57,8 +62,15 @@
     padding-left: 88px;
     padding-top: 8px;
   }
+  /* Desktop app on Windows and Linux: the window buttons go at the far right, full height. */
+  :global([data-titlebar='custom']) .tabbar {
+    height: 40px;
+    padding: 0 0 0 8px;
+  }
+  /* On phones the tabs live in the tab switcher instead. In the desktop app this bar is also
+     the title bar, so it stays. */
   @media (max-width: 699px) {
-    .tabbar {
+    :global(html:not([data-titlebar])) .tabbar {
       display: none;
     }
   }
