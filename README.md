@@ -1,4 +1,4 @@
-<p align="center"><img src="brand/wordmark.png" alt="b.net" height="96"></p>
+<p align="center"><img src="brand/icon-app.png" alt="b.net" height="96"></p>
 
 # Bigglenet
 
