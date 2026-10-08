@@ -2,6 +2,7 @@
   // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
   import { account, type Ticket } from '../lib/account.svelte';
   import { errorText } from '../lib/api';
+  import { isApp, openExternal } from '../lib/platform';
 
   type Step =
     | 'welcome'
@@ -13,7 +14,8 @@
     | 'google-wait'
     | 'google-username'
     | 'add-email'
-    | 'add-email-code';
+    | 'add-email-code'
+    | 'mail';
 
   let step = $state<Step>(account.needsEmail ? 'add-email' : 'welcome');
   let email = $state('');
@@ -25,6 +27,9 @@
   let busy = $state(false);
   let error = $state('');
   let googleAbort: AbortController | null = null;
+  // Confirming by emailing us: what to do once the email lands, and where "back" goes.
+  let mailFinish: (() => Promise<unknown>) | null = null;
+  let mailBack = $state<Step>('welcome');
 
   $effect(() => {
     if (account.needsEmail && !step.startsWith('add-email')) step = 'add-email';
@@ -57,8 +62,63 @@
   // Test servers send the code back instead of emailing it.
   const withCode = (t: Ticket) => {
     ticket = t;
-    code = t.devCode ?? '';
+    code = t.devCode ?? t.code ?? '';
   };
+
+  /** A code is ready: type in the emailed one, or (with `join`) email it to us and wait. */
+  function confirm(t: Ticket, codeStep: Step, back: Step, finish: () => Promise<unknown>) {
+    withCode(t);
+    if (t.join) {
+      mailFinish = finish;
+      mailBack = back;
+      step = 'mail';
+    } else {
+      step = codeStep;
+    }
+  }
+
+  const mailto = $derived(
+    ticket?.join
+      ? `mailto:${ticket.join}?subject=${encodeURIComponent(`Bigglenet code ${ticket.code}`)}&body=${encodeURIComponent(`My Bigglenet code is ${ticket.code}.`)}`
+      : '',
+  );
+
+  function openMail(e: MouseEvent) {
+    if (!isApp) return;
+    e.preventDefault();
+    openExternal(mailto);
+  }
+
+  // While waiting for their email, check every few seconds and as soon as they come back here.
+  $effect(() => {
+    if (step !== 'mail' || !ticket) return;
+    const id = ticket.ticket;
+    let stopped = false;
+    let checking = false;
+    const check = async () => {
+      if (stopped || checking) return;
+      checking = true;
+      try {
+        if (await account.codeConfirmed(id)) {
+          stopped = true;
+          await run(mailFinish!);
+        }
+      } catch (e) {
+        stopped = true;
+        error = errorText(e);
+      } finally {
+        checking = false;
+      }
+    };
+    const timer = setInterval(check, 3000);
+    const onvisible = () => document.visibilityState === 'visible' && check();
+    document.addEventListener('visibilitychange', onvisible);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onvisible);
+    };
+  });
 
   function google() {
     googleAbort = new AbortController();
@@ -128,15 +188,16 @@
       <h1>Make your Biggle ID</h1>
       <form
         class="stack"
-        onsubmit={submit(async () => {
-          withCode(await account.signUpStart(email, username, password));
-          step = 'signup-code';
-        })}
+        onsubmit={submit(async () =>
+          confirm(await account.signUpStart(email, username, password), 'signup-code', 'signup', () =>
+            account.signUpFinish(ticket!.ticket, code),
+          ),
+        )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
         <input bind:value={username} placeholder="Username" autocomplete="username" autocapitalize="off" spellcheck="false" required />
         <input bind:value={password} type="password" placeholder="Password (8+ characters)" autocomplete="new-password" minlength="8" required />
-        <button class="primary" disabled={busy}>{busy ? 'Sending code…' : 'Continue'}</button>
+        <button class="primary" disabled={busy}>{busy ? (account.join ? 'One moment…' : 'Sending code…') : 'Continue'}</button>
       </form>
       <p class="links"><button class="link" onclick={() => go('welcome')}>Back</button></p>
     {:else if step === 'signup-code' || step === 'add-email-code'}
@@ -171,16 +232,18 @@
       </p>
     {:else if step === 'reset'}
       <h1>Reset your password</h1>
-      <p class="lede">We'll email you a code.</p>
+      <p class="lede">{account.join ? "Then you'll send us a quick email to prove it's you." : "We'll email you a code."}</p>
       <form
         class="stack"
-        onsubmit={submit(async () => {
-          withCode(await account.resetStart(email));
-          step = 'reset-code';
-        })}
+        onsubmit={submit(async () =>
+          confirm(await account.resetStart(email), 'reset-code', 'reset', () => account.resetFinish(ticket!.ticket, code, password)),
+        )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
-        <button class="primary" disabled={busy}>{busy ? 'Sending…' : 'Send code'}</button>
+        {#if account.join}
+          <input bind:value={password} type="password" placeholder="New password (8+ characters)" autocomplete="new-password" minlength="8" required />
+        {/if}
+        <button class="primary" disabled={busy}>{busy ? 'One moment…' : account.join ? 'Continue' : 'Send code'}</button>
       </form>
       <p class="links"><button class="link" onclick={() => go('signin')}>Back</button></p>
     {:else if step === 'reset-code'}
@@ -209,15 +272,28 @@
       <p class="lede">Every Biggle ID now has an email address, so you can always get back in. Add yours, {account.user?.username}.</p>
       <form
         class="stack"
-        onsubmit={submit(async () => {
-          withCode(await account.emailStart(email));
-          step = 'add-email-code';
-        })}
+        onsubmit={submit(async () =>
+          confirm(await account.emailStart(email), 'add-email-code', 'add-email', () => account.emailFinish(ticket!.ticket, code)),
+        )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
-        <button class="primary" disabled={busy}>{busy ? 'Sending code…' : 'Send code'}</button>
+        <button class="primary" disabled={busy}>{busy ? 'One moment…' : account.join ? 'Continue' : 'Send code'}</button>
       </form>
       <p class="links"><button class="link" onclick={() => account.signOut()}>Sign out</button></p>
+    {:else if step === 'mail'}
+      <h1>Prove it's your email</h1>
+      <p class="lede">Send us a quick email from <strong>{email}</strong>. It's already written for you, so just press send.</p>
+      <div class="stack">
+        <a class="primary" href={mailto} onclick={openMail}>Open my email app</a>
+      </div>
+      {#if !error}
+        <p class="waiting"><span class="spinner small" aria-hidden="true"></span>{busy ? 'Got it! One moment…' : 'Waiting for your email…'}</p>
+      {/if}
+      <p class="note">
+        No email app? Email <strong class="pick">{ticket?.join}</strong> from {email} with
+        <strong class="pick">{ticket?.code}</strong> in the subject.
+      </p>
+      <p class="links"><button class="link" onclick={() => go(mailBack)}>Use a different email</button></p>
     {/if}
 
     {#if error}
@@ -343,6 +419,22 @@
     color: var(--muted);
     font-size: 14px;
   }
+  a.primary {
+    text-decoration: none;
+  }
+  .waiting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 18px 0 0;
+    color: var(--muted);
+  }
+  .pick {
+    color: var(--text);
+    user-select: all;
+    overflow-wrap: anywhere;
+  }
   .spinner {
     width: 32px;
     height: 32px;
@@ -351,6 +443,12 @@
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+  }
+  .spinner.small {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border-width: 2px;
   }
   @keyframes spin {
     to {

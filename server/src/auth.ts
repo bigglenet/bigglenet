@@ -1,6 +1,6 @@
 // Biggle ID: accounts and sessions. Every account has a confirmed email address
-// (checked with an emailed code) or signs in with Google.
-import { emailReady, sendCode } from './email';
+// (checked with an emailed code, or by emailing us) or signs in with Google.
+import { mailMode, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 
 export type User = { id: number; username: string; is_admin: number; email: string | null; email_verified: number };
@@ -136,11 +136,25 @@ async function limitByIp(req: Request, limiter: RateLimit, what: string) {
 // --- Emailed codes ---
 
 type Purpose = 'signup' | 'verify' | 'reset';
-type CodeRow = { id: string; email: string; purpose: Purpose; code_hash: string; data: string | null; attempts: number; expires_at: number };
+type CodeRow = {
+  id: string;
+  email: string;
+  purpose: Purpose;
+  code_hash: string;
+  data: string | null;
+  attempts: number;
+  confirmed: number;
+  expires_at: number;
+};
 
-/** Make a code, email it (unless `send` is false) and return the ticket the app uses to finish. */
+/**
+ * Make a code and return the ticket the app uses to finish. When we send emails, the code is
+ * emailed (unless `send` is false) and typing it in proves the address. Otherwise the app gets
+ * the code back and the person emails it to us from that address (see inbox.ts).
+ */
 async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true) {
-  if (!emailReady(env)) {
+  const mode = mailMode(env);
+  if (!mode) {
     throw new HttpError(503, 'email_off', purpose === 'signup' ? 'New accounts open soon.' : "Email isn't switched on yet. Try again soon.");
   }
   const id = randomId();
@@ -149,15 +163,19 @@ async function issueCode(env: Env, email: string, purpose: Purpose, data: unknow
   await env.DB.batch([
     env.DB.prepare('DELETE FROM email_codes WHERE email = ? AND purpose = ?').bind(email, purpose),
     env.DB.prepare('DELETE FROM email_codes WHERE expires_at < unixepoch()'),
-    env.DB.prepare('INSERT INTO email_codes (id, email, purpose, code_hash, data, expires_at) VALUES (?, ?, ?, ?, ?, ?)').bind(
+    env.DB.prepare(
+      'INSERT INTO email_codes (id, email, purpose, code_hash, data, confirmed, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    ).bind(
       id,
       email,
       purpose,
       await sha256Hex(`${id}:${code}`),
       JSON.stringify(data),
+      mode === 'send' ? 1 : 0,
       Math.floor(Date.now() / 1000) + CODE_TTL,
     ),
   ]);
+  if (mode === 'receive') return { ticket: id, code, join: env.JOIN_ADDRESS };
   const devCode = send ? await sendCode(env, email, code, purpose) : null;
   return { ticket: id, ...(devCode ? { devCode } : {}) };
 }
@@ -171,8 +189,40 @@ async function redeemCode(env: Env, ticket: string, code: string, purpose: Purpo
     await env.DB.prepare('UPDATE email_codes SET attempts = attempts + 1 WHERE id = ?').bind(ticket).run();
     throw new HttpError(400, 'wrong_code', "That code isn't right. Check the email and try again.");
   }
+  if (!row.confirmed) throw new HttpError(400, 'not_confirmed', "Your email hasn't reached us yet. Send it, then try again.");
   await env.DB.prepare('DELETE FROM email_codes WHERE id = ?').bind(ticket).run();
   return row;
+}
+
+/** Whether the email for a ticket has reached us yet. The app asks every few seconds. */
+export async function codeStatus(req: Request, env: Env): Promise<Response> {
+  const ticket = str((await readJson(req)).ticket);
+  const row = await env.DB.prepare('SELECT confirmed, expires_at FROM email_codes WHERE id = ?')
+    .bind(ticket)
+    .first<{ confirmed: number; expires_at: number }>();
+  if (!row || row.expires_at < Date.now() / 1000) throw new HttpError(400, 'code_expired', 'That took too long. Start again.');
+  return json({ confirmed: !!row.confirmed });
+}
+
+/**
+ * An email reached us from `email`, which Cloudflare checked really came from that address.
+ * Confirm the waiting request whose code is in it. Returns whether one matched.
+ */
+export async function confirmByMail(env: Env, email: string, codes: string[]): Promise<boolean> {
+  const { results } = await env.DB.prepare(
+    'SELECT id, code_hash FROM email_codes WHERE email = ? AND confirmed = 0 AND expires_at > unixepoch()',
+  )
+    .bind(email)
+    .all<{ id: string; code_hash: string }>();
+  for (const row of results) {
+    for (const code of codes) {
+      if ((await sha256Hex(`${row.id}:${code}`)) === row.code_hash) {
+        await env.DB.prepare('UPDATE email_codes SET confirmed = 1 WHERE id = ?').bind(row.id).run();
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 // --- Sign up with email ---
@@ -290,7 +340,8 @@ export async function resetFinish(req: Request, env: Env): Promise<Response> {
   checkPassword(password);
   const row = await redeemCode(env, str(body.ticket), str(body.code), 'reset');
   const userId = JSON.parse(row.data ?? '{}').userId;
-  if (!userId) throw new HttpError(400, 'code_expired', 'That code has expired. Ask for a new one.');
+  // Only someone who could read (or send from) that inbox gets this far, so it's fine to say.
+  if (!userId) throw new HttpError(404, 'no_account', "There's no Biggle ID with that email.");
   const { hash, salt } = await newPasswordHash(password);
   await env.DB.batch([
     env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, email_verified = 1 WHERE id = ?').bind(hash, salt, userId),

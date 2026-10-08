@@ -2,7 +2,7 @@
 // polls until Google sends the browser back here. That works the same in the desktop app,
 // on phones and on the web, without the app having to receive the redirect itself.
 import { checkUsername, randomId, signedIn } from './auth';
-import { emailReady } from './email';
+import { mailMode } from './email';
 import { HttpError, json, readJson, str } from './http';
 
 const REQUEST_TTL = 10 * 60;
@@ -23,7 +23,10 @@ const redirectUri = (req: Request) => `${new URL(req.url).origin}/api/auth/googl
 
 export async function options(_req: Request, env: Env): Promise<Response> {
   // While email is off, nobody is asked to confirm one, and only Google can make new accounts.
-  return json({ google: enabled(env), email: emailReady(env) });
+  // `email` means codes are emailed out; `join` is the address people email to confirm instead.
+  // Apps from before `join` only know `email`, so they keep sign-up closed rather than break.
+  const mode = mailMode(env);
+  return json({ google: enabled(env), email: mode === 'send', join: mode === 'receive' ? env.JOIN_ADDRESS : null });
 }
 
 export async function start(req: Request, env: Env): Promise<Response> {

@@ -5,8 +5,11 @@ import { openExternal } from './platform';
 
 export type Me = { username: string; admin: boolean; email?: string | null; emailVerified?: boolean };
 type SignedIn = { token: string; user: Me };
-/** An emailed code is on its way; finish with the ticket and the code. */
-export type Ticket = { ticket: string; devCode?: string };
+/**
+ * A code to finish with. Either it was emailed out, or (with `join`) the person emails `code`
+ * to the `join` address from their own email, then the app finishes once it arrives.
+ */
+export type Ticket = { ticket: string; devCode?: string; code?: string; join?: string };
 
 const KEY = 'biggle:session';
 
@@ -26,16 +29,19 @@ class Account {
   google = $state(false);
   /** Whether email codes work: email sign-up, password resets, and confirming an email. */
   email = $state(false);
+  /** When set, people confirm an email by emailing a code to this address. */
+  join = $state<string | null>(null);
 
   constructor() {
     const saved = loadSaved();
     if (saved) this.set(saved);
     onSessionExpired(() => this.clear());
     if (saved) this.refresh();
-    api<{ google: boolean; email?: boolean }>('GET', '/api/auth/options').then(
+    api<{ google: boolean; email?: boolean; join?: string | null }>('GET', '/api/auth/options').then(
       (o) => {
         this.google = o.google;
-        this.email = !!o.email;
+        this.email = !!o.email || !!o.join;
+        this.join = o.join ?? null;
       },
       () => {},
     );
@@ -77,6 +83,11 @@ class Account {
 
   emailStart(email: string) {
     return api<Ticket>('POST', '/api/auth/email/start', { email });
+  }
+
+  /** Whether the email for a ticket has reached the Biggle server yet. */
+  async codeConfirmed(ticket: string): Promise<boolean> {
+    return (await api<{ confirmed: boolean }>('POST', '/api/auth/code/status', { ticket })).confirmed;
   }
 
   async emailFinish(ticket: string, code: string) {

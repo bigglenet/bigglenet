@@ -13,8 +13,15 @@ const LINES = {
   reset: 'Here is the code to reset your Bigglenet password.',
 };
 
-/** Whether emails can be sent: on once the RESEND_API_KEY secret is set. */
-export const emailReady = (env: Env) => !!env.RESEND_API_KEY || env.EMAIL_DEV_MODE === '1';
+/**
+ * How people confirm an email address. 'send': we email them a code with Resend (once the
+ * RESEND_API_KEY secret is set). 'receive': they email us instead, at JOIN_ADDRESS (see inbox.ts).
+ */
+export function mailMode(env: Env): 'send' | 'receive' | null {
+  if (env.RESEND_API_KEY || env.EMAIL_DEV_MODE === '1') return 'send';
+  if (env.JOIN_ADDRESS) return 'receive';
+  return null;
+}
 
 /**
  * Email a code. Returns null once sent. On a test server (EMAIL_DEV_MODE=1) nothing is sent

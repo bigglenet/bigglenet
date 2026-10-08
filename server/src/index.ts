@@ -6,6 +6,7 @@
 //   /preview/:token/*path            a site waiting for approval, for its owner and admins
 //   /api/sites*                      the Biggle site editor
 //   /api/auth/*, /api/me             Biggle ID
+//   email to JOIN_ADDRESS             confirming an email address (inbox.ts)
 //   /api/admin/*                     names and users (admins only)
 //   /api/friends*, /api/messages/*   friends and direct messages
 //   /api/live                        WebSocket for live updates
@@ -14,6 +15,7 @@ import * as auth from './auth';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as google from './google';
 import { fail, HttpError, preflight } from './http';
+import { receive } from './inbox';
 import { connect } from './live';
 import * as sites from './sites';
 import * as social from './social';
@@ -34,6 +36,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/auth\/email\/finish$/, auth.emailFinish],
   ['POST', /^\/api\/auth\/reset\/start$/, auth.resetStart],
   ['POST', /^\/api\/auth\/reset\/finish$/, auth.resetFinish],
+  ['POST', /^\/api\/auth\/code\/status$/, auth.codeStatus],
   ['GET', /^\/api\/auth\/options$/, google.options],
   ['POST', /^\/api\/auth\/google\/start$/, google.start],
   ['GET', /^\/api\/auth\/google\/callback$/, google.callback],
@@ -108,5 +111,9 @@ export default {
     }
     if (pathMatched) return fail(405, 'method_not_allowed', "That method isn't allowed here.");
     return fail(404, 'not_found', 'Nothing here.');
+  },
+
+  async email(message, env) {
+    await receive(message, env);
   },
 } satisfies ExportedHandler<Env>;
