@@ -4,10 +4,28 @@ import { isApp } from './platform';
 
 export type Gate = 'ok' | 'desktop' | 'ios' | 'android';
 
+const UNLOCK_KEY = 'biggle:web-unlocked';
+
+/** The secret way in: lets this browser use the web version anyway. */
+export function unlockWeb() {
+  try {
+    localStorage.setItem(UNLOCK_KEY, '1');
+  } catch {}
+  location.reload();
+}
+
+function unlocked(): boolean {
+  try {
+    return localStorage.getItem(UNLOCK_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 type NavigatorExtras = Navigator & { standalone?: boolean; userAgentData?: { mobile?: boolean } };
 
 export function gate(): Gate {
-  if (isApp || import.meta.env.DEV) return 'ok';
+  if (isApp || import.meta.env.DEV || unlocked()) return 'ok';
 
   const nav = navigator as NavigatorExtras;
   const ua = nav.userAgent;

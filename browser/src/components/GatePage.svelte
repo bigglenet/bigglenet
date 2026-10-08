@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Gate } from '../lib/gate';
+  import { unlockWeb, type Gate } from '../lib/gate';
 
   let { gate }: { gate: Exclude<Gate, 'ok'> } = $props();
 
@@ -28,6 +28,18 @@
     };
   });
 
+  // Five quick taps on "I have it" (or the logo) unlock the web version in this browser.
+  const TAPS = 5;
+  const WINDOW_MS = 3000;
+  let taps: number[] = [];
+  function secretTap(e?: Event) {
+    const now = Date.now();
+    taps = [...taps.filter((t) => now - t < WINDOW_MS), now];
+    // Only the first tap tries to open the desktop app.
+    if (taps.length > 1) e?.preventDefault();
+    if (taps.length >= TAPS) unlockWeb();
+  }
+
   async function install() {
     if (!installPrompt) return;
     await installPrompt.prompt();
@@ -39,14 +51,15 @@
 
 <div class="gate">
   <main>
-    <span class="logo-word" aria-hidden="true"></span>
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <span class="logo-word" aria-hidden="true" onclick={() => secretTap()}></span>
 
     {#if gate === 'desktop'}
       <h1>Bigglenet lives in its own app</h1>
       <p>On a computer, the Bigglenet only opens in the Biggle desktop app. It's free and tiny.</p>
       <div class="actions">
         <a class="primary" href={RELEASES}>Download for {os}</a>
-        <a class="secondary" href="biggle://home.biggle/">I have it, open Bigglenet</a>
+        <a class="secondary" href="biggle://home.biggle/" onclick={secretTap}>I have it, open Bigglenet</a>
       </div>
       <p class="small">Also for {os === 'Mac' ? 'Windows and Linux' : os === 'Windows' ? 'Mac and Linux' : 'Mac and Windows'}. On a phone? Open this page there and add it to your home screen.</p>
     {:else if installed}
