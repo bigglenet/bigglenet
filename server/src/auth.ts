@@ -271,9 +271,16 @@ export async function signupFinish(req: Request, env: Env): Promise<Response> {
   return signedIn(env, created!.id, 201);
 }
 
-/** The old one-step sign-up, used by Biggle 0.1.1 and earlier. */
+/**
+ * The old one-step sign-up, used by Biggle 0.1.1 and earlier. 0.1.0 asks for an invite code (there
+ * are none any more) and can't update itself, so say where the new version is.
+ */
 export async function signupOld(): Promise<Response> {
-  throw new HttpError(410, 'update_needed', 'Update Bigglenet to make an account. You can still sign in.');
+  throw new HttpError(
+    410,
+    'update_needed',
+    "No invite code needed any more, but this version of Bigglenet is too old to make accounts. Get the new one at github.com/bigglenet/bigglenet/releases/latest (you can still sign in here).",
+  );
 }
 
 // --- Sign in ---
