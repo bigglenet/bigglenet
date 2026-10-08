@@ -13,6 +13,7 @@
     "check": "npm run check -w server && npm run check -w browser",
     "dev:live": "npm run dev:live -w browser",
     "deploy": "npm run build -w browser && npm run deploy -w server",
+    "release": "node scripts/release.mjs",
     "app:dev": "npm run dev -w desktop",
     "app:build": "npm run build -w desktop",
     "deploy:home": "npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\" --owner ethem_ --remote",

@@ -88,6 +88,8 @@ npm run deploy                                # build the PWA and deploy the Wor
 npm run promote -w server -- you --remote     # after signing up, make yourself an admin
 ```
 
+**Updates:** `npm run release` puts out a new version everywhere at once: it bumps the version, deploys the website and phone app, and tags the release so GitHub builds the desktop apps, which then offer the update. Use it instead of `npm run deploy` so the web and desktop apps stay in step.
+
 **Email:** to confirm an address, people email a code from the app to `JOIN_ADDRESS` (in `server/wrangler.jsonc`). That needs no mail service: in Cloudflare Email Routing for that domain, add a rule sending that address to the `bigglenet` Worker (`npx wrangler email routing rules create <domain> --match-type literal --match-field to --match-value <address> --action-type worker --action-value bigglenet`). Cloudflare checks the email really came from the sender's address before the Worker sees it. To email codes out instead, verify a sending domain with [Resend](https://resend.com), set `MAIL_FROM`, and in `server/` run `npx wrangler secret put RESEND_API_KEY`. With neither, nobody is asked to confirm an email and new accounts can only be made with Google.
 
 **Google sign-in (optional):** in Google Cloud Console, make an OAuth client of type *Web application* with the redirect URI `https://<your server>/api/auth/google/callback`, then in `server/` run `npx wrangler secret put GOOGLE_CLIENT_ID` and `npx wrangler secret put GOOGLE_CLIENT_SECRET`. The "Continue with Google" button appears once both are set.
