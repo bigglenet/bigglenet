@@ -77,14 +77,25 @@ jobs:
           projectPath: desktop
           releaseId: ${{ needs.create-release.outputs.id }}
           args: ${{ matrix.args }}
-          # latest.json tells installed apps which version is newest and where to get it.
-          uploadUpdaterJson: true
-          updaterJsonPreferNsis: true
+          # latest.json is written once at the end instead: these jobs run side by side and
+          # would overwrite each other's entries in it.
+          uploadUpdaterJson: false
 
   publish:
     needs: [create-release, build]
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_ID: ${{ needs.create-release.outputs.id }}
     steps:
-      - env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/${{ needs.create-release.outputs.id }}" -F draft=false
+      - uses: actions/checkout@v7
+
+      # latest.json tells installed apps which version is newest and where to get it.
+      - name: Write latest.json
+        run: |
+          node .github/scripts/latest-json.mjs "$RELEASE_ID"
+          curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Content-Type: application/json' \
+            --data-binary @latest.json \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=latest.json" > /dev/null
+
+      - run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false
