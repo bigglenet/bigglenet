@@ -175,7 +175,6 @@ body {
   min-height: 100vh;
   padding: 48px 18px 32px;
   background: var(--bg);
-  background-attachment: fixed;
   color: var(--ink);
 }
 .page {
@@ -186,7 +185,6 @@ body {
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(12px);
 }
 header { text-align: center; margin-bottom: 24px; }
 .emoji { font-size: 64px; line-height: 1; margin-bottom: 12px; }
