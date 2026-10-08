@@ -30,6 +30,9 @@ type PageMessage = Record<string, unknown> & { type?: unknown };
 
 let nextId = 1;
 const controllers = new Map<number, AbortController>();
+// The open tabs, so a reload (a refresh from a menu, F5) brings them back. sessionStorage lasts
+// as long as the window, so quitting and reopening still starts fresh.
+const SAVED_TABS = 'biggle:tabs';
 
 class Browser {
   tabs = $state<Tab[]>([]);
@@ -66,6 +69,28 @@ class Browser {
     const tab = this.tabs.find((t) => t.id === id)!;
     this.go(tab, href);
     return tab;
+  }
+
+  /** Reopen the tabs from before a reload. Returns whether there were any. */
+  restoreTabs(): boolean {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(SAVED_TABS) ?? 'null') as { urls?: unknown; active?: unknown } | null;
+      const urls = Array.isArray(saved?.urls) ? saved.urls.filter((u): u is string => typeof u === 'string') : [];
+      if (!urls.length) return false;
+      const active = typeof saved?.active === 'number' && urls[saved.active] ? saved.active : 0;
+      urls.forEach((url, i) => this.newTab(url, { activate: i === active }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  saveTabs() {
+    const urls = this.tabs.map((t) => t.url);
+    const active = this.tabs.findIndex((t) => t.id === this.activeId);
+    try {
+      sessionStorage.setItem(SAVED_TABS, JSON.stringify({ urls, active }));
+    } catch {}
   }
 
   closeTab(id: number) {

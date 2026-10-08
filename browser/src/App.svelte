@@ -1,7 +1,7 @@
 <script lang="ts">
   import { account } from './lib/account.svelte';
   import { browser } from './lib/browser.svelte';
-  import { initPlatform, ownWindowButtons } from './lib/platform';
+  import { initPlatform, isApp, ownWindowButtons } from './lib/platform';
   import { sites } from './lib/sites.svelte';
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
@@ -23,7 +23,10 @@
   import WindowControls from './components/WindowControls.svelte';
 
   // ?open=biggle://… opens that address in the first tab.
-  browser.newTab(new URLSearchParams(location.search).get('open') ?? START);
+  const opening = new URLSearchParams(location.search).get('open');
+  if (!browser.restoreTabs()) browser.newTab(opening ?? START);
+  else if (opening) browser.newTab(opening);
+  $effect(() => browser.saveTabs());
   initPlatform((href) => browser.openFromOutside(href));
   updates.start();
 
@@ -47,6 +50,12 @@
   function onkeydown(e: KeyboardEvent) {
     if (!ready) return;
     const tab = browser.active;
+    // F5 reloads the page in the tab, not the whole browser.
+    if (e.key === 'F5') {
+      e.preventDefault();
+      if (tab) browser.reload(tab);
+      return;
+    }
     // Back and forward: Alt+←/→ (Windows, Linux) and ⌘←/→ (Mac), outside text fields.
     if ((e.altKey || e.metaKey) && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       if (editing(e.target) || !tab) return;
@@ -65,6 +74,11 @@
     e.preventDefault();
     if (e.button === 3) browser.back(tab);
     else browser.forward(tab);
+  }
+  // The desktop app has no right-click menu of the webview's own (its Refresh would reload the
+  // whole browser), except in text fields, where cut, copy and paste are handy.
+  function oncontextmenu(e: MouseEvent) {
+    if (isApp && !editing(e.target)) e.preventDefault();
   }
   function onmousedown(e: MouseEvent) {
     if (e.button === 3 || e.button === 4) e.preventDefault();
@@ -89,7 +103,7 @@
   }
 </script>
 
-<svelte:window {onkeydown} {onmouseup} {onmousedown} {onpopstate} />
+<svelte:window {onkeydown} {onmouseup} {onmousedown} {oncontextmenu} {onpopstate} />
 <svelte:head>
   <title>{ready ? (browser.active?.title ?? 'Bigglenet') : 'Bigglenet'}</title>
 </svelte:head>

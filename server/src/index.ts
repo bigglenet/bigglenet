@@ -7,6 +7,7 @@
 //   /api/sites*                      the Biggle site editor
 //   /api/import/fetch                fetching a site that's being imported
 //   /api/auth/*, /api/me             Biggle ID
+//   /api/identity/*                  telling a site's own server who is signed in
 //   email to JOIN_ADDRESS             confirming an email address (inbox.ts)
 //   /api/admin/*                     names and users (admins only)
 //   /api/friends*, /api/messages/*   friends and direct messages
@@ -14,6 +15,7 @@
 import * as admin from './admin';
 import * as auth from './auth';
 import { directory, gateway, preview, resolveName } from './gateway';
+import * as identity from './identity';
 import * as google from './google';
 import { fail, HttpError, preflight } from './http';
 import { fetchForImport } from './importer';
@@ -46,6 +48,8 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/auth\/google\/finish$/, google.finish],
   ['POST', /^\/api\/auth\/logout$/, auth.logout],
   ['GET', /^\/api\/me$/, auth.me],
+  ['POST', /^\/api\/identity\/token$/, identity.issue],
+  ['GET', /^\/api\/identity\/verify$/, identity.verify],
 
   ['GET', /^\/api\/admin\/names$/, admin.listNames],
   ['PUT', /^\/api\/admin\/names\/([^/]+)$/, admin.setName],
@@ -87,7 +91,6 @@ export default {
 
     const site = pathname.match(/^\/(site|preview)\/([^/]+)(\/.*)?$/);
     if (site) {
-      if (req.method !== 'GET' && req.method !== 'HEAD') return fail(405, 'method_not_allowed', 'Sites are read-only.');
       const handler = site[1] === 'site' ? gateway : preview;
       return handler(req, env, site[2], site[3] ?? '', search);
     }

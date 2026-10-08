@@ -63,8 +63,9 @@ await biggle.me()        // { username: "ethem" } or null
 await biggle.sites()     // [{ name: "hello", title: "Hello, Bigglenet" }, …] every .biggle site
 biggle.go("other.bhtml") // navigate (relative, biggle:// or https://)
 await biggle.copy("text") // copy to the clipboard (call it from a click)
+await biggle.idToken()   // proof of who's signed in, for your own server (see below), or null
 
-// Per-site storage, saved by the browser. Pages get no cookies or localStorage.
+// Per-site storage, saved by the browser.
 await biggle.storage.set("visits", 3)  // any JSON value
 await biggle.storage.get("visits")     // 3, or undefined
 await biggle.storage.remove("visits")
@@ -74,7 +75,16 @@ await biggle.storage.clear()
 
 Use `biggle.url` instead of `location`. Inside Biggle, `location` doesn't contain the page address.
 
-Storage is limited to 1 MB per site.
+Storage is limited to 1 MB per site. `localStorage` works too (kept per site by the browser, also 1 MB), and `sessionStorage` and cookies last for the visit.
+
+**Knowing who's signed in, on your server.** `biggle.me()` is fine for showing a name, but your server can't trust what the page says. Send it `await biggle.idToken()` instead (for example as `Authorization: Biggle <token>`), and have the server ask the Bigglenet:
+
+```
+GET https://bigglenet.ethembeldagli.dev/api/identity/verify?site=<your site name>&token=<token>
+→ 200 { "username": "ethem", "site": "<your site name>" }   or 401 if it isn't valid
+```
+
+Tokens last an hour and only work for the site they were made for.
 
 Events:
 
@@ -86,7 +96,7 @@ addEventListener("biggle:user", (e) => console.log(e.detail)) // sign-in or sign
 
 Pages run in a sandbox. The browser enforces:
 
-- No cookies, `localStorage`, `sessionStorage` or IndexedDB. Use `biggle.storage`.
+- No real cookies or IndexedDB. `localStorage`, `sessionStorage` and cookies are stand-ins kept by Biggle (see above).
 - Scripts, styles, images, fonts, media and `fetch()` can only load from Biggle sites, plus `data:` and `blob:` URLs. Third-party scripts, ad networks, analytics and CDNs are blocked.
 - No pop-ups and no embedded iframes.
 

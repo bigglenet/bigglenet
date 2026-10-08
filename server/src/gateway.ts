@@ -36,9 +36,16 @@ export async function resolveName(_req: Request, env: Env, name: string): Promis
   return json({ name: site.name, url: site.url, title: site.title });
 }
 
+const MAX_BODY = 1_000_000;
+const readOnly = (req: Request) => req.method === 'GET' || req.method === 'HEAD';
+
 export async function gateway(req: Request, env: Env, name: string, rest: string, search: string): Promise<Response> {
   const site = await resolve(env, name);
   if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
+  // Only live apps can be sent things (forms, logging a result…); other sites are read-only.
+  const sending = !readOnly(req);
+  if (sending && !(site.url && site.live)) return fail(405, 'method_not_allowed', 'Sites are read-only.');
+  if (sending && Number(req.headers.get('Content-Length') ?? 0) > MAX_BODY) return fail(413, 'too_large', "That's too much to send.");
 
   // `/site/hello` → `/site/hello/`, so relative links in the page resolve inside the site.
   if (rest === '') return redirect(`/site/${site.name}/${search}`);
@@ -53,14 +60,16 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   if (!inside(target, base)) return fail(400, 'bad_path', 'That path leaves the site.');
 
   const headers = new Headers({ 'User-Agent': USER_AGENT });
-  for (const h of ['Accept', 'Range', 'If-None-Match', 'If-Modified-Since']) {
+  // Live apps also get what's needed to send data, including a biggle.idToken() in Authorization.
+  const forwarded = ['Accept', 'Range', 'If-None-Match', 'If-Modified-Since', ...(site.live ? ['Content-Type', 'Authorization'] : [])];
+  for (const h of forwarded) {
     const v = req.headers.get(h);
     if (v) headers.set(h, v);
   }
 
   let res: Response;
   try {
-    res = await fetch(target, { method: req.method, headers, redirect: 'manual' });
+    res = await fetch(target, { method: req.method, headers, redirect: 'manual', body: sending ? req.body : undefined });
   } catch {
     return fail(502, 'host_unreachable', `${site.name}.biggle's host isn't responding.`);
   }
@@ -180,6 +189,7 @@ function inside(url: URL, base: URL): boolean {
 
 /** /preview/<token>/<path>: a site before it's approved, for its owner and admins. */
 export async function preview(req: Request, env: Env, token: string, rest: string, search: string): Promise<Response> {
+  if (!readOnly(req)) return fail(405, 'method_not_allowed', 'Previews are read-only.');
   const name = await checkPreviewToken(env, token);
   if (!name) return fail(403, 'preview_expired', 'This preview link has expired.');
   if (rest === '') return redirect(`/preview/${token}/${search}`);

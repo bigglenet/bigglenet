@@ -1,5 +1,6 @@
-// Answers the things a page can ask the browser for (biggle.storage, biggle.sites(),
+// Answers the things a page can ask the browser for (biggle.storage, biggle.sites(), biggle.idToken(),
 // biggle.copy()). Shared by browser tabs and the site editor's preview.
+import { api, ApiError, errorText } from './api';
 import { loadDirectory } from './directory';
 import { storageOp } from './storage';
 
@@ -17,6 +18,12 @@ export function answerCall(site: string, msg: Record<string, unknown>, reply: Re
     navigator.clipboard.writeText(String(args[0] ?? '')).then(
       () => done({}),
       () => done({ error: "Couldn't copy that." }),
+    );
+  } else if (method === 'idToken') {
+    // Signed out: null. The token only works for this page's own site.
+    api<{ token: string }>('POST', '/api/identity/token', { site }).then(
+      (r) => done({ value: r.token }),
+      (e) => done(e instanceof ApiError && e.status === 401 ? { value: null } : { error: errorText(e) }),
     );
   } else if (method === 'sites') {
     loadDirectory().then(

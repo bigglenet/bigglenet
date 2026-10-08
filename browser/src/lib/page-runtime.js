@@ -1,5 +1,5 @@
 // Runs inside every BHTML page, before the page's own scripts.
-// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local } right before this.
+// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local, app } right before this.
 (() => {
   'use strict';
 
@@ -291,6 +291,11 @@
   addEventListener(
     'keydown',
     (e) => {
+      if (e.key === 'F5') {
+        e.preventDefault();
+        post({ type: 'key', key: 'r' });
+        return;
+      }
       if ((e.altKey || e.metaKey) && !e.ctrlKey && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         if (editing(e.target)) return;
         e.preventDefault();
@@ -304,6 +309,14 @@
     },
     true,
   );
+
+  // In the desktop app, no right-click menu of the webview's own (its Refresh would reload the
+  // whole browser) unless the page shows its own or it's a text field.
+  if (init.app) {
+    addEventListener('contextmenu', (e) => {
+      if (!e.defaultPrevented && !editing(e.target)) e.preventDefault();
+    });
+  }
 
   // Mouse back/forward buttons.
   addEventListener('mouseup', (e) => {
@@ -353,6 +366,9 @@
       go: (href) => go(href),
       sites: () => call('sites'),
       copy: (text) => call('copy', String(text)).then(() => {}),
+      // A token this site's own server can check with the Bigglenet (GET /api/identity/verify)
+      // to know who is signed in. null when nobody is.
+      idToken: () => call('idToken'),
       storage,
     }),
   });
