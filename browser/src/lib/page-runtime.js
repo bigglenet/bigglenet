@@ -1,5 +1,5 @@
 // Runs inside every BHTML page, before the page's own scripts.
-// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user } right before this.
+// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local } right before this.
 (() => {
   'use strict';
 
@@ -9,6 +9,28 @@
   let user = init.user;
 
   const post = (msg) => parent.postMessage({ biggle: 1, ...msg }, '*');
+
+  // Addresses starting with "/" mean the top of this site, not of the Bigglenet server.
+  const serverOrigin = new URL(init.server).origin;
+  function inSite(href) {
+    try {
+      const u = new URL(href, document.baseURI);
+      if (u.origin !== serverOrigin || /^\/(site|preview)\//.test(u.pathname)) return href;
+      return init.base + u.pathname.slice(1) + u.search + u.hash;
+    } catch {
+      return href;
+    }
+  }
+  const realFetch = window.fetch;
+  window.fetch = function (input, options) {
+    if (typeof input === 'string' || input instanceof URL) input = inSite(String(input));
+    else if (input instanceof Request && inSite(input.url) !== input.url) input = new Request(inSite(input.url), input);
+    return realFetch.call(this, input, options);
+  };
+  const realOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+    return realOpen.call(this, method, inSite(String(url)), ...rest);
+  };
 
   // Same as fromGateway() in src/lib/url.ts. `init.base` is where this site's files come
   // from: its normal gateway folder, or a signed preview folder.
@@ -28,7 +50,7 @@
     if (/^biggle:\/\//i.test(href)) return post({ type: 'navigate', url: href, newTab, background });
     let abs;
     try {
-      abs = new URL(href, document.baseURI).href;
+      abs = new URL(inSite(href), document.baseURI).href;
     } catch {
       return;
     }
@@ -72,6 +94,98 @@
     keys: () => call('storage.keys'),
     clear: () => call('storage.clear').then(() => {}),
   });
+
+  // --- localStorage, sessionStorage and cookies ---
+  // Pages run sandboxed, with no storage of their own, which breaks lots of sites and games.
+  // These stand-ins keep it per site: localStorage is saved by the browser as it changes,
+  // sessionStorage and cookies last for the visit.
+
+  function standInStorage(initial, onChange) {
+    const data = new Map(Object.entries(initial || {}));
+    const changed = () => onChange && onChange(data);
+    const api = {
+      get length() {
+        return data.size;
+      },
+      key: (i) => [...data.keys()][i] ?? null,
+      getItem: (k) => (data.has(String(k)) ? data.get(String(k)) : null),
+      setItem: (k, v) => {
+        data.set(String(k), String(v));
+        changed();
+      },
+      removeItem: (k) => {
+        data.delete(String(k));
+        changed();
+      },
+      clear: () => {
+        data.clear();
+        changed();
+      },
+    };
+    // Also allow localStorage.foo = "bar" and Object.keys(localStorage), like the real thing.
+    return new Proxy(api, {
+      get: (t, p) => (p in t ? t[p] : typeof p === 'string' && data.has(p) ? data.get(p) : undefined),
+      set: (t, p, v) => {
+        if (p in t) return false;
+        data.set(String(p), String(v));
+        changed();
+        return true;
+      },
+      deleteProperty: (t, p) => {
+        data.delete(String(p));
+        changed();
+        return true;
+      },
+      has: (t, p) => p in t || data.has(p),
+      ownKeys: () => [...data.keys()],
+      getOwnPropertyDescriptor: (t, p) =>
+        data.has(p) ? { value: data.get(p), writable: true, enumerable: true, configurable: true } : undefined,
+    });
+  }
+
+  const works = (name) => {
+    try {
+      return window[name].length >= 0;
+    } catch {
+      return false;
+    }
+  };
+  let saveTimer = 0;
+  let unsaved = null;
+  const saveLocal = () => {
+    clearTimeout(saveTimer);
+    if (unsaved) post({ type: 'local', entries: Object.fromEntries(unsaved) });
+    unsaved = null;
+  };
+  if (!works('localStorage')) {
+    const local = standInStorage(init.local, (data) => {
+      unsaved = data;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveLocal, 250);
+    });
+    Object.defineProperty(window, 'localStorage', { configurable: true, enumerable: true, value: local });
+    addEventListener('pagehide', saveLocal);
+  }
+  if (!works('sessionStorage')) {
+    Object.defineProperty(window, 'sessionStorage', { configurable: true, enumerable: true, value: standInStorage({}) });
+  }
+  try {
+    void document.cookie;
+  } catch {
+    const jar = new Map();
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => [...jar].map(([k, v]) => `${k}=${v}`).join('; '),
+      set: (value) => {
+        const [pair] = String(value).split(';');
+        const i = pair.indexOf('=');
+        if (i < 0) return;
+        const key = pair.slice(0, i).trim();
+        if (/;\s*(max-age=0|expires=[^;]*1970)/i.test(value)) jar.delete(key);
+        else jar.set(key, pair.slice(i + 1).trim());
+      },
+    });
+  }
 
   // --- Biggle tags ---
 

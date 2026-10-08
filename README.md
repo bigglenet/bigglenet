@@ -26,7 +26,7 @@ The easy way: in Biggle, open your account menu → **My sites** (or go to `bigg
 
 The hands-on way: write the HTML yourself, in the editor's Code view or on your own host.
 
-Already have a website? In **My sites**, choose **Import a website** and give its link, or pick its folder or a .zip of it. Biggle copies the pages (as .bhtml), pictures, styles, scripts and fonts, including ones the site loaded from other places, and points every link at the copies. Trackers are left out. Up to 25 pages, 60 files and 5 MB.
+Already have a website? In **My sites**, choose **Import a website** and give its link, or pick its folder or a .zip of it. Biggle copies the pages (as .bhtml), pictures, styles, scripts and fonts, including ones the site loaded from other places, and points every link at the copies. Trackers are left out. Up to 25 pages, 60 files and 5 MB. Games and apps are too big and too lively to copy: admins can tick **Keep it live** instead, and the name then shows the original site as it is, fetched fresh each time (or use **Live app** in the Admin page, or `npm run name -w server -- set <name> <url> --live`). Pages get `localStorage` and cookies kept per site, so saves work.
 
 ```html
 <!bhtml 1>

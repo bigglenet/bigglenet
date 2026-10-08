@@ -3,7 +3,7 @@
 import { blobBytes, CORS, fail, json, NAME_RE, redirect } from './http';
 import { checkPreviewToken } from './sites';
 
-type Site = { name: string; url: string | null; title: string | null; status: string };
+type Site = { name: string; url: string | null; title: string | null; status: string; live: number };
 
 const USER_AGENT = 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
@@ -19,7 +19,7 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
   if (!NAME_RE.test(name)) return null;
   const hit = resolveCache.get(name);
   if (hit && Date.now() - hit.at < RESOLVE_TTL_MS) return hit.site;
-  const site = await env.DB.prepare('SELECT name, url, title, status FROM names WHERE name = ?').bind(name).first<Site>();
+  const site = await env.DB.prepare('SELECT name, url, title, status, live FROM names WHERE name = ?').bind(name).first<Site>();
   resolveCache.set(name, { site, at: Date.now() });
   return site;
 }
@@ -44,7 +44,8 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   if (rest === '') return redirect(`/site/${site.name}/${search}`);
 
   let path = rest.slice(1);
-  if (path === '' || path.endsWith('/')) path += 'index.bhtml';
+  // A live app's folders are asked for as they are, so its host serves its own front page.
+  if ((path === '' || path.endsWith('/')) && !(site.url && site.live)) path += 'index.bhtml';
   if (!site.url) return serveHosted(req, env, site.name, path);
 
   const base = new URL(site.url);
@@ -74,7 +75,11 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   }
 
   const out = new Headers(CORS);
-  const type = path.endsWith('.bhtml') ? 'text/bhtml; charset=utf-8' : res.headers.get('Content-Type');
+  const sourceType = res.headers.get('Content-Type') ?? '';
+  const ok = res.status === 200 && !!site.live;
+  const page = ok && /^(text\/html|application\/xhtml\+xml)/i.test(sourceType) && !path.endsWith('.bhtml');
+  const style = ok && /^text\/css/i.test(sourceType);
+  const type = path.endsWith('.bhtml') || page ? 'text/bhtml; charset=utf-8' : sourceType;
   if (type) out.set('Content-Type', type);
   for (const h of ['ETag', 'Last-Modified', 'Cache-Control', 'Content-Range', 'Accept-Ranges']) {
     const v = res.headers.get(h);
@@ -86,7 +91,87 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   out.set('X-Content-Type-Options', 'nosniff');
   out.set('Referrer-Policy', 'no-referrer');
   out.set('Cross-Origin-Resource-Policy', 'cross-origin');
-  return new Response(res.body, { status: res.status, headers: out });
+  const fix = (value: string) => pointInside(value, site.name, base);
+  const body = page ? livePage(res, fix) : style ? fixCss(await res.text(), fix) : res.body;
+  return new Response(body, { status: res.status, headers: out });
+}
+
+// --- Live apps: normal websites shown on the Bigglenet as they are ---
+
+/** "/x" or "https://host/x" on the app's own host → that file through this site's gateway. */
+function pointInside(value: string, name: string, base: URL): string {
+  const text = value.trim();
+  if (!/^(\/|https?:)/i.test(text)) return value;
+  let u: URL;
+  try {
+    u = new URL(text, base);
+  } catch {
+    return value;
+  }
+  if (!inside(u, base)) return value;
+  return `/site/${name}/${u.pathname.slice(base.pathname.length)}${u.search}${u.hash}`;
+}
+
+function fixCss(css: string, fix: (url: string) => string): string {
+  return css
+    .replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (_, q, url) => `url(${q}${fix(url)}${q})`)
+    .replace(/@import\s+(['"])([^'"]+)\1/gi, (_, q, url) => `@import ${q}${fix(url)}${q}`);
+}
+
+/** A page from a live app: BHTML, with its own "/…" addresses pointed back inside the site. */
+function livePage(res: Response, fix: (url: string) => string): ReadableStream {
+  let rewriter = new HTMLRewriter();
+  for (const attr of ['href', 'src', 'action', 'formaction', 'poster', 'data']) {
+    rewriter = rewriter.on(`[${attr}]`, {
+      element(el) {
+        const value = el.getAttribute(attr)!;
+        const fixed = fix(value);
+        if (fixed !== value) el.setAttribute(attr, fixed);
+      },
+    });
+  }
+  let css = '';
+  rewriter = rewriter
+    // The page's own security rules would only get in the way: Biggle applies its own.
+    .on('meta[http-equiv]', {
+      element(el) {
+        if (el.getAttribute('http-equiv')!.toLowerCase() === 'content-security-policy') el.remove();
+      },
+    })
+    .on('[srcset]', {
+      element(el) {
+        const list = el.getAttribute('srcset')!.split(',').map((part) => {
+          const [url, ...size] = part.trim().split(/\s+/);
+          return [fix(url), ...size].join(' ');
+        });
+        el.setAttribute('srcset', list.join(', '));
+      },
+    })
+    .on('[style]', {
+      element(el) {
+        el.setAttribute('style', fixCss(el.getAttribute('style')!, fix));
+      },
+    })
+    .on('style', {
+      // Text arrives in pieces, so gather it and rewrite it all at the end.
+      text(chunk) {
+        css += chunk.text;
+        if (chunk.lastInTextNode) {
+          chunk.replace(fixCss(css, fix));
+          css = '';
+        } else {
+          chunk.remove();
+        }
+      },
+    });
+  const header = new TextEncoder().encode('<!bhtml 1>\n');
+  return rewriter.transform(new Response(res.body, { headers: res.headers })).body!.pipeThrough(
+    new TransformStream({
+      start(controller) {
+        controller.enqueue(header);
+      },
+    }),
+  );
 }
 
 function inside(url: URL, base: URL): boolean {

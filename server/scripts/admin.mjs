@@ -1,7 +1,8 @@
 // Admin tool for the Bigglenet database.
 //
 //   npm run name -- list
-//   npm run name -- set <name> <url> ["Title"]
+//   npm run name -- set <name> <url> ["Title"] [--live]
+//                                     --live: a normal website (an app, a game) shown as it is
 //   npm run name -- rm <name>
 //   npm run promote -- <username>     make someone an admin
 //   npm run site -- push <name> <folder> ["Title"] [--owner <username>]
@@ -19,7 +20,10 @@ const args = process.argv.slice(2);
 const remote = args.includes('--remote');
 const ownerAt = args.indexOf('--owner');
 const owner = ownerAt === -1 ? null : args[ownerAt + 1];
-const [group, ...rest] = args.filter((a, i) => a !== '--remote' && (ownerAt === -1 || (i !== ownerAt && i !== ownerAt + 1)));
+const live = args.includes('--live');
+const [group, ...rest] = args.filter(
+  (a, i) => a !== '--remote' && a !== '--live' && (ownerAt === -1 || (i !== ownerAt && i !== ownerAt + 1)),
+);
 
 // Same as FILE_TYPES in src/sites.ts.
 const FILE_TYPES = {
@@ -44,7 +48,7 @@ function usage(message) {
   if (message) console.error(`${message}\n`);
   console.error(`Usage:
   npm run name -- list
-  npm run name -- set <name> <url> ["Title"]
+  npm run name -- set <name> <url> ["Title"] [--live]
   npm run name -- rm <name>
   npm run promote -- <username>
   npm run site -- push <name> <folder> ["Title"] [--owner <username>]
@@ -107,13 +111,14 @@ function siteFiles(folder) {
 if (group === 'name') {
   const [cmd, ...params] = rest;
   if (cmd === 'list') {
-    run('SELECT name, url, title FROM names ORDER BY name');
+    run('SELECT name, url, title, live FROM names ORDER BY name');
   } else if (cmd === 'set') {
     const name = checkName(params[0]);
     const url = checkUrl(params[1] ?? '');
     const title = params[2] ? sql(params[2]) : 'NULL';
-    run(`INSERT INTO names (name, url, title) VALUES (${sql(name)}, ${sql(url)}, ${title})
-      ON CONFLICT(name) DO UPDATE SET url = excluded.url, title = excluded.title, updated_at = unixepoch()`);
+    run(`INSERT INTO names (name, url, title, status, live) VALUES (${sql(name)}, ${sql(url)}, ${title}, 'live', ${live ? 1 : 0})
+      ON CONFLICT(name) DO UPDATE SET url = excluded.url, title = excluded.title, status = 'live', live = excluded.live,
+        updated_at = unixepoch()`);
   } else if (cmd === 'rm') {
     run(`DELETE FROM names WHERE name = ${sql(checkName(params[0]))}`);
   } else {

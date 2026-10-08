@@ -3,6 +3,7 @@ import { api } from './api';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { answerCall } from './frame';
 import { load, type PageError } from './loader';
+import { saveLocal } from './storage';
 import { fromInput, looksLikeAddress, noxSearch, parse, START, withHash, type InternalPage } from './url';
 
 export type View =
@@ -259,6 +260,10 @@ class Browser {
       }
       case 'call': {
         if (tab.view.type === 'page') answerCall(tab.view.site, msg, reply);
+        break;
+      }
+      case 'local': {
+        if (tab.view.type === 'page') saveLocal(tab.view.site, msg.entries);
         break;
       }
     }

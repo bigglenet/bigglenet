@@ -1,5 +1,6 @@
 import runtime from './page-runtime.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
+import { readLocal } from './storage';
 import { fromGateway, parse, siteBase, toGateway, withHash, type SiteUrl } from './url';
 
 export type BiggleUser = { username: string };
@@ -110,7 +111,7 @@ function head(u: SiteUrl, base?: string): string {
 }
 
 function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string): string {
-  const init = { url: u.href, site: u.name, base: siteBase(u, base), server: SERVER, search: u.search, hash: u.hash, user };
+  const init = { url: u.href, site: u.name, base: siteBase(u, base), server: SERVER, search: u.search, hash: u.hash, user, local: readLocal(u.name) };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');
   return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${runtime}</script>${body}`;
 }

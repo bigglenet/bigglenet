@@ -23,10 +23,12 @@
   // Importing a site that already exists, from its address or its files.
   let from = $state<'link' | 'files'>('link');
   let link = $state('');
+  // Admins can link a site instead of copying it: right for apps and games.
+  let live = $state(false);
   let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
   let nameEdited = false;
   let progress = $state('');
-  let imported = $state<{ name: string; count: number; skipped: Skipped[] } | null>(null);
+  let imported = $state<{ name: string; count: number; skipped: Skipped[]; live?: boolean } | null>(null);
   let folderInput = $state<HTMLInputElement>();
   let zipInput = $state<HTMLInputElement>();
 
@@ -105,6 +107,16 @@
     progress = '';
     try {
       let source: Source;
+      if (from === 'link' && live) {
+        const url = webSource(link).start;
+        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, { url: url.href, title: title.trim() || url.host, live: true });
+        await sites.refreshMine();
+        imported = { name: clean, count: 0, skipped: [], live: true };
+        mode = null;
+        name = title = link = '';
+        nameEdited = false;
+        return;
+      }
       if (from === 'link') source = webSource(link);
       else if (picked) source = filesSource(picked.files);
       else throw new Error('Choose a folder or a .zip first.');
@@ -170,9 +182,13 @@
       {#if imported}
         <div class="create done">
           <h2>{imported.name}.biggle is ready</h2>
-          <p class="muted">
-            Copied {imported.count} file{imported.count === 1 ? '' : 's'}. An admin checks it before anyone else can see it, but you can look at it and edit it now.
-          </p>
+          {#if imported.live}
+            <p class="muted">It's live for everyone, straight from the original site.</p>
+          {:else}
+            <p class="muted">
+              Copied {imported.count} file{imported.count === 1 ? '' : 's'}. An admin checks it before anyone else can see it, but you can look at it and edit it now.
+            </p>
+          {/if}
           {#if imported.skipped.length}
             <details>
               <summary>{imported.skipped.length} thing{imported.skipped.length === 1 ? '' : 's'} didn't come along</summary>
@@ -184,8 +200,12 @@
             </details>
           {/if}
           <div class="actions">
-            <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>Preview</button>
-            <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>Open in the editor</button>
+            {#if imported.live}
+              <button class="primary" onclick={() => browser.newTab(`biggle://${imported!.name}.biggle/`, { after: tab.id })}>Open it</button>
+            {:else}
+              <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>Preview</button>
+              <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>Open in the editor</button>
+            {/if}
           </div>
         </div>
       {/if}
@@ -213,6 +233,12 @@
                 />
                 <span class="hint">Its pages, pictures and styles get copied here. It has to be a public website.</span>
               </label>
+              {#if account.user?.admin}
+                <label class="check">
+                  <input type="checkbox" bind:checked={live} />
+                  Keep it live instead of copying it: best for games and apps. It loads from the original site every time.
+                </label>
+              {/if}
             {:else}
               <div class="field">
                 <span>Your site's files</span>

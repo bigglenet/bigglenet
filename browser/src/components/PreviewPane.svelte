@@ -2,6 +2,7 @@
   // A live preview of a site in the editor, loaded through its signed preview link.
   import { account } from '../lib/account.svelte';
   import { answerCall } from '../lib/frame';
+  import { saveLocal } from '../lib/storage';
   import { load } from '../lib/loader';
   import { parse, type SiteUrl } from '../lib/url';
 
@@ -41,6 +42,7 @@
       if (!msg || typeof msg !== 'object' || msg.biggle !== 1) return;
       const reply = (m: Record<string, unknown>) => iframe?.contentWindow?.postMessage({ biggle: 1, ...m }, '*');
       if (msg.type === 'call') answerCall(site, msg, reply);
+      if (msg.type === 'local') saveLocal(site, msg.entries);
       if (msg.type === 'navigate' && typeof msg.url === 'string') {
         const u = parse(msg.url);
         if (u?.kind === 'site' && u.name === site) onnavigate(u.path.slice(1) || 'index.bhtml');

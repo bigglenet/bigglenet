@@ -5,7 +5,7 @@
   import { sites } from '../lib/sites.svelte';
   import Icon from './Icon.svelte';
 
-  type Name = { name: string; url: string | null; title: string | null; status: string; owner: string | null };
+  type Name = { name: string; url: string | null; title: string | null; status: string; live: number; owner: string | null };
   type Review = { name: string; title: string | null; owner: string | null; files: number; size: number; createdAt: number };
   type User = { username: string; admin: boolean; created_at: number };
 
@@ -16,7 +16,7 @@
   let users = $state<User[]>([]);
   let error = $state('');
 
-  let form = $state({ name: '', url: '', title: '' });
+  let form = $state({ name: '', url: '', title: '', live: false });
   let saving = $state(false);
   let formError = $state('');
 
@@ -60,8 +60,8 @@
     formError = '';
     try {
       const name = form.name.trim().toLowerCase().replace(/\.biggle$/, '');
-      await api('PUT', `/api/admin/names/${encodeURIComponent(name)}`, { url: form.url, title: form.title });
-      form = { name: '', url: '', title: '' };
+      await api('PUT', `/api/admin/names/${encodeURIComponent(name)}`, { url: form.url, title: form.title, live: form.live });
+      form = { name: '', url: '', title: '', live: false };
       await refresh();
     } catch (err) {
       formError = errorText(err);
@@ -141,6 +141,10 @@
             <span>Title</span>
             <input bind:value={form.title} placeholder="Optional" />
           </label>
+          <label class="check" title="Show a normal website (an app or a game) as it is, without needing .bhtml pages">
+            <input type="checkbox" bind:checked={form.live} />
+            Live app
+          </label>
           <button class="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
         </form>
         {#if formError}
@@ -152,11 +156,11 @@
               <div class="main">
                 <strong>{n.name}.biggle</strong>
                 <span class="muted small">
-                  {n.title ? `${n.title} · ` : ''}{n.url ?? `made in the editor by ${n.owner ?? 'a deleted account'}`}{n.status !== 'live' ? ` · ${n.status === 'pending' ? 'waiting for approval' : 'not approved'}` : ''}
+                  {n.title ? `${n.title} · ` : ''}{n.url ?? `made in the editor by ${n.owner ?? 'a deleted account'}`}{n.live ? ' · live app' : ''}{n.status !== 'live' ? ` · ${n.status === 'pending' ? 'waiting for approval' : 'not approved'}` : ''}
                 </span>
               </div>
               {#if n.url}
-                <button class="ghost" onclick={() => (form = { name: n.name, url: n.url ?? '', title: n.title ?? '' })}>Edit</button>
+                <button class="ghost" onclick={() => (form = { name: n.name, url: n.url ?? '', title: n.title ?? '', live: !!n.live })}>Edit</button>
               {/if}
               <button
                 class="ghost icon"
@@ -235,6 +239,18 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     background: var(--card);
+  }
+  .check input {
+    width: auto;
+    height: auto;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    font-size: 14px;
+    white-space: nowrap;
   }
   .field {
     display: flex;

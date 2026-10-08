@@ -12,6 +12,27 @@ function read(site: string): Map<string, string> {
   }
 }
 
+// A page's own localStorage. Pages run sandboxed where they can't keep one, so the page script
+// keeps a stand-in and sends its contents here whenever it changes.
+const localKey = (site: string) => `biggle:local:${site}`;
+
+export function readLocal(site: string): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(localKey(site)) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+export function saveLocal(site: string, entries: unknown) {
+  if (!entries || typeof entries !== 'object' || !Object.values(entries).every((v) => typeof v === 'string')) return;
+  const json = JSON.stringify(entries);
+  if (json.length > LIMIT) return;
+  try {
+    localStorage.setItem(localKey(site), json);
+  } catch {}
+}
+
 export type StorageReply = { value?: unknown; error?: string };
 
 export function storageOp(site: string, op: unknown, key: unknown, value: unknown): StorageReply {
