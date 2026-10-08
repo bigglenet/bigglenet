@@ -15,7 +15,7 @@
     "deploy": "npm run build -w browser && npm run deploy -w server",
     "app:dev": "npm run dev -w desktop",
     "app:build": "npm run build -w desktop",
-    "deploy:home": "npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\" --owner ethem --remote",
-    "deploy:hello": "npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" --owner ethem --remote"
+    "deploy:home": "npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\" --owner ethem_ --remote",
+    "deploy:hello": "npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" --owner ethem_ --remote"
   }
 }
