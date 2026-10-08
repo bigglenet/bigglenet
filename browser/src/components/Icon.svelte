@@ -18,6 +18,7 @@
     trash: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
     tabs: 'M4 8h12v12H4zM8 4h12v12h-4',
     logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3',
+    import: 'M12 3v12M7 10l5 5 5-5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4',
     settings: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   };
   export type IconName = keyof typeof PATHS;

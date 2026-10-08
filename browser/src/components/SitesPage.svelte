@@ -3,13 +3,15 @@
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { renderFiles, starterSite, THEMES, type Theme } from '../lib/easysite';
+  import { filesSource, importSite, pickedFiles, uploadSite, webSource, type Skipped, type Source } from '../lib/importer';
   import { sites, type MySite } from '../lib/sites.svelte';
+  import { unzip } from '../lib/unzip';
   import { NAME_RE } from '../lib/url';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
 
-  let creating = $state(false);
+  let mode = $state<'create' | 'import' | null>(null);
   let name = $state('');
   let title = $state('');
   let theme = $state<Theme>('sunset');
@@ -17,6 +19,16 @@
   let availability = $state<{ name: string; ok: boolean; reason: string | null } | null>(null);
   let busy = $state(false);
   let error = $state('');
+
+  // Importing a site that already exists, from its address or its files.
+  let from = $state<'link' | 'files'>('link');
+  let link = $state('');
+  let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
+  let nameEdited = false;
+  let progress = $state('');
+  let imported = $state<{ name: string; count: number; skipped: Skipped[] } | null>(null);
+  let folderInput = $state<HTMLInputElement>();
+  let zipInput = $state<HTMLInputElement>();
 
   const clean = $derived(name.trim().toLowerCase().replace(/\.biggle$/, ''));
   const atLimit = $derived(sites.limit !== null && (sites.mine?.length ?? 0) >= sites.limit);
@@ -58,6 +70,66 @@
     }
   }
 
+  /** Suggest an address from the site being imported, until they type their own. */
+  function suggest(text: string) {
+    if (nameEdited) return;
+    name = text.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  }
+
+  function linkTyped() {
+    const host = link.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[/.:?#]/)[0];
+    suggest(host ?? '');
+  }
+
+  async function pick(input: HTMLInputElement | undefined, zip: boolean) {
+    const list = input?.files;
+    if (!list?.length) return;
+    error = '';
+    try {
+      const files = zip ? await unzip(list[0]) : pickedFiles(list);
+      const first = list[0];
+      const label = zip ? first.name : first.webkitRelativePath ? first.webkitRelativePath.split('/')[0] : `${list.length} files`;
+      picked = { files, label: `${label} (${files.size} file${files.size === 1 ? '' : 's'})` };
+      suggest(label.replace(/\.zip$/i, ''));
+    } catch (e) {
+      error = errorText(e);
+    } finally {
+      if (input) input.value = '';
+    }
+  }
+
+  async function importIt(e: SubmitEvent) {
+    e.preventDefault();
+    busy = true;
+    error = '';
+    progress = '';
+    try {
+      let source: Source;
+      if (from === 'link') source = webSource(link);
+      else if (picked) source = filesSource(picked.files);
+      else throw new Error('Choose a folder or a .zip first.');
+      const site = await importSite(source, (text) => (progress = text));
+      await uploadSite(clean, title.trim() || site.title || clean, site, (text) => (progress = text));
+      await sites.refreshMine();
+      imported = { name: clean, count: site.files.length, skipped: site.skipped };
+      mode = null;
+      name = title = link = '';
+      picked = null;
+      nameEdited = false;
+    } catch (err) {
+      error = errorText(err);
+    } finally {
+      busy = false;
+      progress = '';
+    }
+  }
+
+  function start(next: 'create' | 'import') {
+    mode = next;
+    imported = null;
+    error = '';
+  }
+
   function open(site: MySite) {
     if (site.status === 'live') browser.newTab(`biggle://${site.name}.biggle/`, { after: tab.id });
     else browser.openPreview(site.name);
@@ -95,15 +167,72 @@
         </ul>
       {/if}
 
-      {#if creating}
-        <form class="create" onsubmit={create}>
-          <h2>Make a new site</h2>
+      {#if imported}
+        <div class="create done">
+          <h2>{imported.name}.biggle is ready</h2>
+          <p class="muted">
+            Copied {imported.count} file{imported.count === 1 ? '' : 's'}. An admin checks it before anyone else can see it, but you can look at it and edit it now.
+          </p>
+          {#if imported.skipped.length}
+            <details>
+              <summary>{imported.skipped.length} thing{imported.skipped.length === 1 ? '' : 's'} didn't come along</summary>
+              <ul class="skipped">
+                {#each imported.skipped as s, i (i)}
+                  <li><code>{s.what}</code> <span class="muted">{s.why}</span></li>
+                {/each}
+              </ul>
+            </details>
+          {/if}
+          <div class="actions">
+            <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>Preview</button>
+            <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>Open in the editor</button>
+          </div>
+        </div>
+      {/if}
+
+      {#if mode}
+        <form class="create" onsubmit={mode === 'create' ? create : importIt}>
+          <h2>{mode === 'create' ? 'Make a new site' : 'Import a website'}</h2>
+
+          {#if mode === 'import'}
+            <div class="from" role="radiogroup" aria-label="Import from">
+              <button type="button" role="radio" aria-checked={from === 'link'} class:on={from === 'link'} onclick={() => (from = 'link')}>From a link</button>
+              <button type="button" role="radio" aria-checked={from === 'files'} class:on={from === 'files'} onclick={() => (from = 'files')}>From my files</button>
+            </div>
+            {#if from === 'link'}
+              <label class="field">
+                <span>Website address</span>
+                <input
+                  bind:value={link}
+                  oninput={linkTyped}
+                  placeholder="https://example.com"
+                  inputmode="url"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  required
+                />
+                <span class="hint">Its pages, pictures and styles get copied here. It has to be a public website.</span>
+              </label>
+            {:else}
+              <div class="field">
+                <span>Your site's files</span>
+                <div class="pick">
+                  <button type="button" class="ghost" onclick={() => folderInput?.click()}>Choose a folder</button>
+                  <button type="button" class="ghost" onclick={() => zipInput?.click()}>Choose a .zip</button>
+                </div>
+                <input bind:this={folderInput} type="file" webkitdirectory multiple hidden onchange={() => pick(folderInput, false)} />
+                <input bind:this={zipInput} type="file" accept=".zip,application/zip" hidden onchange={() => pick(zipInput, true)} />
+                <span class="hint" class:ok={picked}>{picked ? picked.label : 'The folder with your index.html in it, or a .zip of it.'}</span>
+              </div>
+            {/if}
+          {/if}
 
           <label class="field">
             <span>Address</span>
             <span class="address">
               <input
                 bind:value={name}
+                oninput={() => (nameEdited = true)}
                 placeholder="yourname"
                 required
                 autocapitalize="off"
@@ -123,9 +252,14 @@
 
           <label class="field">
             <span>Title</span>
-            <input bind:value={title} placeholder="My corner of the Bigglenet" maxlength="80" />
+            <input
+              bind:value={title}
+              placeholder={mode === 'import' ? "Leave empty to use the site's own title" : 'My corner of the Bigglenet'}
+              maxlength="80"
+            />
           </label>
 
+          {#if mode === 'create'}
           <fieldset>
             <legend>Pick a look <em>(you can change it any time)</em></legend>
             <div class="themes">
@@ -143,28 +277,41 @@
             <input type="checkbox" bind:checked={withCode} />
             I know HTML and want to start with code instead
           </label>
+          {/if}
 
           {#if error}
             <p class="error" role="alert">{error}</p>
           {/if}
+          {#if progress}
+            <p class="muted" aria-live="polite">{progress}</p>
+          {/if}
           <p class="muted small">New sites are checked by an admin before anyone else can see them. You can edit yours straight away.</p>
           <div class="actions">
-            <button type="button" class="ghost" onclick={() => (creating = false)}>Cancel</button>
+            <button type="button" class="ghost" disabled={busy} onclick={() => (mode = null)}>Cancel</button>
             <button class="primary" disabled={busy || availability?.ok === false}>
-              {busy ? 'Making it…' : 'Make my site'}
+              {#if mode === 'create'}{busy ? 'Making it…' : 'Make my site'}{:else}{busy ? 'Importing…' : 'Import'}{/if}
             </button>
           </div>
         </form>
       {:else if atLimit}
         <p class="muted">You've made {sites.limit} sites, which is the most you can have.</p>
       {:else}
-        <button class="new" onclick={() => (creating = true)}>
-          <Icon name="plus" size={20} />
-          <span>
-            <strong>Make a new site</strong>
-            <span class="muted">Pick a name and a look. It takes a minute.</span>
-          </span>
-        </button>
+        <div class="starts">
+          <button class="new" onclick={() => start('create')}>
+            <Icon name="plus" size={20} />
+            <span>
+              <strong>Make a new site</strong>
+              <span class="muted">Pick a name and a look. It takes a minute.</span>
+            </span>
+          </button>
+          <button class="new" onclick={() => start('import')}>
+            <Icon name="import" size={20} />
+            <span>
+              <strong>Import a website</strong>
+              <span class="muted">Bring a site you already have, from its link or its files.</span>
+            </span>
+          </button>
+        </div>
       {/if}
     {/if}
   </div>
@@ -424,6 +571,59 @@
   .error {
     margin: 0;
     color: var(--danger);
+  }
+
+  .starts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .done {
+    margin-bottom: 16px;
+  }
+  .done p {
+    margin: 0;
+  }
+  .skipped {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    font-size: 13.5px;
+    overflow-wrap: anywhere;
+  }
+  .skipped li {
+    margin-bottom: 4px;
+  }
+  summary {
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .from {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .from button {
+    flex: 1;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .from button.on {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  }
+  .pick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .actions {
     display: flex;

@@ -5,6 +5,7 @@
 //   /site/:name/*path                site files, from the site's host or the database
 //   /preview/:token/*path            a site waiting for approval, for its owner and admins
 //   /api/sites*                      the Biggle site editor
+//   /api/import/fetch                fetching a site that's being imported
 //   /api/auth/*, /api/me             Biggle ID
 //   email to JOIN_ADDRESS             confirming an email address (inbox.ts)
 //   /api/admin/*                     names and users (admins only)
@@ -15,6 +16,7 @@ import * as auth from './auth';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as google from './google';
 import { fail, HttpError, preflight } from './http';
+import { fetchForImport } from './importer';
 import { receive } from './inbox';
 import { connect } from './live';
 import * as sites from './sites';
@@ -64,6 +66,8 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.readFile],
   ['PUT', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.writeFile],
   ['DELETE', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.deleteFile],
+
+  ['POST', /^\/api\/import\/fetch$/, fetchForImport],
 
   ['GET', /^\/api\/friends$/, social.listFriends],
   ['POST', /^\/api\/friends$/, social.addFriend],

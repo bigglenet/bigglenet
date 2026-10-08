@@ -7,7 +7,7 @@ import { notify } from './live';
 import { TEMPLATES, templateFiles, type Template } from './templates';
 
 const MAX_SITES = 3;
-const MAX_FILE = 1_000_000;
+export const MAX_FILE = 1_000_000;
 const MAX_SITE = 5_000_000;
 const MAX_FILES = 60;
 const PREVIEW_TTL = 60 * 60;
@@ -30,7 +30,14 @@ export const FILE_TYPES: Record<string, string> = {
   gif: 'image/gif',
   webp: 'image/webp',
   ico: 'image/x-icon',
+  avif: 'image/avif',
   woff2: 'font/woff2',
+  woff: 'font/woff',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  mp3: 'audio/mpeg',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
 };
 
 const PATH_RE = /^(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/){0,4}[A-Za-z0-9_-][A-Za-z0-9._-]*\.([a-z0-9]+)$/;

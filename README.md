@@ -7,6 +7,7 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 
 - **BHTML pages:** normal HTML, CSS and JS with a `<!bhtml 1>` header, so they only open in Biggle.
 - **A built-in site editor:** pick a name and a look, add text, pictures and buttons. No code or hosting needed. Admins approve every new site.
+- **Import a website you already have:** from its link, a folder or a .zip.
 - **`.biggle` names:** sites made in the editor get theirs straight away; you can also host files anywhere and point a name at them.
 - **One Biggle ID:** sign up with your email or Google, and every site can greet you by name.
 - **Friends and chat:** add friends and message them live, right in the browser.
@@ -24,6 +25,8 @@ You need a Biggle ID to use it: sign up with your email address (we send a code 
 The easy way: in Biggle, open your account menu → **My sites** (or go to `biggle://sites`). Pick a name and a look, then add blocks. It saves as you go, and goes live once an admin approves it.
 
 The hands-on way: write the HTML yourself, in the editor's Code view or on your own host.
+
+Already have a website? In **My sites**, choose **Import a website** and give its link, or pick its folder or a .zip of it. Biggle copies the pages (as .bhtml), pictures, styles, scripts and fonts, including ones the site loaded from other places, and points every link at the copies. Trackers are left out. Up to 25 pages, 60 files and 5 MB.
 
 ```html
 <!bhtml 1>
