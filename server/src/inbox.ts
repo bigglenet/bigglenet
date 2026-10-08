@@ -3,9 +3,9 @@
 // The app shows a code; the person emails it to us; we confirm the request with that code if
 // the email really came from the address they typed in.
 //
-// Cloudflare checks SPF, DKIM and DMARC on arrival and writes the results at the top of the
-// message, above its own Received header. We only trust results from up there: anything below
-// was written by the sender, who could claim whatever they like.
+// Cloudflare checks SPF, DKIM and DMARC on arrival and adds an Authentication-Results header
+// above everything the sender wrote. So we only trust the topmost one: any further down could
+// have been written by the sender, who could claim whatever they like.
 import { confirmByMail } from './auth';
 
 const READ_LIMIT = 64 * 1024;
@@ -85,25 +85,22 @@ const aligned = (a: string, b: string) => a === b || a.endsWith(`.${b}`) || b.en
  * for the From domain (DMARC's own rule, for senders with no DMARC policy).
  */
 function checkAuth(headers: [string, string][], domain: string): 'pass' | string {
-  const received = headers.findIndex(([n]) => n === 'received');
-  if (received < 0) return 'no received header';
-  const results = headers
-    .slice(0, received)
-    .filter(([n]) => n === 'authentication-results' || n === 'arc-authentication-results')
-    .map(([, v]) => v.replace(/\([^)]*\)/g, ' ').split(';').map((s) => s.trim()))
-    .find((parts) => parts.slice(0, 2).some((p) => p.toLowerCase() === 'mx.cloudflare.net'));
-  if (!results) return 'no cloudflare results';
+  const top = headers.find(([n]) => n === 'authentication-results');
+  if (!top) return 'no results';
+  const [server, ...results] = top[1].replace(/\([^)]*\)/g, ' ').split(';').map((s) => s.trim());
+  if (server.toLowerCase() !== 'mx.cloudflare.net') return `results from ${server}`;
 
+  const seen: string[] = [];
   for (const part of results) {
     const [method, ...props] = part.split(/\s+/);
     const [name, result] = method.toLowerCase().split('=');
-    if (result !== 'pass') continue;
     const prop = (key: string) => props.find((p) => p.toLowerCase().startsWith(`${key}=`))?.slice(key.length + 1).toLowerCase();
     const checked =
       name === 'dmarc' ? prop('header.from') : name === 'dkim' ? prop('header.d') : name === 'spf' ? prop('smtp.mailfrom')?.split('@').pop() : undefined;
-    if (checked && aligned(checked, domain)) return 'pass';
+    if (result === 'pass' && checked && aligned(checked, domain)) return 'pass';
+    seen.push(`${method} ${checked ?? ''}`.trim());
   }
-  return 'not authenticated';
+  return `not authenticated: ${seen.join(', ')}`;
 }
 
 /** Decode =?utf-8?B?...?= and =?utf-8?Q?...?= words in a header. */
