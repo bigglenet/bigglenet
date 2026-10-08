@@ -6,7 +6,6 @@ export type Gate = 'ok' | 'desktop' | 'ios' | 'android';
 
 const UNLOCK_KEY = 'biggle:web-unlocked';
 
-/** The secret way in: lets this browser use the web version anyway. */
 export function unlockWeb() {
   try {
     localStorage.setItem(UNLOCK_KEY, '1');

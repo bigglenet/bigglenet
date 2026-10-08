@@ -28,16 +28,19 @@
     };
   });
 
-  // Five quick taps on "I have it" (or the logo) unlock the web version in this browser.
-  const TAPS = 5;
-  const WINDOW_MS = 3000;
-  let taps: number[] = [];
-  function secretTap(e?: Event) {
+  let opens: number[] = [];
+  function openApp(e: Event) {
     const now = Date.now();
-    taps = [...taps.filter((t) => now - t < WINDOW_MS), now];
-    // Only the first tap tries to open the desktop app.
-    if (taps.length > 1) e?.preventDefault();
-    if (taps.length >= TAPS) unlockWeb();
+    opens = [...opens.filter((t) => now - t < 3000), now];
+    if (opens.length > 1) e.preventDefault();
+    if (opens.length >= 5) unlockWeb();
+  }
+
+  let firstStep = { count: 0, at: 0 };
+  function onFirstStep() {
+    const now = Date.now();
+    firstStep = { count: now - firstStep.at < 1500 ? firstStep.count + 1 : 1, at: now };
+    if (firstStep.count >= 20) unlockWeb();
   }
 
   async function install() {
@@ -51,15 +54,14 @@
 
 <div class="gate">
   <main>
-    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-    <span class="logo-word" aria-hidden="true" onclick={() => secretTap()}></span>
+    <span class="logo-word" aria-hidden="true"></span>
 
     {#if gate === 'desktop'}
       <h1>Bigglenet lives in its own app</h1>
       <p>On a computer, the Bigglenet only opens in the Biggle desktop app. It's free and tiny.</p>
       <div class="actions">
         <a class="primary" href={RELEASES}>Download for {os}</a>
-        <a class="secondary" href="biggle://home.biggle/" onclick={secretTap}>I have it, open Bigglenet</a>
+        <a class="secondary" href="biggle://home.biggle/" onclick={openApp}>I have it, open Bigglenet</a>
       </div>
       <p class="small">Also for {os === 'Mac' ? 'Windows and Linux' : os === 'Windows' ? 'Mac and Linux' : 'Mac and Windows'}. On a phone? Open this page there and add it to your home screen.</p>
     {:else if installed}
@@ -75,10 +77,12 @@
       {:else}
         <ol>
           {#if gate === 'ios'}
-            <li>Tap the <strong>Share</strong> button <svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" /></svg> in your browser.</li>
+            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+            <li onclick={onFirstStep}>Tap the <strong>Share</strong> button <svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" /></svg> in your browser.</li>
             <li>Choose <strong>Add to Home Screen</strong>.</li>
           {:else}
-            <li>Open your browser's menu (<strong>⋮</strong>).</li>
+            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+            <li onclick={onFirstStep}>Open your browser's menu (<strong>⋮</strong>).</li>
             <li>Choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
           {/if}
           <li>Open <strong>Bigglenet</strong> from your home screen.</li>
