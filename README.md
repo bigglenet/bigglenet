@@ -1,6 +1,7 @@
-<p align="center"><img src="brand/icon-app.png" alt="b.net" height="96"></p>
-
-# Bigglenet
+<p align="center">
+  <img src="brand/icon-app.png" alt="b.net" height="96">
+  <h1>Bigglenet</h1>
+</p>
 
 A small, friendly alternative to the web. Sites are written in **BHTML**, live at **`name.biggle`** addresses, and open in the **Biggle browser**, which blocks ads and trackers by design.
 
