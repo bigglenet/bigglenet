@@ -1,6 +1,6 @@
 <script lang="ts">
   // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
-  import { account, type Ticket } from '../lib/account.svelte';
+  import { account, type Again, type Ticket } from '../lib/account.svelte';
   import { errorText } from '../lib/api';
   import { isApp, openExternal } from '../lib/platform';
 
@@ -32,7 +32,7 @@
   let mailBack = $state<Step>('welcome');
 
   $effect(() => {
-    if (account.needsEmail && !step.startsWith('add-email')) step = 'add-email';
+    if (account.needsEmail && !step.startsWith('add-email') && step !== 'mail') step = 'add-email';
   });
 
   function go(next: Step) {
@@ -43,6 +43,7 @@
   }
 
   async function run(fn: () => Promise<unknown>) {
+    if (busy) return;
     busy = true;
     error = '';
     try {
@@ -65,16 +66,63 @@
     code = t.devCode ?? t.code ?? '';
   };
 
+  // Confirming by emailing us is remembered in this browser, because phones often reload the
+  // app while someone is off in their email app. Coming back picks up where they left off.
+  type Flow = 'signup' | 'add-email' | 'reset';
+  type Pending = { flow: Flow; email: string; ticket: string; code: string; join: string; at: number };
+  const PENDING = 'biggle:confirming';
+  const PENDING_MS = 15 * 60 * 1000;
+
+  function loadPending(): Pending | null {
+    try {
+      const p = JSON.parse(localStorage.getItem(PENDING) ?? 'null') as Pending | null;
+      return p && Date.now() - p.at < PENDING_MS ? p : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function savePending(p: Pending | null) {
+    try {
+      if (p) localStorage.setItem(PENDING, JSON.stringify(p));
+      else localStorage.removeItem(PENDING);
+    } catch {}
+  }
+
+  /** The code from last time, if they're starting the same thing again with the same email. */
+  function again(flow: Flow): Again {
+    const p = loadPending();
+    return p && p.flow === flow && p.email === email.trim().toLowerCase() ? { ticket: p.ticket, code: p.code } : undefined;
+  }
+
+  const finishes: Record<Flow, () => Promise<unknown>> = {
+    signup: () => account.signUpFinish(ticket!.ticket, code),
+    'add-email': () => account.emailFinish(ticket!.ticket, code),
+    reset: () => account.resetFinish(ticket!.ticket, code),
+  };
+
   /** A code is ready: type in the emailed one, or (with `join`) email it to us and wait. */
-  function confirm(t: Ticket, codeStep: Step, back: Step, finish: () => Promise<unknown>) {
+  function confirm(t: Ticket, flow: Flow, codeStep: Step) {
     withCode(t);
     if (t.join) {
-      mailFinish = finish;
-      mailBack = back;
+      savePending({ flow, email: email.trim().toLowerCase(), ticket: t.ticket, code: t.code ?? '', join: t.join, at: Date.now() });
+      mailFinish = finishes[flow];
+      mailBack = flow;
       step = 'mail';
     } else {
       step = codeStep;
     }
+  }
+
+  // Back from the email app after the page reloaded: carry on waiting.
+  const resume = loadPending();
+  if (resume && (resume.flow === 'add-email') === !!account.user) {
+    email = resume.email;
+    ticket = { ticket: resume.ticket, code: resume.code, join: resume.join };
+    code = resume.code;
+    mailFinish = finishes[resume.flow];
+    mailBack = resume.flow;
+    step = 'mail';
   }
 
   const mailto = $derived(
@@ -95,17 +143,37 @@
     const id = ticket.ticket;
     let stopped = false;
     let checking = false;
+    // Phones drop the connection when switching apps, so a lost connection just means try again.
+    const offline = (e: unknown) => (e as { code?: string }).code === 'offline';
+    const attempt = async () => {
+      try {
+        if (!(await account.codeConfirmed(id))) return;
+      } catch (e) {
+        if (offline(e)) return;
+        stopped = true;
+        if ((e as { code?: string }).code === 'code_expired') savePending(null);
+        error = errorText(e);
+        return;
+      }
+      busy = true;
+      error = '';
+      try {
+        await mailFinish!();
+        stopped = true;
+        savePending(null);
+      } catch (e) {
+        if (offline(e)) return;
+        stopped = true;
+        error = errorText(e);
+      } finally {
+        busy = false;
+      }
+    };
     const check = async () => {
       if (stopped || checking) return;
       checking = true;
       try {
-        if (await account.codeConfirmed(id)) {
-          stopped = true;
-          await run(mailFinish!);
-        }
-      } catch (e) {
-        stopped = true;
-        error = errorText(e);
+        await attempt();
       } finally {
         checking = false;
       }
@@ -189,9 +257,7 @@
       <form
         class="stack"
         onsubmit={submit(async () =>
-          confirm(await account.signUpStart(email, username, password), 'signup-code', 'signup', () =>
-            account.signUpFinish(ticket!.ticket, code),
-          ),
+          confirm(await account.signUpStart(email, username, password, again('signup')), 'signup', 'signup-code'),
         )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
@@ -236,7 +302,7 @@
       <form
         class="stack"
         onsubmit={submit(async () =>
-          confirm(await account.resetStart(email), 'reset-code', 'reset', () => account.resetFinish(ticket!.ticket, code, password)),
+          confirm(await account.resetStart(email, account.join ? password : undefined, again('reset')), 'reset', 'reset-code'),
         )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
@@ -273,7 +339,7 @@
       <form
         class="stack"
         onsubmit={submit(async () =>
-          confirm(await account.emailStart(email), 'add-email-code', 'add-email', () => account.emailFinish(ticket!.ticket, code)),
+          confirm(await account.emailStart(email, again('add-email')), 'add-email', 'add-email-code'),
         )}
       >
         <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />

@@ -10,6 +10,8 @@ type SignedIn = { token: string; user: Me };
  * to the `join` address from their own email, then the app finishes once it arrives.
  */
 export type Ticket = { ticket: string; devCode?: string; code?: string; join?: string };
+/** A code from before, sent back when starting again so the same code keeps working. */
+export type Again = { ticket: string; code: string } | undefined;
 
 const KEY = 'biggle:session';
 
@@ -65,24 +67,25 @@ class Account {
     this.set(await api<SignedIn>('POST', '/api/auth/login', { login, password }));
   }
 
-  signUpStart(email: string, username: string, password: string) {
-    return api<Ticket>('POST', '/api/auth/signup/start', { email, username, password });
+  signUpStart(email: string, username: string, password: string, again?: Again) {
+    return api<Ticket>('POST', '/api/auth/signup/start', { email, username, password, again });
   }
 
   async signUpFinish(ticket: string, code: string) {
     this.set(await api<SignedIn>('POST', '/api/auth/signup/finish', { ticket, code }));
   }
 
-  resetStart(email: string) {
-    return api<Ticket>('POST', '/api/auth/reset/start', { email });
+  /** With `password` when confirming by emailing us: the server keeps it until the email arrives. */
+  resetStart(email: string, password?: string, again?: Again) {
+    return api<Ticket>('POST', '/api/auth/reset/start', { email, password, again });
   }
 
-  async resetFinish(ticket: string, code: string, password: string) {
+  async resetFinish(ticket: string, code: string, password?: string) {
     this.set(await api<SignedIn>('POST', '/api/auth/reset/finish', { ticket, code, password }));
   }
 
-  emailStart(email: string) {
-    return api<Ticket>('POST', '/api/auth/email/start', { email });
+  emailStart(email: string, again?: Again) {
+    return api<Ticket>('POST', '/api/auth/email/start', { email, again });
   }
 
   /** Whether the email for a ticket has reached the Biggle server yet. */

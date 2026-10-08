@@ -35,9 +35,10 @@ export async function receive(message: ForwardableEmailMessage, env: Env) {
   const subject = decodeWords(header(headers, 'subject') ?? '');
   const codes = [...new Set([...subject.matchAll(/\b\d{6}\b/g), ...body.matchAll(/\b\d{6}\b/g)].map((m) => m[0]))].slice(0, 20);
   if (!(await confirmByMail(env, from, codes))) {
+    console.log('Join email matched nothing', { subject: subject.slice(0, 80), codes });
     message.setReject(
-      `Bigglenet isn't waiting for a code from ${from}. Send the email from the same address you typed in the app, ` +
-        'with the code from the app in it. Codes last 15 minutes.',
+      `Bigglenet isn't waiting for that code from ${from}. Open Bigglenet, tap "Open my email app" again and send ` +
+        'the email it writes, from the same address you typed in. Codes last 15 minutes.',
     );
   }
 }

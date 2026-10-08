@@ -152,10 +152,24 @@ type CodeRow = {
  * emailed (unless `send` is false) and typing it in proves the address. Otherwise the app gets
  * the code back and the person emails it to us from that address (see inbox.ts).
  */
-async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true) {
+async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true, again?: unknown) {
   const mode = mailMode(env);
   if (!mode) {
     throw new HttpError(503, 'email_off', purpose === 'signup' ? 'New accounts open soon.' : "Email isn't switched on yet. Try again soon.");
+  }
+  // Starting again with the same email keeps the same code, so an email already written with
+  // it still works. Only the app that got the code can do this: it has to send both back.
+  if (mode === 'receive' && again && typeof again === 'object') {
+    const { ticket, code } = again as Record<string, unknown>;
+    const row = await env.DB.prepare('SELECT id, code_hash FROM email_codes WHERE id = ? AND email = ? AND purpose = ? AND expires_at > unixepoch()')
+      .bind(str(ticket), email, purpose)
+      .first<{ id: string; code_hash: string }>();
+    if (row && (await sha256Hex(`${row.id}:${str(code)}`)) === row.code_hash) {
+      await env.DB.prepare('UPDATE email_codes SET data = ?, attempts = 0, expires_at = ? WHERE id = ?')
+        .bind(JSON.stringify(data), Math.floor(Date.now() / 1000) + CODE_TTL, row.id)
+        .run();
+      return { ticket: row.id, code: str(code), join: env.JOIN_ADDRESS };
+    }
   }
   const id = randomId();
   const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
@@ -236,7 +250,7 @@ export async function signupStart(req: Request, env: Env): Promise<Response> {
   checkPassword(password);
   if (await emailTaken(env, email)) throw new HttpError(409, 'email_taken', 'There is already an account with that email. Try signing in.');
   const { hash, salt } = await newPasswordHash(password);
-  return json(await issueCode(env, email, 'signup', { username, hash, salt }));
+  return json(await issueCode(env, email, 'signup', { username, hash, salt }, true, body.again));
 }
 
 export async function signupFinish(req: Request, env: Env): Promise<Response> {
@@ -303,11 +317,12 @@ export async function me(req: Request, env: Env): Promise<Response> {
 export async function emailStart(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(req, env);
   await limitByIp(req, env.EMAIL_LIMIT, 'email');
-  const email = checkEmail(str((await readJson(req)).email));
+  const body = await readJson(req);
+  const email = checkEmail(str(body.email));
   if (email !== user.email && (await emailTaken(env, email))) {
     throw new HttpError(409, 'email_taken', 'Another account already uses that email.');
   }
-  return json(await issueCode(env, email, 'verify', { userId: user.id }));
+  return json(await issueCode(env, email, 'verify', { userId: user.id }, true, body.again));
 }
 
 export async function emailFinish(req: Request, env: Env): Promise<Response> {
@@ -328,21 +343,29 @@ export async function emailFinish(req: Request, env: Env): Promise<Response> {
 
 export async function resetStart(req: Request, env: Env): Promise<Response> {
   await limitByIp(req, env.EMAIL_LIMIT, 'reset');
-  const email = checkEmail(str((await readJson(req)).email));
+  const body = await readJson(req);
+  const email = checkEmail(str(body.email));
+  // When people email us to confirm, the new password comes now, so the app can finish on
+  // its own once the email arrives (even if it was closed in between).
+  const password = str(body.password);
+  if (password) checkPassword(password);
   const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first<{ id: number }>();
+  const data = { userId: user?.id ?? null, ...(password ? await newPasswordHash(password) : {}) };
   // Answer the same either way, so this can't be used to find out who has an account.
-  return json(await issueCode(env, email, 'reset', { userId: user?.id ?? null }, !!user));
+  return json(await issueCode(env, email, 'reset', data, !!user, body.again));
 }
 
 export async function resetFinish(req: Request, env: Env): Promise<Response> {
   const body = await readJson(req);
   const password = str(body.password);
-  checkPassword(password);
+  if (password) checkPassword(password);
   const row = await redeemCode(env, str(body.ticket), str(body.code), 'reset');
-  const userId = JSON.parse(row.data ?? '{}').userId;
+  const data = JSON.parse(row.data ?? '{}');
   // Only someone who could read (or send from) that inbox gets this far, so it's fine to say.
-  if (!userId) throw new HttpError(404, 'no_account', "There's no Biggle ID with that email.");
-  const { hash, salt } = await newPasswordHash(password);
+  if (!data.userId) throw new HttpError(404, 'no_account', "There's no Biggle ID with that email.");
+  const userId: number = data.userId;
+  const { hash, salt } = password ? await newPasswordHash(password) : data;
+  if (!hash || !salt) throw new HttpError(400, 'weak_password', 'Choose a new password.');
   await env.DB.batch([
     env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, email_verified = 1 WHERE id = ?').bind(hash, salt, userId),
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
