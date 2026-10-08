@@ -45,14 +45,14 @@ spec/         the BHTML format
 brand/        logo and app icons
 ```
 
-The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`), which serves sites made in the editor from the database and fetches the rest from their own host. Sites waiting for approval are only reachable through signed preview links (`/preview/<token>/<path>`) given to their owner and admins.
+The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`). Every site hosted on the Bigglenet lives in the server's database and is served by the one Worker; names that point at an outside host are fetched from there. Sites waiting for approval are only reachable through signed preview links (`/preview/<token>/<path>`) given to their owner and admins.
 
 ## Develop
 
 ```bash
 npm install
-npm run setup     # local database, with hello.biggle pointing at the example site
-npm run dev       # example site :8080, server :8787, browser :5173
+npm run setup     # local database, with hello.biggle and home.biggle in it
+npm run dev       # server :8787, browser :5173
 ```
 
 Put local settings in `server/.dev.vars`. With `EMAIL_DEV_MODE=1`, sign-up codes are shown in the app instead of emailed:
@@ -95,7 +95,11 @@ npm run name -w server -- set ethem https://ethem.pages.dev/ "Ethem's site" --re
 npm run promote -w server -- someone --remote
 ```
 
-The two Bigglenet sites are static folders. Publish changes with `npm run deploy:home` or `npm run deploy:hello`.
+`home.biggle` (`sites/home`) and `hello.biggle` (`examples/hello`) are hosted on the Bigglenet itself, like sites made in the editor: no extra workers. Publish changes to them with `npm run deploy:home` or `npm run deploy:hello`, or upload any folder as a site:
+
+```bash
+npm run site -w server -- push <name> <folder> ["Title"] --owner <username> --remote
+```
 
 ## Release
 

@@ -1,8 +1,7 @@
-// Runs the example site, the Biggle server and the browser together, with labelled output.
+// Runs the Biggle server and the browser together, with labelled output.
 import { spawn } from 'node:child_process';
 
 const procs = [
-  ['site', '\x1b[35m', ['node', 'examples/serve.mjs']],
   ['server', '\x1b[33m', ['npm', 'run', 'dev', '-w', 'server']],
   ['browser', '\x1b[36m', ['npm', 'run', 'dev', '-w', 'browser']],
 ];

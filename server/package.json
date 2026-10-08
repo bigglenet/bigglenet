@@ -10,7 +10,8 @@
     "name": "node scripts/admin.mjs name",
     "promote": "node scripts/admin.mjs promote",
     "types": "wrangler types",
-    "check": "wrangler types && tsc --noEmit"
+    "check": "wrangler types && tsc --noEmit",
+    "site": "node scripts/admin.mjs site"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

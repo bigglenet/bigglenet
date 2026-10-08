@@ -7,14 +7,14 @@
     "desktop"
   ],
   "scripts": {
-    "setup": "npm run db:migrate -w server && npm run name -w server -- set hello http://localhost:8080/ \"Hello, Bigglenet\"",
+    "setup": "npm run db:migrate -w server && npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" && npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\"",
     "dev": "node scripts/dev.mjs",
     "check": "npm run check -w server && npm run check -w browser",
     "dev:live": "npm run dev:live -w browser",
     "deploy": "npm run build -w browser && npm run deploy -w server",
     "app:dev": "npm run dev -w desktop",
     "app:build": "npm run build -w desktop",
-    "deploy:home": "cd sites/home && wrangler deploy --assets . --name bigglenet-home --compatibility-date 2026-09-01",
-    "deploy:hello": "cd examples/hello && wrangler deploy --assets . --name bigglenet-hello --compatibility-date 2026-09-01"
+    "deploy:home": "npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\" --owner ethem --remote",
+    "deploy:hello": "npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" --owner ethem --remote"
   }
 }
