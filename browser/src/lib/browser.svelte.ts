@@ -3,6 +3,8 @@ import { api } from './api';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { answerCall } from './frame';
 import { load, type PageError } from './loader';
+import { closeWindow, isApp } from './platform';
+import { startSettings } from './startpage.svelte';
 import { saveLocal } from './storage';
 import { fromInput, looksLikeAddress, noxSearch, parse, START, withHash, type InternalPage } from './url';
 
@@ -48,7 +50,8 @@ class Browser {
     return this.tabs.find((t) => t.id === this.activeId);
   }
 
-  newTab(href = START, opts: { activate?: boolean; after?: number } = {}): Tab {
+  /** Open a tab: at `href`, or at whatever new tabs open (the start page unless changed). */
+  newTab(href = startSettings.newTabAddress, opts: { activate?: boolean; after?: number } = {}): Tab {
     const id = nextId++;
     const raw: Tab = {
       id,
@@ -99,7 +102,12 @@ class Browser {
     controllers.get(id)?.abort();
     controllers.delete(id);
     this.tabs.splice(i, 1);
-    if (this.tabs.length === 0) this.newTab();
+    // Closing the last tab closes the desktop app, like other browsers. A phone app can't close
+    // itself, so there it opens a fresh tab instead.
+    if (this.tabs.length === 0) {
+      if (isApp) closeWindow().catch(() => this.newTab());
+      else this.newTab();
+    }
     else if (this.activeId === id) this.activeId = this.tabs[Math.min(i, this.tabs.length - 1)].id;
   }
 

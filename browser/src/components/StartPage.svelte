@@ -1,12 +1,27 @@
 <script lang="ts">
+  import { account } from '../lib/account.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
+  import { BACKDROPS, startSettings as settings } from '../lib/startpage.svelte';
   import Icon from './Icon.svelte';
+  import StartCustomize from './StartCustomize.svelte';
 
   let { tab }: { tab: Tab } = $props();
 
   let query = $state('');
+  let customizing = $state(false);
   const directory = loadDirectory();
+  const wash = $derived(BACKDROPS.find((b) => b.id === settings.backdrop)?.color ?? null);
+
+  // The clock, when it's switched on.
+  let now = $state(new Date());
+  $effect(() => {
+    if (!settings.shown.clock) return;
+    const timer = setInterval(() => (now = new Date()), 10_000);
+    return () => clearInterval(timer);
+  });
+  const time = $derived(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const greeting = $derived(now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening');
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -14,66 +29,181 @@
   }
 </script>
 
-<div class="start">
-  <div class="inner">
-    <h1 class="brand"><span class="logo-word" aria-hidden="true"></span><span class="sr-only">bigglenet</span></h1>
+<div class="frame">
+  <div class="start" class:washed={wash} style:--wash={wash}>
+    <div class="inner">
+      <h1 class="brand"><span class="logo-word" aria-hidden="true"></span><span class="sr-only">bigglenet</span></h1>
 
-    <form class="search" onsubmit={submit}>
-      <input bind:value={query} placeholder="Search with Nox or go to a .biggle address" aria-label="Search with Nox" spellcheck="false" />
-      <button type="submit">Nox</button>
-    </form>
+      {#if settings.shown.clock}
+        <div class="clock">
+          <time>{time}</time>
+          <p>{greeting}{account.user ? `, ${account.user.username}` : ''}.</p>
+        </div>
+      {/if}
 
-    <button class="home" onclick={() => browser.go(tab, 'biggle://home.biggle/')}>
-      <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
-      <span class="home-text">
-        <strong>home.biggle</strong>
-        <span>New here? Start with the Bigglenet's homepage.</span>
-      </span>
-      <Icon name="forward" />
-    </button>
-    <button class="make" onclick={() => browser.go(tab, 'biggle://sites')}>
-      <span class="make-plus"><Icon name="plus" size={18} /></span>
-      <span class="home-text">
-        <strong>Make your own site</strong>
-        <span>Pick a name and a look. No code needed.</span>
-      </span>
-      <Icon name="forward" />
-    </button>
+      {#if settings.shown.search}
+        <form class="search" onsubmit={submit}>
+          <input bind:value={query} placeholder="Search with Nox or go to a .biggle address" aria-label="Search with Nox" spellcheck="false" />
+          <button type="submit">Nox</button>
+        </form>
+      {/if}
 
-    <section>
-      <h2>Sites on the Bigglenet</h2>
-      {#await directory}
-        <p class="muted">Loading…</p>
-      {:then sites}
-        {#if sites.length === 0}
-          <p class="muted">No sites yet.</p>
-        {:else}
-          <ul class="sites">
-            {#each sites.filter((s) => s.name !== 'home') as site (site.name)}
-              <li>
-                <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
-                  <span class="tile">{site.name[0].toUpperCase()}</span>
-                  <span class="text">
-                    <span class="name">{site.name}.biggle</span>
-                    {#if site.title}<span class="title">{site.title}</span>{/if}
-                  </span>
-                </button>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      {:catch}
-        <p class="muted">Can't reach the Biggle server right now.</p>
-      {/await}
-    </section>
+      {#if settings.shown.shortcuts && settings.shortcuts.length}
+        <ul class="shortcuts" aria-label="My shortcuts">
+          {#each settings.shortcuts as shortcut, i (shortcut.url + i)}
+            <li>
+              <button onclick={() => browser.go(tab, shortcut.url)} title={shortcut.url}>
+                <span class="tile">{shortcut.name[0]?.toUpperCase() ?? '?'}</span>
+                <span class="shortcut-name">{shortcut.name}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if settings.shown.featured}
+        <button class="home" onclick={() => browser.go(tab, 'biggle://home.biggle/')}>
+          <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
+          <span class="home-text">
+            <strong>home.biggle</strong>
+            <span>New here? Start with the Bigglenet's homepage.</span>
+          </span>
+          <Icon name="forward" />
+        </button>
+        <button class="make" onclick={() => browser.go(tab, 'biggle://sites')}>
+          <span class="make-plus"><Icon name="plus" size={18} /></span>
+          <span class="home-text">
+            <strong>Make your own site</strong>
+            <span>Pick a name and a look. No code needed.</span>
+          </span>
+          <Icon name="forward" />
+        </button>
+      {/if}
+
+      {#if settings.shown.sites}
+        <section>
+          <h2>Sites on the Bigglenet</h2>
+          {#await directory}
+            <p class="muted">Loading…</p>
+          {:then sites}
+            {#if sites.length === 0}
+              <p class="muted">No sites yet.</p>
+            {:else}
+              <ul class="sites">
+                {#each sites.filter((s) => s.name !== 'home') as site (site.name)}
+                  <li>
+                    <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
+                      <span class="tile">{site.name[0].toUpperCase()}</span>
+                      <span class="text">
+                        <span class="name">{site.name}.biggle</span>
+                        {#if site.title}<span class="title">{site.title}</span>{/if}
+                      </span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          {:catch}
+            <p class="muted">Can't reach the Biggle server right now.</p>
+          {/await}
+        </section>
+      {/if}
+    </div>
   </div>
+
+  <button class="customize" onclick={() => (customizing = !customizing)} aria-expanded={customizing}>
+    <Icon name="settings" size={16} />
+    <span>Customize</span>
+  </button>
+  {#if customizing}
+    <StartCustomize onclose={() => (customizing = false)} />
+  {/if}
 </div>
 
 <style>
+  .frame {
+    position: relative;
+    height: 100%;
+  }
   .start {
     height: 100%;
     overflow: auto;
     background: var(--surface);
+  }
+  /* A chosen background: its colour washed over the page's own, so it suits light and dark. */
+  .start.washed {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--wash) 32%, var(--surface)), var(--surface) 75%);
+  }
+
+  .customize {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px -10px rgb(0 0 0 / 0.35);
+  }
+  .customize:hover {
+    border-color: var(--accent);
+  }
+
+  .clock {
+    margin: -12px 0 28px;
+    text-align: center;
+  }
+  .clock time {
+    display: block;
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .shortcuts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .shortcuts button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 6px 12px;
+    border: 0;
+    border-radius: 14px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+  }
+  .shortcuts button:hover {
+    background: var(--hover);
+  }
+  .shortcut-name {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
   }
   .inner {
     max-width: 640px;

@@ -5,7 +5,7 @@
   import { sites } from './lib/sites.svelte';
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
-  import { START } from './lib/url';
+  import { startSettings } from './lib/startpage.svelte';
   import AdminPage from './components/AdminPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
   import ErrorPage from './components/ErrorPage.svelte';
@@ -24,7 +24,7 @@
 
   // ?open=biggle://… opens that address in the first tab.
   const opening = new URLSearchParams(location.search).get('open');
-  if (!browser.restoreTabs()) browser.newTab(opening ?? START);
+  if (!browser.restoreTabs()) browser.newTab(opening ?? startSettings.newTabAddress);
   else if (opening) browser.newTab(opening);
   $effect(() => browser.saveTabs());
   initPlatform((href) => browser.openFromOutside(href));

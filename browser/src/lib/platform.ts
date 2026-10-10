@@ -20,6 +20,12 @@ export async function openExternal(url: string) {
   }
 }
 
+/** Close the desktop app's window (which quits it). */
+export async function closeWindow() {
+  const { getCurrentWindow } = await import('@tauri-apps/api/window');
+  await getCurrentWindow().close();
+}
+
 /** The PWA's offline cache. Registered even on the install screen, so phones can install it. */
 export function registerServiceWorker() {
   if (!isApp && import.meta.env.PROD && 'serviceWorker' in navigator) {
