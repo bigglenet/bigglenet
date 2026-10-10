@@ -107,7 +107,10 @@
 
   .tab {
     position: relative;
-    flex: 0 1 220px;
+    /* A set width rather than a flex-basis: browsers then measure the strip by the tabs, not by
+       their titles (WebKit left a gap before the + button when a title was long). */
+    flex: 0 1 auto;
+    width: 220px;
     min-width: 44px;
     display: flex;
     align-items: center;
