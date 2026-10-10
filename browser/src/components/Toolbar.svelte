@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '../lib/browser.svelte';
   import { social } from '../lib/social.svelte';
-  import { parse } from '../lib/url';
+  import { parse, START } from '../lib/url';
   import AccountButton from './AccountButton.svelte';
   import Icon from './Icon.svelte';
 
@@ -15,9 +15,13 @@
   let editing = $state(false);
   let value = $state('');
 
+  // The address to show: the one the tab is at or loading (as soon as you go somewhere, even
+  // while the old page is still on screen), and nothing on the start page.
+  const shownUrl = () => (!tab || tab.url === START ? '' : tab.url);
+
   // Show the tab's address unless the user is typing.
   $effect(() => {
-    const url = tab?.view.type === 'internal' && tab.view.page === 'start' ? '' : (tab?.url ?? '');
+    const url = shownUrl();
     if (!editing) value = url;
   });
 
@@ -38,7 +42,7 @@
   function onkeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       editing = false;
-      value = tab?.view.type === 'internal' && tab.view.page === 'start' ? '' : (tab?.url ?? '');
+      value = shownUrl();
       input?.blur();
     }
   }
@@ -285,7 +289,9 @@
     font: inherit;
     font-size: 14px;
   }
-  .address:not(.editing) .field:has(.pretty) input {
+  /* The address drawn over the box hides the box's own text, placeholder included. */
+  .address:not(.editing) .field:has(.pretty) input,
+  .address:not(.editing) .field:has(.pretty) input::placeholder {
     color: transparent;
   }
   input::placeholder {
