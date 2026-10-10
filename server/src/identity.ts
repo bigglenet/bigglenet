@@ -2,10 +2,10 @@
 // to its server, which asks GET /api/identity/verify whether it's genuine and whose it is. Tokens
 // name the site they were made for, so one site can't use another site's token.
 import { base64url, requireUser } from './auth';
-import { HttpError, json, NAME_RE, readJson, str } from './http';
+import { HttpError, json, readJson, SITE_KEY_RE, str } from './http';
 
 const TTL = 60 * 60;
-const TOKEN_RE = /^([a-z0-9-]+)\.([a-z0-9_]+)\.(\d+)\.([A-Za-z0-9_-]+)$/;
+const TOKEN_RE = /^([a-z0-9-]+(?:\.b)?)\.([a-z0-9_]+)\.(\d+)\.([A-Za-z0-9_-]+)$/;
 
 async function sign(env: Env, payload: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.PREVIEW_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -16,7 +16,7 @@ async function sign(env: Env, payload: string): Promise<string> {
 export async function issue(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(req, env);
   const site = str((await readJson(req)).site).toLowerCase();
-  if (!NAME_RE.test(site)) throw new HttpError(400, 'bad_name', "That isn't a site name.");
+  if (!SITE_KEY_RE.test(site)) throw new HttpError(400, 'bad_name', "That isn't a site name.");
   const expires = Math.floor(Date.now() / 1000) + TTL;
   const payload = `${site}.${user.username}.${expires}`;
   return json({ token: `${payload}.${await sign(env, payload)}`, expires });

@@ -231,17 +231,22 @@
     else browser.openPreview(name, '/' + path, tld);
   }
 
-  // The address ending. Admins and people they trust can switch between .biggle and .b.
-  const tld = $derived(info?.site.tld ?? 'biggle');
+  // The address ending. Admins and people they trust can move a site between .biggle and .b,
+  // if its other address is free. `name` is the site's key (hello, or hello.b).
+  const tld = $derived(name.endsWith('.b') ? 'b' : 'biggle');
+  const bare = $derived(name.replace(/\.b$/, ''));
   const canShort = $derived(!!account.user?.admin || !!account.user?.trusted);
+  let tldPick = $state<HTMLSelectElement>();
   async function setTld(value: string) {
     saveError = '';
     try {
-      await api('PATCH', `/api/sites/${enc(name)}`, { tld: value });
-      await refresh();
+      const { site } = await api<{ site: MySite }>('PATCH', `/api/sites/${enc(name)}`, { tld: value });
       sites.refreshMine();
+      browser.go(tab, `biggle://sites/${site.name}`, 'replace');
     } catch (err) {
-      saveError = errorText(err);
+      const message = (saveError = errorText(err));
+      if (tldPick) tldPick.value = tld;
+      setTimeout(() => saveError === message && (saveError = ''), 6000);
     }
   }
 
@@ -257,7 +262,7 @@
     <div class="who">
       {#if canShort}
         <strong class="address"
-          >{name}<select value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label="Address ending" title="Address ending">
+          >{bare}<select bind:this={tldPick} value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label="Address ending" title="Address ending">
             <option value="biggle">.biggle</option>
             <option value="b">.b</option>
           </select></strong
@@ -267,7 +272,7 @@
       {/if}
       <span class="state">
         {#if mode === 'easy'}
-          {#if easyState.saving}Saving…{:else if easyState.error}<span class="bad">{easyState.error}</span>{:else if easyState.dirty}Unsaved changes{:else}All changes saved{/if}
+          {#if saveError}<span class="bad">{saveError}</span>{:else if easyState.saving}Saving…{:else if easyState.error}<span class="bad">{easyState.error}</span>{:else if easyState.dirty}Unsaved changes{:else}All changes saved{/if}
         {:else if saving}Saving…{:else if saveError}<span class="bad">{saveError}</span>{:else if dirty.length}Unsaved changes{:else}All changes saved{/if}
       </span>
     </div>

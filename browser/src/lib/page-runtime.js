@@ -42,7 +42,7 @@
     const name = i === -1 ? rest : rest.slice(0, i);
     let tail = i === -1 ? '/' : rest.slice(i);
     if (!tail.startsWith('/')) tail = '/' + tail;
-    return `biggle://${name}.biggle${tail}`;
+    return `biggle://${name.endsWith('.b') ? name : `${name}.biggle`}${tail}`;
   }
 
   function go(href, newTab = false, background = false) {

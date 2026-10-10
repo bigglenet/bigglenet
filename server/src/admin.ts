@@ -1,7 +1,8 @@
 // Admin-only: .biggle names and the user list.
 import { requireAdmin } from './auth';
 import { forget } from './gateway';
-import { HttpError, json, NAME_RE, readJson, str } from './http';
+import { HttpError, json, NAME_RE, readJson, siteKey, splitAddress, str } from './http';
+import { moveSite } from './sites';
 
 export async function listNames(req: Request, env: Env): Promise<Response> {
   await requireAdmin(req, env);
@@ -16,8 +17,8 @@ export async function listNames(req: Request, env: Env): Promise<Response> {
 
 export async function setName(req: Request, env: Env, rawName: string): Promise<Response> {
   await requireAdmin(req, env);
-  const name = rawName.toLowerCase();
-  if (!NAME_RE.test(name)) {
+  const address = splitAddress(decodeURIComponent(rawName));
+  if (!NAME_RE.test(address.name)) {
     throw new HttpError(400, 'bad_name', 'Names are 1–63 characters: a–z, 0–9 and "-", not starting or ending with "-".');
   }
   const body = await readJson(req);
@@ -37,7 +38,8 @@ export async function setName(req: Request, env: Env, rawName: string): Promise<
   const title = str(body.title).trim().slice(0, 100) || null;
   // A live app's normal web pages are shown as they are, instead of needing .bhtml.
   const live = body.live === true ? 1 : 0;
-  const tld = body.tld === 'b' ? 'b' : 'biggle';
+  const tld = body.tld === 'b' || body.tld === 'biggle' ? body.tld : (address.tld ?? 'biggle');
+  const name = siteKey(address.name, tld);
 
   await env.DB.prepare(
     `INSERT INTO names (name, url, title, status, live, tld) VALUES (?, ?, ?, 'live', ?, ?)
@@ -53,12 +55,12 @@ export async function setName(req: Request, env: Env, rawName: string): Promise<
 /** Change a site's address ending: name.biggle or name.b. */
 export async function setTld(req: Request, env: Env, rawName: string): Promise<Response> {
   await requireAdmin(req, env);
-  const name = rawName.toLowerCase();
+  const key = decodeURIComponent(rawName).toLowerCase();
   const tld = str((await readJson(req)).tld) === 'b' ? 'b' : 'biggle';
-  const row = await env.DB.prepare('UPDATE names SET tld = ?, updated_at = unixepoch() WHERE name = ? RETURNING name').bind(tld, name).first();
-  if (!row) throw new HttpError(404, 'no_such_site', `${name} doesn't exist.`);
-  forget(name);
-  return json({ name, tld });
+  if (!(await env.DB.prepare('SELECT 1 FROM names WHERE name = ?').bind(key).first())) {
+    throw new HttpError(404, 'no_such_site', `${key} doesn't exist.`);
+  }
+  return json({ name: await moveSite(env, key, tld), tld });
 }
 
 export async function deleteName(req: Request, env: Env, name: string): Promise<Response> {

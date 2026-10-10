@@ -512,7 +512,9 @@ export async function importSite(source: Source, progress: (text: string) => voi
 /** Make the new site and upload what was imported. */
 export async function uploadSite(name: string, title: string, site: Imported, progress: (text: string) => void, tld = 'biggle') {
   const index = site.files.find((f) => f.path === 'index.bhtml')!;
-  await api('POST', '/api/sites', { name, tld, title, files: { 'index.bhtml': await index.data.text() } });
+  const made = await api<{ site: { name: string } }>('POST', '/api/sites', { name, tld, title, files: { 'index.bhtml': await index.data.text() } });
+  // The site's key: the name, or name.b for a .b site.
+  const key = made.site.name;
   const rest = site.files.filter((f) => f !== index);
   const limit = limiter(4);
   let done = 1;
@@ -521,7 +523,7 @@ export async function uploadSite(name: string, title: string, site: Imported, pr
     rest.map((f) =>
       limit(async () => {
         const type = TYPES[extOf(f.path)] ?? 'application/octet-stream';
-        await apiFetch('PUT', `/api/sites/${encodeURIComponent(name)}/files/${encodePath(f.path)}`, f.data, type);
+        await apiFetch('PUT', `/api/sites/${encodeURIComponent(key)}/files/${encodePath(f.path)}`, f.data, type);
         progress(`Uploading ${++done} of ${site.files.length}…`);
       }),
     ),

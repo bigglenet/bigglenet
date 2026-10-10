@@ -21,7 +21,10 @@ export const START = 'biggle://newtab';
 
 const isInternal = (s: string) => Object.hasOwn(INTERNAL_HOSTS, s);
 
-/** A site's address ends in .biggle, or .b for sites made by admins and people they trust. */
+/**
+ * A site's address ends in .biggle, or .b for sites made by admins and people they trust.
+ * hello.biggle and hello.b are different sites.
+ */
 export type Tld = 'biggle' | 'b';
 const SITE_HOST_RE = /^(.+)\.(biggle|b)$/;
 const TYPED_SITE_RE = /^[a-z0-9-]+\.(?:biggle|b)(?:[/?#]|$)/i;
@@ -47,7 +50,9 @@ export function parse(input: string): BiggleUrl | null {
   }
   const site = SITE_HOST_RE.exec(host);
   if (!site) return null;
-  const [, name, tld] = site as unknown as [string, string, Tld];
+  let [, name, tld] = site as unknown as [string, string, Tld];
+  // "hello.b.biggle" is hello.b, for pages that add .biggle to a site's key (random.biggle does).
+  if (tld === 'biggle' && name.endsWith('.b')) [name, tld] = [name.slice(0, -2), 'b'];
   if (!NAME_RE.test(name)) return null;
 
   // Resolve "." and ".." and percent-encode, without letting "//x" or "\x" turn into a host.
@@ -58,24 +63,27 @@ export function parse(input: string): BiggleUrl | null {
   return { kind: 'site', name, tld, path, search, hash, href: `biggle://${name}.${tld}${path}${search}${hash}` };
 }
 
-/** "hello.biggle" or "hello.b". */
-export const siteHost = (name: string, tld: Tld | string | undefined) => `${name}.${tld === 'b' ? 'b' : 'biggle'}`;
+/**
+ * A site's key, as the server knows it and in its /site/<key>/ files: "hello" for hello.biggle,
+ * "hello.b" for hello.b.
+ */
+export const siteKey = (u: { name: string; tld: Tld }) => (u.tld === 'b' ? `${u.name}.b` : u.name);
+
+/** "hello.biggle" or "hello.b", from a site's key (or a name and its ending). */
+export const siteHost = (key: string, tld?: Tld | string) => (key.endsWith('.b') ? key : `${key}.${tld === 'b' ? 'b' : 'biggle'}`);
 
 /** A site's front page. */
-export const siteHome = (name: string, tld?: Tld | string) => `biggle://${siteHost(name, tld)}/`;
+export const siteHome = (key: string, tld?: Tld | string) => `biggle://${siteHost(key, tld)}/`;
 
 export function withHash(u: SiteUrl, hash: string): SiteUrl {
   return parse(`biggle://${u.name}.${u.tld}${u.path}${u.search}${hash}`) as SiteUrl;
 }
 
-/** The same address with the site's real ending. */
-export function withTld(u: SiteUrl, tld: Tld): SiteUrl {
-  return parse(`biggle://${u.name}.${tld}${u.path}${u.search}${u.hash}`) as SiteUrl;
-}
+
 
 /** Where the gateway serves a site's files from. Previews use a signed base instead. */
 export function siteBase(u: SiteUrl, previewBase?: string): string {
-  return previewBase ?? `${SITE_PREFIX}${u.name}/`;
+  return previewBase ?? `${SITE_PREFIX}${siteKey(u)}/`;
 }
 
 /** Where the gateway serves this page from. */
@@ -83,19 +91,19 @@ export function toGateway(u: SiteUrl, previewBase?: string): string {
   return `${siteBase(u, previewBase)}${u.path.slice(1)}${u.search}`;
 }
 
-/** The biggle:// address for a gateway URL. Mirrored in page-runtime.js. */
+/** The biggle:// address for a gateway URL. `previewSite` is a site key. Mirrored in page-runtime.js. */
 export function fromGateway(href: string, previewBase?: string, previewSite?: string): string | null {
   if (previewBase && previewSite && href.startsWith(previewBase)) {
-    return `biggle://${previewSite}.biggle/${href.slice(previewBase.length)}`;
+    return `biggle://${siteHost(previewSite)}/${href.slice(previewBase.length)}`;
   }
   if (href.startsWith(PREVIEW_PREFIX)) return null;
   if (!href.startsWith(SITE_PREFIX)) return null;
   const rest = href.slice(SITE_PREFIX.length);
   const i = rest.search(/[/?#]/);
-  const name = i === -1 ? rest : rest.slice(0, i);
+  const key = i === -1 ? rest : rest.slice(0, i);
   let tail = i === -1 ? '/' : rest.slice(i);
   if (!tail.startsWith('/')) tail = '/' + tail;
-  return `biggle://${name}.biggle${tail}`;
+  return `biggle://${siteHost(key)}${tail}`;
 }
 
 /** Whether typed text is an address to open, rather than something to search for with Nox. */

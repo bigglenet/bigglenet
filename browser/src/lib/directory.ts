@@ -1,6 +1,9 @@
 import { SERVER } from './config';
 
-/** A live site. `created` is when its name was made (seconds). */
+/**
+ * A live site. `name` is its key: "hello" for hello.biggle, "hello.b" for hello.b. `created` is
+ * when its name was made (seconds).
+ */
 export type DirectoryEntry = { name: string; tld?: 'biggle' | 'b'; title: string | null; created?: number };
 
 let cached: { at: number; promise: Promise<DirectoryEntry[]> } | null = null;
@@ -16,10 +19,3 @@ export function loadDirectory(): Promise<DirectoryEntry[]> {
   return promise;
 }
 
-/** A live site's address ending, or null if it isn't listed (or the list can't be had). */
-export function tldOf(name: string): Promise<'biggle' | 'b' | null> {
-  return loadDirectory().then(
-    (list) => list.find((s) => s.name === name)?.tld ?? null,
-    () => null,
-  );
-}

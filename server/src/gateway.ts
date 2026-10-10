@@ -1,6 +1,6 @@
 // Biggle DNS (name → host) and the gateway that serves site files: either fetched from the
 // site's own host, or (for sites made in the Biggle editor) straight from the database.
-import { blobBytes, CORS, fail, json, NAME_RE, redirect } from './http';
+import { blobBytes, CORS, fail, json, redirect, SITE_KEY_RE, siteAddress } from './http';
 import { checkPreviewToken } from './sites';
 
 type Site = { name: string; url: string | null; title: string | null; status: string; live: number; tld: string };
@@ -16,7 +16,7 @@ export function forget(name: string) {
 
 async function resolve(env: Env, name: string): Promise<Site | null> {
   name = name.toLowerCase();
-  if (!NAME_RE.test(name)) return null;
+  if (!SITE_KEY_RE.test(name)) return null;
   const hit = resolveCache.get(name);
   if (hit && Date.now() - hit.at < RESOLVE_TTL_MS) return hit.site;
   const site = await env.DB.prepare('SELECT name, url, title, status, live, tld FROM names WHERE name = ?').bind(name).first<Site>();
@@ -34,7 +34,7 @@ export async function directory(_req: Request, env: Env): Promise<Response> {
 
 export async function resolveName(_req: Request, env: Env, name: string): Promise<Response> {
   const site = await resolve(env, name);
-  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
+  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${siteAddress(name)} doesn't exist.`);
   return json({ name: site.name, tld: site.tld, url: site.url, title: site.title });
 }
 
@@ -43,7 +43,7 @@ const readOnly = (req: Request) => req.method === 'GET' || req.method === 'HEAD'
 
 export async function gateway(req: Request, env: Env, name: string, rest: string, search: string): Promise<Response> {
   const site = await resolve(env, name);
-  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
+  if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${siteAddress(name)} doesn't exist.`);
   // Only live apps can be sent things (forms, logging a result…); other sites are read-only.
   const sending = !readOnly(req);
   if (sending && !(site.url && site.live)) return fail(405, 'method_not_allowed', 'Sites are read-only.');
@@ -73,14 +73,14 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   try {
     res = await fetch(target, { method: req.method, headers, redirect: 'manual', body: sending ? req.body : undefined });
   } catch {
-    return fail(502, 'host_unreachable', `${site.name}.biggle's host isn't responding.`);
+    return fail(502, 'host_unreachable', `${siteAddress(site.name)}'s host isn't responding.`);
   }
 
   if (res.status >= 300 && res.status < 400 && res.status !== 304) {
     const location = res.headers.get('Location');
     const dest = location ? new URL(location, target) : null;
     if (!dest || !inside(dest, base)) {
-      return fail(502, 'bad_redirect', `${site.name}.biggle redirected outside the site.`);
+      return fail(502, 'bad_redirect', `${siteAddress(site.name)} redirected outside the site.`);
     }
     return redirect(`/site/${site.name}/${dest.pathname.slice(base.pathname.length)}${dest.search}`, res.status);
   }

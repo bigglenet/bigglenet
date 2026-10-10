@@ -104,7 +104,7 @@
   }
 
   function editLink(site: Site) {
-    form = { name: site.name, url: site.url ?? '', title: site.title ?? '', live: !!site.live, tld: site.tld };
+    form = { name: site.name.replace(/\.b$/, ''), url: site.url ?? '', title: site.title ?? '', live: !!site.live, tld: site.tld };
     linkOpen = true;
     document.querySelector('.admin-pages')?.scrollTo({ top: 0, behavior: 'smooth' });
   }

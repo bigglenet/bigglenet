@@ -42,15 +42,17 @@
     if (account.token) sites.refreshMine();
   });
 
-  // Check the name as you type.
+  // Check the name as you type. hello.biggle and hello.b are different sites.
   $effect(() => {
     const n = clean;
+    const t = tld;
     availability = null;
     if (!n || !NAME_RE.test(n) || n.length < 2) return;
     const timer = setTimeout(async () => {
       try {
-        const r = await api<{ available: boolean; reason: string | null }>('GET', `/api/sites/available/${encodeURIComponent(n)}`);
-        if (clean === n) availability = { name: n, ok: r.available, reason: r.reason };
+        const address = t === 'b' ? `${n}.b` : n;
+        const r = await api<{ available: boolean; reason: string | null }>('GET', `/api/sites/available/${encodeURIComponent(address)}`);
+        if (clean === n && tld === t) availability = { name: n, ok: r.available, reason: r.reason };
       } catch {}
     }, 300);
     return () => clearTimeout(timer);

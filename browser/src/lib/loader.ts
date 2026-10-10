@@ -1,9 +1,8 @@
 import runtime from './page-runtime.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { isApp } from './platform';
-import { tldOf } from './directory';
 import { readLocal } from './storage';
-import { fromGateway, parse, siteBase, toGateway, withHash, withTld, type SiteUrl } from './url';
+import { fromGateway, parse, siteBase, siteHost, siteKey, toGateway, withHash, type SiteUrl } from './url';
 
 export type BiggleUser = { username: string };
 
@@ -35,8 +34,6 @@ export async function load(
   opts: { signal: AbortSignal; fresh?: boolean; user: BiggleUser | null; preview?: string },
 ): Promise<LoadResult> {
   const base = opts.preview;
-  // Whether the site is name.biggle or name.b, so the address bar shows its real address.
-  const tld = base ? Promise.resolve(null) : tldOf(u.name);
   let res: Response;
   try {
     res = await fetch(toGateway(u, base), {
@@ -51,11 +48,8 @@ export async function load(
   }
 
   // The gateway may have redirected (e.g. "/blog" → "/blog/"), so the page's address can change.
-  const redirected = parse(fromGateway(res.url, base, u.name) ?? '');
-  let final = redirected?.kind === 'site' ? withHash(redirected, u.hash) : u;
-  // Sites the list doesn't know yet (waiting for approval) keep the ending they were opened with.
-  const realTld = (await tld) ?? u.tld;
-  if (final.name === u.name && final.tld !== realTld) final = withTld(final, realTld);
+  const redirected = parse(fromGateway(res.url, base, siteKey(u)) ?? '');
+  const final = redirected?.kind === 'site' ? withHash(redirected, u.hash) : u;
   const fail = (error: PageError): LoadResult => ({ type: 'error', href: final.href, error });
 
   try {
@@ -120,14 +114,14 @@ function head(u: SiteUrl, base?: string): string {
 function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string): string {
   const init = {
     url: u.href,
-    site: u.name,
-    host: `${u.name}.${u.tld}`,
+    site: siteKey(u),
+    host: siteHost(u.name, u.tld),
     base: siteBase(u, base),
     server: SERVER,
     search: u.search,
     hash: u.hash,
     user,
-    local: readLocal(u.name),
+    local: readLocal(siteKey(u)),
     app: isApp,
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');

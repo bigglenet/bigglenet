@@ -6,7 +6,7 @@ import { load, type PageError } from './loader';
 import { closeWindow, isApp } from './platform';
 import { startSettings } from './startpage.svelte';
 import { saveLocal } from './storage';
-import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, START, withHash, type InternalPage } from './url';
+import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START, withHash, type InternalPage } from './url';
 
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
@@ -147,7 +147,7 @@ class Browser {
       return;
     }
     // A preview only covers its own site. Following a link elsewhere leaves it.
-    if (tab.preview && tab.preview.site !== u.name) tab.preview = null;
+    if (tab.preview && tab.preview.site !== siteKey(u)) tab.preview = null;
 
     const controller = new AbortController();
     controllers.set(tab.id, controller);
@@ -171,7 +171,7 @@ class Browser {
         tab.history[tab.index] = result.href;
       }
       if (result.type === 'page') {
-        tab.view = { type: 'page', site: u.name, srcdoc: result.srcdoc };
+        tab.view = { type: 'page', site: siteKey(u), srcdoc: result.srcdoc };
       } else {
         tab.view = { type: 'error', error: result.error };
         tab.loading = false;
@@ -179,7 +179,7 @@ class Browser {
     });
   }
 
-  /** Open a site that's waiting for approval, as its owner or an admin. */
+  /** Open a site that's waiting for approval, as its owner or an admin. `site` is its key. */
   async openPreview(site: string, path = '/', tld?: string) {
     const base = await previewBase(site);
     const tab = this.newTab(START);

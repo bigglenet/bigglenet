@@ -2,7 +2,7 @@
 // New sites wait for an admin's approval; until then only the owner and admins can see them.
 import { requireAdmin, requireUser, type User } from './auth';
 import { forget } from './gateway';
-import { blobBytes, HttpError, json, NAME_RE, readJson, str } from './http';
+import { blobBytes, HttpError, json, NAME_RE, readJson, siteAddress, siteKey, splitAddress, str } from './http';
 import { notify } from './live';
 import { TEMPLATES, templateFiles, type Template } from './templates';
 
@@ -74,18 +74,44 @@ function checkPath(raw: string): { path: string; type: string } {
   return { path: raw, type };
 }
 
+/** A new site's name, without its ending. */
 function checkName(raw: string): string {
-  const name = raw.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
+  const { name } = splitAddress(raw);
   if (!NAME_RE.test(name) || name.length < 2) {
     throw new HttpError(400, 'bad_name', 'Names are 2–63 characters: a–z, 0–9 and "-", not starting or ending with "-".');
   }
   return name;
 }
 
-async function getSite(env: Env, name: string): Promise<SiteRow> {
-  const site = await env.DB.prepare('SELECT * FROM names WHERE name = ?').bind(name.toLowerCase()).first<SiteRow>();
-  if (!site) throw new HttpError(404, 'no_such_site', `${name}.biggle doesn't exist.`);
+async function getSite(env: Env, key: string): Promise<SiteRow> {
+  const site = await env.DB.prepare('SELECT * FROM names WHERE name = ?').bind(key.toLowerCase()).first<SiteRow>();
+  if (!site) throw new HttpError(404, 'no_such_site', `${siteAddress(key)} doesn't exist.`);
   return site;
+}
+
+/**
+ * Move a site to its other ending (hello.biggle ↔ hello.b), files and all. The other address
+ * must be free.
+ */
+export async function moveSite(env: Env, key: string, tld: Tld): Promise<string> {
+  const name = key.replace(/\.b$/, '');
+  const next = siteKey(name, tld);
+  if (next === key) return key;
+  if (await env.DB.prepare('SELECT 1 FROM names WHERE name = ?').bind(next).first()) {
+    throw new HttpError(409, 'name_taken', `${siteAddress(next)} is taken.`);
+  }
+  // New row, then the files, then the old row, so every file always belongs to a site.
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO names (name, url, title, owner_id, status, review_note, created_at, updated_at, live, tld)
+       SELECT ?, url, title, owner_id, status, review_note, created_at, unixepoch(), live, ? FROM names WHERE name = ?`,
+    ).bind(next, tld, key),
+    env.DB.prepare('UPDATE site_files SET site = ? WHERE site = ?').bind(next, key),
+    env.DB.prepare('DELETE FROM names WHERE name = ?').bind(key),
+  ]);
+  forget(key);
+  forget(next);
+  return next;
 }
 
 /** The site, if this user owns it (or is an admin). */
@@ -93,13 +119,14 @@ async function editable(req: Request, env: Env, name: string): Promise<{ user: U
   const user = await requireUser(req, env);
   const site = await getSite(env, name);
   if (site.owner_id !== user.id && !user.is_admin) throw new HttpError(403, 'not_yours', "That isn't your site.");
-  if (site.url) throw new HttpError(400, 'external', `${site.name}.biggle is hosted somewhere else, so it can't be edited here.`);
+  if (site.url) throw new HttpError(400, 'external', `${siteAddress(site.name)} is hosted somewhere else, so it can't be edited here.`);
   return { user, site };
 }
 
 const publicSite = (s: SiteRow) => ({
+  /** The site's key: "hello" for hello.biggle, "hello.b" for hello.b. */
   name: s.name,
-  tld: s.tld,
+  tld: s.name.endsWith('.b') ? 'b' : 'biggle',
   title: s.title,
   status: s.status,
   note: s.review_note,
@@ -134,17 +161,20 @@ export async function checkAvailable(req: Request, env: Env, raw: string): Promi
   } catch (e) {
     return json({ available: false, reason: (e as Error).message });
   }
-  if (RESERVED.has(name)) return json({ available: false, reason: `${name}.biggle is reserved.` });
-  const taken = await env.DB.prepare('SELECT 1 FROM names WHERE name = ?').bind(name).first();
-  return json({ available: !taken, reason: taken ? `${name}.biggle is taken.` : null });
+  // "hello.b" asks about the .b address; anything else about .biggle.
+  const key = siteKey(name, splitAddress(raw).tld ?? 'biggle');
+  if (RESERVED.has(name)) return json({ available: false, reason: `${siteAddress(key)} is reserved.` });
+  const taken = await env.DB.prepare('SELECT 1 FROM names WHERE name = ?').bind(key).first();
+  return json({ available: !taken, reason: taken ? `${siteAddress(key)} is taken.` : null });
 }
 
 export async function createSite(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(req, env);
   const body = await readJson(req);
   const name = checkName(str(body.name));
-  const tld = checkTld(user, body.tld);
-  if (RESERVED.has(name)) throw new HttpError(409, 'name_taken', `${name}.${tld} is reserved.`);
+  const tld = checkTld(user, body.tld ?? splitAddress(str(body.name)).tld);
+  const key = siteKey(name, tld);
+  if (RESERVED.has(name)) throw new HttpError(409, 'name_taken', `${siteAddress(key)} is reserved.`);
   const title = str(body.title).trim().slice(0, 80) || name;
   const about = str(body.about).trim().slice(0, 300);
   const template = (TEMPLATES as string[]).includes(str(body.template)) ? (str(body.template) as Template) : 'page';
@@ -158,11 +188,11 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
   const enc = new TextEncoder();
   try {
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO names (name, tld, title, owner_id, status) VALUES (?, ?, ?, ?, 'pending')").bind(name, tld, title, user.id),
+      env.DB.prepare("INSERT INTO names (name, tld, title, owner_id, status) VALUES (?, ?, ?, ?, 'pending')").bind(key, tld, title, user.id),
       ...Object.entries(files).map(([path, text]) => {
         const bytes = enc.encode(text);
         return env.DB.prepare('INSERT INTO site_files (site, path, type, content, size) VALUES (?, ?, ?, ?, ?)').bind(
-          name,
+          key,
           path,
           checkPath(path).type,
           bytes,
@@ -171,11 +201,11 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
       }),
     ]);
   } catch (e) {
-    if (String(e).includes('UNIQUE')) throw new HttpError(409, 'name_taken', `${name} is taken.`);
+    if (String(e).includes('UNIQUE')) throw new HttpError(409, 'name_taken', `${siteAddress(key)} is taken.`);
     throw e;
   }
   await notifyAdmins(env);
-  return json({ site: publicSite(await getSite(env, name)) }, 201);
+  return json({ site: publicSite(await getSite(env, key)) }, 201);
 }
 
 /** Starting files sent by the editor (the easy editor builds its own). */
@@ -217,11 +247,9 @@ export async function updateSite(req: Request, env: Env, name: string): Promise<
   const body = await readJson(req);
   const title = str(body.title).trim().slice(0, 80);
   if (title) await env.DB.prepare('UPDATE names SET title = ?, updated_at = unixepoch() WHERE name = ?').bind(title, site.name).run();
-  if (body.tld !== undefined) {
-    await env.DB.prepare('UPDATE names SET tld = ?, updated_at = unixepoch() WHERE name = ?').bind(checkTld(user, body.tld), site.name).run();
-    forget(site.name);
-  }
-  return json({ site: publicSite(await getSite(env, site.name)) });
+  // Switching endings moves the site to its other address.
+  const key = body.tld === undefined ? site.name : await moveSite(env, site.name, checkTld(user, body.tld));
+  return json({ site: publicSite(await getSite(env, key)) });
 }
 
 export async function deleteSite(req: Request, env: Env, name: string): Promise<Response> {
@@ -310,7 +338,7 @@ export async function previewToken(req: Request, env: Env, name: string): Promis
 
 /** The site name a preview token is for, or null if it's invalid or expired. */
 export async function checkPreviewToken(env: Env, token: string): Promise<string | null> {
-  const m = /^([a-z0-9-]+)\.(\d+)\.([A-Za-z0-9_-]+)$/.exec(token);
+  const m = /^([a-z0-9-]+(?:\.b)?)\.(\d+)\.([A-Za-z0-9_-]+)$/.exec(token);
   if (!m || Number(m[2]) < Date.now() / 1000) return null;
   const expected = new TextEncoder().encode(await hmac(env, `${m[1]}.${m[2]}`));
   const given = new TextEncoder().encode(m[3]);

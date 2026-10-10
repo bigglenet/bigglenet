@@ -65,6 +65,21 @@ export async function readJson<T extends Record<string, unknown>>(req: Request):
 export const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * A site's key, as stored and as it appears in /site/<key>/ paths: the name for a .biggle site
+ * ("hello"), or the name and ".b" for a .b site ("hello.b"). The two are separate sites.
+ */
+export const SITE_KEY_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.b)?$/;
+export const siteKey = (name: string, tld: string) => (tld === 'b' ? `${name}.b` : name);
+/** "hello.biggle" or "hello.b". */
+export const siteAddress = (key: string) => (key.endsWith('.b') ? key : `${key}.biggle`);
+/** "hello", "hello.biggle" or "hello.b" → the bare name, and the ending if one was given. */
+export function splitAddress(raw: string): { name: string; tld: 'biggle' | 'b' | null } {
+  const text = raw.trim().toLowerCase();
+  const m = /^(.*)\.(biggle|b)$/.exec(text);
+  return m ? { name: m[1], tld: m[2] as 'biggle' | 'b' } : { name: text, tld: null };
+}
 export const USERNAME_RE = /^[a-z0-9_]{2,24}$/;
 
 /** D1 hands back BLOB columns as either an ArrayBuffer or an array of bytes. */
