@@ -1,10 +1,13 @@
-// Friends and direct messages.
+// Friends, and the old one-to-one message API (now backed by chats, see chat.ts), kept for
+// apps from before group chats.
 import { requireUser, type User } from './auth';
+import { directChat, postMessage } from './chat';
 import { HttpError, json, readJson, str } from './http';
 import { isOnline, notify } from './live';
 
 const PAGE = 50;
 const MAX_MESSAGE = 2000;
+const MAX_NICKNAME = 30;
 
 type Status = 'outgoing' | 'incoming' | 'friends';
 
@@ -42,26 +45,26 @@ const friendsChanged = (env: Env, a: number, b: number) =>
 
 export async function listFriends(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
+  // Unread and last message come from the one-to-one chat with each friend.
   const { results } = await env.DB.prepare(
-    `SELECT u.id, u.username, f.status,
-       (SELECT COUNT(*) FROM messages m
-          WHERE m.sender_id = f.friend_id AND m.recipient_id = f.user_id AND m.read_at IS NULL) AS unread,
-       (SELECT MAX(m.created_at) FROM messages m
-          WHERE (m.sender_id = f.friend_id AND m.recipient_id = f.user_id)
-             OR (m.sender_id = f.user_id AND m.recipient_id = f.friend_id)) AS last_at
+    `SELECT u.id, u.username, f.status, f.nickname, c.last_at,
+       (SELECT COUNT(*) FROM chat_messages x JOIN chat_members m ON m.chat_id = x.chat_id AND m.user_id = f.user_id
+          WHERE x.chat_id = c.id AND x.id > m.read_up_to AND x.sender_id = f.friend_id) AS unread
      FROM friendships f JOIN users u ON u.id = f.friend_id
+     LEFT JOIN chats c ON c.pair = MIN(f.user_id, f.friend_id) || ':' || MAX(f.user_id, f.friend_id)
      WHERE f.user_id = ?
-     ORDER BY last_at DESC, u.username`,
+     ORDER BY c.last_at DESC, u.username`,
   )
     .bind(me.id)
-    .all<{ id: number; username: string; status: Status; unread: number; last_at: number | null }>();
+    .all<{ id: number; username: string; status: Status; nickname: string | null; unread: number | null; last_at: number | null }>();
 
   const friends = await Promise.all(
     results
       .filter((r) => r.status === 'friends')
       .map(async (r) => ({
         username: r.username,
-        unread: r.unread,
+        nickname: r.nickname,
+        unread: r.unread ?? 0,
         lastAt: r.last_at,
         online: await isOnline(env, r.id).catch(() => false),
       })),
@@ -113,18 +116,29 @@ export async function removeFriend(req: Request, env: Env, username: string): Pr
   return json({});
 }
 
-type MessageRow = { id: number; sender_id: number; body: string; created_at: number };
+/** PUT /api/friends/:username/nickname { nickname }: a name for a friend that only you see. */
+export async function setNickname(req: Request, env: Env, username: string): Promise<Response> {
+  const me = await requireUser(req, env);
+  const other = await requireFriend(env, me, username);
+  const nickname = str((await readJson(req)).nickname).replace(/\s+/g, ' ').trim().slice(0, MAX_NICKNAME) || null;
+  await env.DB.prepare('UPDATE friendships SET nickname = ? WHERE user_id = ? AND friend_id = ?').bind(nickname, me.id, other.id).run();
+  await notify(env, me.id, { type: 'friends' });
+  return json({ nickname });
+}
+
+// --- One-to-one messages, the old way (apps from before group chats) ---
+
+type MessageRow = { id: number; sender_id: number | null; body: string; created_at: number };
 
 export async function listMessages(req: Request, env: Env, username: string): Promise<Response> {
   const me = await requireUser(req, env);
   const other = await requireFriend(env, me, username);
+  const chatId = await directChat(env, me.id, other.id);
   const before = Number(new URL(req.url).searchParams.get('before')) || Number.MAX_SAFE_INTEGER;
   const { results } = await env.DB.prepare(
-    `SELECT id, sender_id, body, created_at FROM messages
-     WHERE ((sender_id = ?1 AND recipient_id = ?2) OR (sender_id = ?2 AND recipient_id = ?1)) AND id < ?3
-     ORDER BY id DESC LIMIT ?4`,
+    "SELECT id, sender_id, body, created_at FROM chat_messages WHERE chat_id = ? AND kind = 'text' AND id < ? ORDER BY id DESC LIMIT ?",
   )
-    .bind(me.id, other.id, before, PAGE + 1)
+    .bind(chatId, before, PAGE + 1)
     .all<MessageRow>();
   const page = results.slice(0, PAGE).reverse();
   return json({
@@ -148,24 +162,19 @@ export async function sendMessage(req: Request, env: Env, username: string): Pro
   const body = str((await readJson(req)).body).trim();
   if (!body) throw new HttpError(400, 'empty', 'Write something first.');
   if (body.length > MAX_MESSAGE) throw new HttpError(400, 'too_long', `Messages can be up to ${MAX_MESSAGE} characters.`);
-
-  const row = await env.DB.prepare(
-    'INSERT INTO messages (sender_id, recipient_id, body, created_at) VALUES (?, ?, ?, ?) RETURNING id, created_at',
-  )
-    .bind(me.id, other.id, body, Date.now())
-    .first<{ id: number; created_at: number }>();
-  const message = { id: row!.id, from: me.username, to: other.username, body, at: row!.created_at };
-  // Tell the recipient, and the sender's other windows and devices.
-  await Promise.all([notify(env, other.id, { type: 'message', message }), notify(env, me.id, { type: 'message', message })]);
-  return json({ message }, 201);
+  const message = await postMessage(env, await directChat(env, me.id, other.id), me, body);
+  return json({ message: { id: message.id, from: me.username, to: other.username, body, at: message.at } }, 201);
 }
 
 export async function markRead(req: Request, env: Env, username: string): Promise<Response> {
   const me = await requireUser(req, env);
-  const other = await findUser(env, username);
-  await env.DB.prepare('UPDATE messages SET read_at = ? WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL')
-    .bind(Date.now(), other.id, me.id)
+  const other = await requireFriend(env, me, username);
+  const chatId = await directChat(env, me.id, other.id);
+  await env.DB.prepare(
+    'UPDATE chat_members SET read_up_to = MAX(read_up_to, COALESCE((SELECT MAX(id) FROM chat_messages WHERE chat_id = ?1), 0)) WHERE chat_id = ?1 AND user_id = ?2',
+  )
+    .bind(chatId, me.id)
     .run();
-  await notify(env, me.id, { type: 'read', username: other.username });
+  await Promise.all([notify(env, me.id, { type: 'read', username: other.username }), notify(env, me.id, { type: 'chat-read', chatId })]);
   return json({});
 }

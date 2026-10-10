@@ -10,11 +10,14 @@
 //   /api/identity/*                  telling a site's own server who is signed in
 //   email to JOIN_ADDRESS             confirming an email address (inbox.ts)
 //   /api/admin/*                     names and users (admins only)
-//   /api/friends*, /api/messages/*   friends and direct messages
+//   /api/friends*                    friends
+//   /api/chats*                      chats, group chats and calls (chat.biggle)
+//   /api/messages/*                  one-to-one messages, the old way
 //   /api/requests*                   feature requests and votes
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
+import * as chat from './chat';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
 import * as requests from './requests';
@@ -55,8 +58,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
 
   ['GET', /^\/api\/admin\/names$/, admin.listNames],
   ['PUT', /^\/api\/admin\/names\/([^/]+)$/, admin.setName],
+  ['PATCH', /^\/api\/admin\/names\/([^/]+)$/, admin.setTld],
   ['DELETE', /^\/api\/admin\/names\/([^/]+)$/, admin.deleteName],
   ['GET', /^\/api\/admin\/users$/, admin.listUsers],
+  ['PATCH', /^\/api\/admin\/users\/([^/]+)$/, admin.setTrusted],
   ['GET', /^\/api\/admin\/reviews$/, sites.reviewList],
   ['POST', /^\/api\/admin\/sites\/([^/]+)\/approve$/, sites.approveSite],
   ['POST', /^\/api\/admin\/sites\/([^/]+)\/reject$/, sites.rejectSite],
@@ -82,7 +87,19 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['PATCH', /^\/api\/requests\/(\d+)$/, requests.update],
   ['DELETE', /^\/api\/requests\/(\d+)$/, requests.remove],
 
+  ['GET', /^\/api\/chats$/, chat.listChats],
+  ['POST', /^\/api\/chats$/, chat.createChat],
+  ['PATCH', /^\/api\/chats\/(\d+)$/, chat.renameChat],
+  ['POST', /^\/api\/chats\/(\d+)\/members$/, chat.addMembers],
+  ['DELETE', /^\/api\/chats\/(\d+)\/members\/me$/, chat.leaveChat],
+  ['GET', /^\/api\/chats\/(\d+)\/messages$/, chat.listMessages],
+  ['POST', /^\/api\/chats\/(\d+)\/messages$/, chat.sendMessage],
+  ['POST', /^\/api\/chats\/(\d+)\/read$/, chat.markRead],
+  ['POST', /^\/api\/chats\/(\d+)\/call$/, chat.call],
+  ['POST', /^\/api\/chats\/(\d+)\/signal$/, chat.signal],
+
   ['GET', /^\/api\/friends$/, social.listFriends],
+  ['PUT', /^\/api\/friends\/([^/]+)\/nickname$/, social.setNickname],
   ['POST', /^\/api\/friends$/, social.addFriend],
   ['POST', /^\/api\/friends\/([^/]+)\/accept$/, social.acceptFriend],
   ['DELETE', /^\/api\/friends\/([^/]+)$/, social.removeFriend],

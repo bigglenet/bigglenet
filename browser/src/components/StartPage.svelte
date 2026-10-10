@@ -2,6 +2,7 @@
   import { account } from '../lib/account.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
+  import { siteHome, siteHost } from '../lib/url';
   import { BACKDROPS, startSettings as settings } from '../lib/startpage.svelte';
   import Icon from './Icon.svelte';
   import StartCustomize from './StartCustomize.svelte';
@@ -10,6 +11,13 @@
 
   let query = $state('');
   let customizing = $state(false);
+  // Settings asked to open Customize.
+  $effect(() => {
+    if (settings.openCustomize && browser.activeId === tab.id) {
+      customizing = true;
+      settings.openCustomize = false;
+    }
+  });
   const directory = loadDirectory();
   const wash = $derived(BACKDROPS.find((b) => b.id === settings.backdrop)?.color ?? null);
 
@@ -94,10 +102,10 @@
               <ul class="sites">
                 {#each latest as site (site.name)}
                   <li>
-                    <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
+                    <button onclick={() => browser.go(tab, siteHome(site.name, site.tld))}>
                       <span class="tile">{site.name[0].toUpperCase()}</span>
                       <span class="text">
-                        <span class="name">{site.name}.biggle</span>
+                        <span class="name">{siteHost(site.name, site.tld)}</span>
                         {#if site.title}<span class="title">{site.title}</span>{/if}
                       </span>
                     </button>

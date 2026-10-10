@@ -2,6 +2,7 @@
 // biggle.copy()). Shared by browser tabs and the site editor's preview.
 import { api, ApiError, errorText } from './api';
 import { loadDirectory } from './directory';
+import { siteHost } from './url';
 import { storageOp } from './storage';
 
 type Reply = (msg: Record<string, unknown>) => void;
@@ -27,7 +28,7 @@ export function answerCall(site: string, msg: Record<string, unknown>, reply: Re
     );
   } else if (method === 'sites') {
     loadDirectory().then(
-      (sites) => done({ value: sites }),
+      (sites) => done({ value: sites.map((s) => ({ ...s, tld: s.tld ?? 'biggle', address: siteHost(s.name, s.tld) })) }),
       () => done({ error: "Can't reach the Bigglenet right now." }),
     );
   } else {

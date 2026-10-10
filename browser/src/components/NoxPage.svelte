@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory, type DirectoryEntry } from '../lib/directory';
-  import { looksLikeAddress, noxSearch } from '../lib/url';
+  import { looksLikeAddress, noxSearch, siteHome, siteHost } from '../lib/url';
 
   let { tab }: { tab: Tab } = $props();
 
@@ -30,7 +30,7 @@
   }
 
   function results(sites: DirectoryEntry[]) {
-    const q = query.trim().toLowerCase().replace(/\.biggle$/, '');
+    const q = query.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
     if (!q) {
       return [...sites].sort((a, b) => (order === 'newest' ? (b.created ?? 0) - (a.created ?? 0) : a.name.localeCompare(b.name)));
     }
@@ -75,10 +75,10 @@
           <ul class="sites">
             {#each matched as site (site.name)}
               <li>
-                <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
+                <button onclick={() => browser.go(tab, siteHome(site.name, site.tld))}>
                   <span class="tile">{site.name[0].toUpperCase()}</span>
                   <span class="text">
-                    <span class="name">{site.name}.biggle</span>
+                    <span class="name">{siteHost(site.name, site.tld)}</span>
                     {#if site.title}<span class="title">{site.title}</span>{/if}
                   </span>
                 </button>

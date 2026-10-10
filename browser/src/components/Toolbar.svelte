@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '../lib/browser.svelte';
   import { social } from '../lib/social.svelte';
-  import { parse, START } from '../lib/url';
+  import { parse, siteHost, START } from '../lib/url';
   import AccountButton from './AccountButton.svelte';
   import Icon from './Icon.svelte';
 
@@ -106,7 +106,7 @@
       />
       {#if site && !editing}
         <div class="pretty" aria-hidden="true">
-          <span class="host">{site.name}.biggle</span><span class="rest"
+          <span class="host">{siteHost(site.name, site.tld)}</span><span class="rest"
             >{site.path === '/' ? '' : site.path}{site.search}{site.hash}</span
           >
         </div>
@@ -129,12 +129,12 @@
     <button
       class="friends"
       class:on={social.open}
-      aria-label={social.unread ? `Friends, ${social.unread} new` : 'Friends'}
-      title="Friends"
+      aria-label={social.unread ? `Chats, ${social.unread} new` : 'Chats'}
+      title="Chats"
       aria-pressed={social.open}
       onclick={() => (social.open = !social.open)}
     >
-      <Icon name="users" />
+      <Icon name="chat" />
       {#if social.unread}
         <span class="count">{social.unread > 9 ? '9+' : social.unread}</span>
       {/if}

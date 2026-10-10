@@ -1,0 +1,170 @@
+/* Shared by the chat app's parts (chat.biggle and the chat sidebar). */
+.chat-app button {
+  font: inherit;
+  cursor: pointer;
+}
+.chat-app .icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+}
+.chat-app .icon:hover:not(:disabled),
+.chat-app .icon.on {
+  background: var(--hover);
+}
+.chat-app .icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.chat-app .icon.solid {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.chat-app .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chat-app .btn:hover:not(:disabled) {
+  border-color: var(--faint);
+}
+.chat-app .btn.small {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+.chat-app .btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.chat-app .btn.call {
+  border-color: var(--online);
+  background: var(--online);
+  color: #fff;
+}
+.chat-app .btn.danger {
+  border-color: var(--danger);
+  background: none;
+  color: var(--danger);
+}
+.chat-app .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.chat-app .field {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.chat-app .field:focus {
+  outline: 0;
+  border-color: var(--accent);
+}
+.chat-app .error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 13.5px;
+}
+.chat-app .muted {
+  color: var(--muted);
+}
+.chat-app .label {
+  margin: 18px 4px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* A round picture for a group. */
+.chat-app .gavatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--size, 40px);
+  height: var(--size, 40px);
+  border-radius: 50%;
+  background: var(--field);
+  color: var(--text);
+}
+/* The header at the top of each part. */
+.chat-app .bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-app .bar h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-app .scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.chat-app .person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+.chat-app .person .names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.chat-app .person .names strong,
+.chat-app .person .names span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-app .person .names strong {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.chat-app .person .names span {
+  color: var(--muted);
+  font-size: 12.5px;
+}

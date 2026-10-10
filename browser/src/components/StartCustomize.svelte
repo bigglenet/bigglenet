@@ -13,18 +13,9 @@
 
   function setNewTab() {
     pageError = '';
-    if (!ownPage) {
-      settings.newTab = null;
-    } else {
-      const address = toAddress(pageText);
-      if (!address) {
-        pageError = "That isn't a Bigglenet address. Try something like home.biggle.";
-        return;
-      }
-      settings.newTab = address;
-      pageText = address;
-    }
-    settings.save();
+    if (!ownPage) return settings.useDefaultNewTab();
+    pageError = settings.useNewTab(pageText) ?? '';
+    if (!pageError) pageText = settings.newTab ?? '';
   }
 
   // Shortcuts.
@@ -87,7 +78,7 @@
         <button class="small">Use it</button>
       </form>
       {#if pageError}<p class="error">{pageError}</p>{/if}
-      {#if settings.newTab}<p class="hint">New tabs open {settings.newTab}. This page is always at biggle://start.</p>{/if}
+      {#if settings.newTab}<p class="hint">New tabs open {settings.newTab}. This page is always at biggle://newtab.</p>{/if}
     {/if}
   </section>
 

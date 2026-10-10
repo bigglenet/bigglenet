@@ -35,7 +35,7 @@
   // Same as fromGateway() in src/lib/url.ts. `init.base` is where this site's files come
   // from: its normal gateway folder, or a signed preview folder.
   function toBiggle(href) {
-    if (href.startsWith(init.base)) return `biggle://${init.site}.biggle/${href.slice(init.base.length)}`;
+    if (href.startsWith(init.base)) return `biggle://${init.host}/${href.slice(init.base.length)}`;
     if (!href.startsWith(sitePrefix)) return null;
     const rest = href.slice(sitePrefix.length);
     const i = rest.search(/[/?#]/);

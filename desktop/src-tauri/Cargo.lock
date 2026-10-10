@@ -252,6 +252,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "webkit2gtk",
 ]
 
 [[package]]

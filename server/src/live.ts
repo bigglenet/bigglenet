@@ -5,7 +5,14 @@ import { userForToken } from './auth';
 import { fail } from './http';
 
 export type LiveEvent =
+  /** One-to-one messages, for apps from before group chats. */
   | { type: 'message'; message: unknown }
+  | { type: 'chat-message'; message: unknown }
+  | { type: 'chats' }
+  | { type: 'chat-read'; chatId: number }
+  | { type: 'call'; chatId: number; members: { username: string; video: boolean }[]; ring?: { from: string; video: boolean } }
+  | { type: 'call-declined'; chatId: number; username: string }
+  | { type: 'signal'; chatId: number; from: string; data: unknown }
   | { type: 'friends' }
   | { type: 'read'; username: string }
   | { type: 'presence'; username: string; online: boolean }

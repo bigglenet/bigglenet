@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Bigglenet uses your microphone for voice and video calls with your friends.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Bigglenet uses your camera for video calls with your friends.</string>
+</dict>
+</plist>

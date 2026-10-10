@@ -19,6 +19,10 @@ serde_json = "1"
 tauri-plugin-deep-link = "2"
 tauri-plugin-opener = "2"
 
+# Calls: WebKitGTK keeps the camera, microphone and WebRTC switched off unless asked.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2.0", features = ["v2_38"] }
+
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-updater = "2"

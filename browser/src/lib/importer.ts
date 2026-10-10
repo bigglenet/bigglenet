@@ -510,9 +510,9 @@ export async function importSite(source: Source, progress: (text: string) => voi
 }
 
 /** Make the new site and upload what was imported. */
-export async function uploadSite(name: string, title: string, site: Imported, progress: (text: string) => void) {
+export async function uploadSite(name: string, title: string, site: Imported, progress: (text: string) => void, tld = 'biggle') {
   const index = site.files.find((f) => f.path === 'index.bhtml')!;
-  await api('POST', '/api/sites', { name, title, files: { 'index.bhtml': await index.data.text() } });
+  await api('POST', '/api/sites', { name, tld, title, files: { 'index.bhtml': await index.data.text() } });
   const rest = site.files.filter((f) => f !== index);
   const limit = limiter(4);
   let done = 1;

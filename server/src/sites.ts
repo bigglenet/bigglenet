@@ -14,8 +14,19 @@ const PREVIEW_TTL = 60 * 60;
 
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
-  'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests',
+  'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
+  'newtab', 'settings',
 ]);
+
+/** The two address endings. Only admins and people they trust can use .b. */
+export type Tld = 'biggle' | 'b';
+export const canUseShort = (user: User) => !!user.is_admin || !!user.trusted;
+
+function checkTld(user: User, raw: unknown): Tld {
+  if (raw !== 'b') return 'biggle';
+  if (!canUseShort(user)) throw new HttpError(403, 'not_trusted', 'Only admins and people they trust can have a .b address.');
+  return 'b';
+}
 
 export const FILE_TYPES: Record<string, string> = {
   bhtml: 'text/bhtml; charset=utf-8',
@@ -48,6 +59,7 @@ export type SiteRow = {
   title: string | null;
   owner_id: number | null;
   status: 'pending' | 'live' | 'rejected';
+  tld: Tld;
   review_note: string | null;
   created_at: number;
   updated_at: number;
@@ -63,7 +75,7 @@ function checkPath(raw: string): { path: string; type: string } {
 }
 
 function checkName(raw: string): string {
-  const name = raw.trim().toLowerCase().replace(/\.biggle$/, '');
+  const name = raw.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
   if (!NAME_RE.test(name) || name.length < 2) {
     throw new HttpError(400, 'bad_name', 'Names are 2–63 characters: a–z, 0–9 and "-", not starting or ending with "-".');
   }
@@ -87,6 +99,7 @@ async function editable(req: Request, env: Env, name: string): Promise<{ user: U
 
 const publicSite = (s: SiteRow) => ({
   name: s.name,
+  tld: s.tld,
   title: s.title,
   status: s.status,
   note: s.review_note,
@@ -110,7 +123,7 @@ export async function mySites(req: Request, env: Env): Promise<Response> {
   const { results } = await env.DB.prepare('SELECT * FROM names WHERE owner_id = ? ORDER BY created_at DESC')
     .bind(user.id)
     .all<SiteRow>();
-  return json({ sites: results.map(publicSite), limit: user.is_admin ? null : MAX_SITES });
+  return json({ sites: results.map(publicSite), limit: user.is_admin ? null : MAX_SITES, short: canUseShort(user) });
 }
 
 export async function checkAvailable(req: Request, env: Env, raw: string): Promise<Response> {
@@ -130,7 +143,8 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(req, env);
   const body = await readJson(req);
   const name = checkName(str(body.name));
-  if (RESERVED.has(name)) throw new HttpError(409, 'name_taken', `${name}.biggle is reserved.`);
+  const tld = checkTld(user, body.tld);
+  if (RESERVED.has(name)) throw new HttpError(409, 'name_taken', `${name}.${tld} is reserved.`);
   const title = str(body.title).trim().slice(0, 80) || name;
   const about = str(body.about).trim().slice(0, 300);
   const template = (TEMPLATES as string[]).includes(str(body.template)) ? (str(body.template) as Template) : 'page';
@@ -144,7 +158,7 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
   const enc = new TextEncoder();
   try {
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO names (name, title, owner_id, status) VALUES (?, ?, ?, 'pending')").bind(name, title, user.id),
+      env.DB.prepare("INSERT INTO names (name, tld, title, owner_id, status) VALUES (?, ?, ?, ?, 'pending')").bind(name, tld, title, user.id),
       ...Object.entries(files).map(([path, text]) => {
         const bytes = enc.encode(text);
         return env.DB.prepare('INSERT INTO site_files (site, path, type, content, size) VALUES (?, ?, ?, ?, ?)').bind(
@@ -157,7 +171,7 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
       }),
     ]);
   } catch (e) {
-    if (String(e).includes('UNIQUE')) throw new HttpError(409, 'name_taken', `${name}.biggle is taken.`);
+    if (String(e).includes('UNIQUE')) throw new HttpError(409, 'name_taken', `${name} is taken.`);
     throw e;
   }
   await notifyAdmins(env);
@@ -199,9 +213,14 @@ export async function getSiteInfo(req: Request, env: Env, name: string): Promise
 }
 
 export async function updateSite(req: Request, env: Env, name: string): Promise<Response> {
-  const { site } = await editable(req, env, name);
-  const title = str((await readJson(req)).title).trim().slice(0, 80);
+  const { user, site } = await editable(req, env, name);
+  const body = await readJson(req);
+  const title = str(body.title).trim().slice(0, 80);
   if (title) await env.DB.prepare('UPDATE names SET title = ?, updated_at = unixepoch() WHERE name = ?').bind(title, site.name).run();
+  if (body.tld !== undefined) {
+    await env.DB.prepare('UPDATE names SET tld = ?, updated_at = unixepoch() WHERE name = ?').bind(checkTld(user, body.tld), site.name).run();
+    forget(site.name);
+  }
   return json({ site: publicSite(await getSite(env, site.name)) });
 }
 

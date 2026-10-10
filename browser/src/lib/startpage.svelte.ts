@@ -1,5 +1,6 @@
 // How the new tab page looks and what new tabs open, kept in this browser. Change them from the
-// start page's Customize button. biggle://start always shows the start page, whatever's set.
+// start page's Customize button or biggle://settings. biggle://newtab always shows the new tab
+// page, whatever's set.
 import { START, fromInput } from './url';
 
 export type Section = 'clock' | 'search' | 'shortcuts' | 'featured' | 'latest';
@@ -64,10 +65,27 @@ class StartSettings {
   shown = $state(this.#saved.shown);
   shortcuts = $state(this.#saved.shortcuts);
   backdrop = $state(this.#saved.backdrop);
+  /** Ask the new tab page to open its Customize panel. */
+  openCustomize = $state(false);
 
   /** What a new tab opens. */
   get newTabAddress(): string {
     return this.newTab ?? START;
+  }
+
+  /** New tabs open this address (anything you could type in the address bar). Returns an error, if any. */
+  useNewTab(text: string): string | null {
+    const address = toAddress(text);
+    if (!address) return "That isn't a Bigglenet address. Try something like home.biggle.";
+    this.newTab = address === START ? null : address;
+    this.save();
+    return null;
+  }
+
+  /** New tabs open the Bigglenet new tab page again. */
+  useDefaultNewTab() {
+    this.newTab = null;
+    this.save();
   }
 
   save() {

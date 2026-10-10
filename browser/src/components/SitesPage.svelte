@@ -6,7 +6,7 @@
   import { filesSource, importSite, pickedFiles, uploadSite, webSource, type Skipped, type Source } from '../lib/importer';
   import { sites, type MySite } from '../lib/sites.svelte';
   import { unzip } from '../lib/unzip';
-  import { NAME_RE } from '../lib/url';
+  import { NAME_RE, siteHome, siteHost } from '../lib/url';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
@@ -28,11 +28,14 @@
   let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
   let nameEdited = false;
   let progress = $state('');
-  let imported = $state<{ name: string; count: number; skipped: Skipped[]; live?: boolean } | null>(null);
+  let imported = $state<{ name: string; tld: 'biggle' | 'b'; count: number; skipped: Skipped[]; live?: boolean } | null>(null);
   let folderInput = $state<HTMLInputElement>();
   let zipInput = $state<HTMLInputElement>();
 
-  const clean = $derived(name.trim().toLowerCase().replace(/\.biggle$/, ''));
+  const clean = $derived(name.trim().toLowerCase().replace(/\.(biggle|b)$/, ''));
+  // Admins and people they trust can pick the shorter .b ending.
+  const canShort = $derived(!!account.user?.admin || !!account.user?.trusted);
+  let tld = $state<'biggle' | 'b'>('biggle');
   const atLimit = $derived(sites.limit !== null && (sites.mine?.length ?? 0) >= sites.limit);
 
   $effect(() => {
@@ -60,8 +63,8 @@
     try {
       const siteTitle = title.trim() || clean;
       const body = withCode
-        ? { name: clean, title: siteTitle, template: 'page' }
-        : { name: clean, title: siteTitle, files: renderFiles(starterSite(siteTitle, theme)) };
+        ? { name: clean, tld, title: siteTitle, template: 'page' }
+        : { name: clean, tld, title: siteTitle, files: renderFiles(starterSite(siteTitle, theme)) };
       const r = await api<{ site: MySite }>('POST', '/api/sites', body);
       await sites.refreshMine();
       browser.go(tab, `biggle://sites/${r.site.name}`);
@@ -109,9 +112,9 @@
       let source: Source;
       if (from === 'link' && live) {
         const url = webSource(link).start;
-        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, { url: url.href, title: title.trim() || url.host, live: true });
+        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, { url: url.href, title: title.trim() || url.host, live: true, tld });
         await sites.refreshMine();
-        imported = { name: clean, count: 0, skipped: [], live: true };
+        imported = { name: clean, tld, count: 0, skipped: [], live: true };
         mode = null;
         name = title = link = '';
         nameEdited = false;
@@ -121,9 +124,9 @@
       else if (picked) source = filesSource(picked.files);
       else throw new Error('Choose a folder or a .zip first.');
       const site = await importSite(source, (text) => (progress = text));
-      await uploadSite(clean, title.trim() || site.title || clean, site, (text) => (progress = text));
+      await uploadSite(clean, title.trim() || site.title || clean, site, (text) => (progress = text), tld);
       await sites.refreshMine();
-      imported = { name: clean, count: site.files.length, skipped: site.skipped };
+      imported = { name: clean, tld, count: site.files.length, skipped: site.skipped };
       mode = null;
       name = title = link = '';
       picked = null;
@@ -143,8 +146,8 @@
   }
 
   function open(site: MySite) {
-    if (site.status === 'live') browser.newTab(`biggle://${site.name}.biggle/`, { after: tab.id });
-    else browser.openPreview(site.name);
+    if (site.status === 'live') browser.newTab(siteHome(site.name, site.tld), { after: tab.id });
+    else browser.openPreview(site.name, '/', site.tld);
   }
 
   const STATUS: Record<string, string> = { pending: 'Waiting for approval', live: 'Live', rejected: 'Not approved' };
@@ -165,7 +168,7 @@
           {#each sites.mine as site (site.name)}
             <li>
               <div class="site-main">
-                <strong>{site.name}.biggle</strong>
+                <strong>{siteHost(site.name, site.tld)}</strong>
                 <span class="muted">{site.title}</span>
                 {#if site.status === 'rejected' && site.note}
                   <span class="note">“{site.note}”</span>
@@ -181,7 +184,7 @@
 
       {#if imported}
         <div class="create done">
-          <h2>{imported.name}.biggle is ready</h2>
+          <h2>{siteHost(imported.name, imported.tld)} is ready</h2>
           {#if imported.live}
             <p class="muted">It's live for everyone, straight from the original site.</p>
           {:else}
@@ -201,7 +204,7 @@
           {/if}
           <div class="actions">
             {#if imported.live}
-              <button class="primary" onclick={() => browser.newTab(`biggle://${imported!.name}.biggle/`, { after: tab.id })}>Open it</button>
+              <button class="primary" onclick={() => browser.newTab(siteHome(imported!.name, imported!.tld), { after: tab.id })}>Open it</button>
             {:else}
               <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>Preview</button>
               <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>Open in the editor</button>
@@ -265,11 +268,18 @@
                 spellcheck="false"
                 aria-describedby="name-hint"
               />
-              <span class="suffix">.biggle</span>
+              {#if canShort}
+                <select class="suffix-pick" bind:value={tld} aria-label="Address ending">
+                  <option value="biggle">.biggle</option>
+                  <option value="b">.b</option>
+                </select>
+              {:else}
+                <span class="suffix">.biggle</span>
+              {/if}
             </span>
             <span id="name-hint" class="hint" class:ok={availability?.ok} class:bad={availability && !availability.ok}>
               {#if availability}
-                {availability.ok ? `${availability.name}.biggle is free` : availability.reason}
+                {availability.ok ? `${siteHost(availability.name, tld)} is free` : availability.reason}
               {:else}
                 Letters, numbers and dashes.
               {/if}
@@ -518,6 +528,16 @@
     font-size: 15px;
     font-weight: 600;
     color: var(--muted);
+  }
+  .suffix-pick {
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
   }
   .hint {
     font-weight: 400;

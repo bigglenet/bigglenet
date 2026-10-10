@@ -1,5 +1,6 @@
 #[cfg(desktop)]
 use tauri::Manager;
+use tauri::webview::{PermissionKind, PermissionResponse};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,7 +26,23 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        // Voice and video calls in chat.biggle need the microphone and camera. The system
+        // still asks the person the first time (macOS, Windows privacy settings).
+        .on_permission_request(|_, kind| match kind {
+            PermissionKind::Microphone | PermissionKind::Camera => PermissionResponse::Allow,
+            _ => PermissionResponse::Default,
+        })
         .setup(|_app| {
+            #[cfg(target_os = "linux")]
+            if let Some(window) = _app.get_webview_window("main") {
+                window.with_webview(|webview| {
+                    use webkit2gtk::{SettingsExt, WebViewExt};
+                    if let Some(settings) = webview.inner().settings() {
+                        settings.set_enable_media_stream(true);
+                        settings.set_enable_webrtc(true);
+                    }
+                })?;
+            }
             // macOS registers biggle:// from Info.plist. Linux, and Windows dev builds,
             // register it when the app starts.
             #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]

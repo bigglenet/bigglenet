@@ -38,15 +38,16 @@
     "longDescription": "Browse .biggle sites on the Bigglenet, chat with friends, and leave ads and trackers behind.",
     "copyright": "Copyright (c) 2026 bigglenet",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/128x128.png",
+      "icons/32x32.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ],
     "macOS": {
       "signingIdentity": "-",
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "11.0",
+      "entitlements": "Entitlements.plist"
     },
     "createUpdaterArtifacts": true
   },

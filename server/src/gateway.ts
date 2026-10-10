@@ -3,7 +3,7 @@
 import { blobBytes, CORS, fail, json, NAME_RE, redirect } from './http';
 import { checkPreviewToken } from './sites';
 
-type Site = { name: string; url: string | null; title: string | null; status: string; live: number };
+type Site = { name: string; url: string | null; title: string | null; status: string; live: number; tld: string };
 
 const USER_AGENT = 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
@@ -19,7 +19,7 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
   if (!NAME_RE.test(name)) return null;
   const hit = resolveCache.get(name);
   if (hit && Date.now() - hit.at < RESOLVE_TTL_MS) return hit.site;
-  const site = await env.DB.prepare('SELECT name, url, title, status, live FROM names WHERE name = ?').bind(name).first<Site>();
+  const site = await env.DB.prepare('SELECT name, url, title, status, live, tld FROM names WHERE name = ?').bind(name).first<Site>();
   resolveCache.set(name, { site, at: Date.now() });
   return site;
 }
@@ -27,7 +27,7 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
 /** Every live site, for Nox's index and the start page's latest sites. */
 export async function directory(_req: Request, env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    "SELECT name, title, created_at AS created FROM names WHERE status = 'live' ORDER BY name",
+    "SELECT name, tld, title, created_at AS created FROM names WHERE status = 'live' ORDER BY name",
   ).all<Site>();
   return json({ names: results });
 }
@@ -35,7 +35,7 @@ export async function directory(_req: Request, env: Env): Promise<Response> {
 export async function resolveName(_req: Request, env: Env, name: string): Promise<Response> {
   const site = await resolve(env, name);
   if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${name}.biggle doesn't exist.`);
-  return json({ name: site.name, url: site.url, title: site.title });
+  return json({ name: site.name, tld: site.tld, url: site.url, title: site.title });
 }
 
 const MAX_BODY = 1_000_000;

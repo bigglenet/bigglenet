@@ -3,7 +3,7 @@
 import { api, onSessionExpired, setToken } from './api';
 import { openExternal } from './platform';
 
-export type Me = { username: string; admin: boolean; email?: string | null; emailVerified?: boolean };
+export type Me = { username: string; admin: boolean; trusted?: boolean; email?: string | null; emailVerified?: boolean };
 type SignedIn = { token: string; user: Me };
 /**
  * A code to finish with. Either it was emailed out, or (with `join`) the person emails `code`

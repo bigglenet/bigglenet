@@ -3,13 +3,18 @@
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { sites } from '../lib/sites.svelte';
+  import { siteHost } from '../lib/url';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
 
   type Name = { name: string; status: string };
-  type Review = { name: string; title: string | null; owner: string | null; files: number; size: number; createdAt: number };
-  type User = { username: string; admin: boolean; created_at: number };
+  type Review = { name: string; tld: 'biggle' | 'b'; title: string | null; owner: string | null; files: number; size: number; createdAt: number };
+  type User = { username: string; admin: boolean; trusted: boolean; created_at: number };
+
+  async function setTrusted(u: User, trusted: boolean) {
+    await run(() => api('PATCH', `/api/admin/users/${encodeURIComponent(u.username)}`, { trusted }));
+  }
 
   let names = $state<Name[]>([]);
   let reviews = $state<Review[]>([]);
@@ -84,7 +89,7 @@
           {#each reviews as r (r.name)}
             <li class="review">
               <div class="main">
-                <strong>{r.name}.biggle</strong>
+                <strong>{siteHost(r.name, r.tld)}</strong>
                 <span class="muted small">
                   {r.title ? `${r.title} · ` : ''}by {r.owner ?? 'a deleted account'} · {r.files} files · {Math.ceil(r.size / 1024)} KB
                 </span>
@@ -94,7 +99,7 @@
                 <button class="danger" onclick={() => reject(r.name)}>Reject</button>
                 <button class="ghost" onclick={() => (rejecting = null)}>Cancel</button>
               {:else}
-                <button class="ghost" onclick={() => browser.openPreview(r.name)}>Preview</button>
+                <button class="ghost" onclick={() => browser.openPreview(r.name, '/', r.tld)}>Preview</button>
                 <button class="ghost" onclick={() => ((rejecting = r.name), (note = ''))}>Reject</button>
                 <button class="primary" onclick={() => approve(r.name)}>Approve</button>
               {/if}
@@ -118,13 +123,19 @@
 
       <section>
         <h2>People</h2>
-        <p class="muted">{users.length} {users.length === 1 ? 'person has' : 'people have'} a Biggle ID.</p>
+        <p class="muted">
+          {users.length} {users.length === 1 ? 'person has' : 'people have'} a Biggle ID. Admins and people you trust can give their sites a
+          short .b address.
+        </p>
         <ul class="list">
           {#each users as u (u.username)}
             <li>
               <strong class="main">{u.username}</strong>
-              {#if u.admin}<span class="tag">Admin</span>{/if}
+              {#if u.admin}<span class="tag">Admin</span>{:else if u.trusted}<span class="tag">Trusted</span>{/if}
               <span class="muted small">Joined {date(u.created_at)}</span>
+              {#if !u.admin}
+                <button class="trust" onclick={() => setTrusted(u, !u.trusted)}>{u.trusted ? 'Stop trusting' : 'Trust'}</button>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -134,6 +145,18 @@
 </div>
 
 <style>
+  .trust {
+    margin-left: auto;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
   .admin {
     height: 100%;
     overflow: auto;

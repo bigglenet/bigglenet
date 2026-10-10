@@ -3,7 +3,7 @@
 import { mailMode, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 
-export type User = { id: number; username: string; is_admin: number; email: string | null; email_verified: number };
+export type User = { id: number; username: string; is_admin: number; trusted: number; email: string | null; email_verified: number };
 
 const ITERATIONS = 100_000;
 const SESSION_TTL = 90 * 86400;
@@ -39,11 +39,13 @@ async function newPasswordHash(password: string) {
 export const publicUser = (u: User) => ({
   username: u.username,
   admin: !!u.is_admin,
+  /** Trusted by an admin: can give sites a .b address. */
+  trusted: !!u.trusted,
   email: u.email,
   emailVerified: !!u.email_verified,
 });
 
-const USER_COLUMNS = 'u.id, u.username, u.is_admin, u.email, u.email_verified';
+const USER_COLUMNS = 'u.id, u.username, u.is_admin, u.trusted, u.email, u.email_verified';
 
 export async function createSession(env: Env, userId: number): Promise<string> {
   const token = base64url(crypto.getRandomValues(new Uint8Array(32)));

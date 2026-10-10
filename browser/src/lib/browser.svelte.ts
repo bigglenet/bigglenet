@@ -6,7 +6,7 @@ import { load, type PageError } from './loader';
 import { closeWindow, isApp } from './platform';
 import { startSettings } from './startpage.svelte';
 import { saveLocal } from './storage';
-import { fromInput, looksLikeAddress, noxSearch, parse, START, withHash, type InternalPage } from './url';
+import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, START, withHash, type InternalPage } from './url';
 
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
@@ -134,12 +134,15 @@ class Browser {
     tab.url = u.href;
     controllers.get(tab.id)?.abort();
 
-    if (u.kind === 'internal') {
+    // chat.biggle is the built-in chat app.
+    if (u.kind === 'internal' || u.name === 'chat') {
+      const page = u.kind === 'internal' ? u.page : 'chat';
+      const path = u.kind === 'internal' ? u.path : u.path.replace(/^\/+|\/+$/g, '');
       tab.loadId++;
       tab.loading = false;
       tab.preview = null;
-      tab.view = { type: 'internal', page: u.page, path: u.path };
-      tab.title = internalTitle(u.page, u.path);
+      tab.view = { type: 'internal', page, path };
+      tab.title = internalTitle(page, path);
       tab.icon = null;
       return;
     }
@@ -150,7 +153,7 @@ class Browser {
     controllers.set(tab.id, controller);
     const loadId = ++tab.loadId;
     tab.loading = true;
-    tab.title = `${u.name}.biggle`;
+    tab.title = siteHost(u.name, u.tld);
     tab.icon = null;
 
     const user = account.user && { username: account.user.username };
@@ -177,11 +180,11 @@ class Browser {
   }
 
   /** Open a site that's waiting for approval, as its owner or an admin. */
-  async openPreview(site: string, path = '/') {
+  async openPreview(site: string, path = '/', tld?: string) {
     const base = await previewBase(site);
     const tab = this.newTab(START);
     tab.preview = { site, base };
-    this.go(tab, `biggle://${site}.biggle${path}`, 'replace');
+    this.go(tab, `biggle://${siteHost(site, tld)}${path}`, 'replace');
   }
 
   /** A biggle:// link from another app: reuse an empty new tab, or open one. */
@@ -255,7 +258,7 @@ class Browser {
     switch (msg.type) {
       case 'meta': {
         const u = parse(tab.url);
-        const fallback = u?.kind === 'site' ? `${u.name}.biggle` : 'Biggle';
+        const fallback = u?.kind === 'site' ? siteHost(u.name, u.tld) : 'Biggle';
         tab.title = typeof msg.title === 'string' && msg.title.trim() ? msg.title.trim().slice(0, 200) : fallback;
         const icon = msg.icon;
         const allowed = (i: string) => i.startsWith(SITE_PREFIX) || i.startsWith(PREVIEW_PREFIX) || i.startsWith('data:image/');
@@ -318,7 +321,9 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'admin') return path === 'pages' ? 'All sites' : 'Admin';
   if (page === 'nox') return 'Nox';
   if (page === 'requests') return 'Feature requests';
-  return path ? `Editing ${path}.biggle` : 'My sites';
+  if (page === 'chat') return 'Chat';
+  if (page === 'settings') return 'Settings';
+  return path ? `Editing ${path}` : 'My sites';
 }
 
 async function previewBase(site: string): Promise<string> {

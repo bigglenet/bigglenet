@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { account } from '../lib/account.svelte';
   import { api, apiFetch, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { SERVER } from '../lib/config';
   import type { EasySite } from '../lib/easysite';
   import { sites, type MySite } from '../lib/sites.svelte';
+  import { siteHome, siteHost } from '../lib/url';
   import EasyEditor from './EasyEditor.svelte';
   import Icon from './Icon.svelte';
   import PreviewPane from './PreviewPane.svelte';
@@ -224,8 +226,23 @@
   }
 
   function visit() {
-    if (info?.site.status === 'live') browser.newTab(`biggle://${name}.biggle/${previewPath === 'index.bhtml' ? '' : previewPath}`, { after: tab.id });
-    else browser.openPreview(name, '/' + (previewPath === 'index.bhtml' ? '' : previewPath));
+    const path = previewPath === 'index.bhtml' ? '' : previewPath;
+    if (info?.site.status === 'live') browser.newTab(siteHome(name, tld) + path, { after: tab.id });
+    else browser.openPreview(name, '/' + path, tld);
+  }
+
+  // The address ending. Admins and people they trust can switch between .biggle and .b.
+  const tld = $derived(info?.site.tld ?? 'biggle');
+  const canShort = $derived(!!account.user?.admin || !!account.user?.trusted);
+  async function setTld(value: string) {
+    saveError = '';
+    try {
+      await api('PATCH', `/api/sites/${enc(name)}`, { tld: value });
+      await refresh();
+      sites.refreshMine();
+    } catch (err) {
+      saveError = errorText(err);
+    }
   }
 
   const kb = (n: number) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB`);
@@ -238,7 +255,16 @@
       <Icon name="back" />
     </button>
     <div class="who">
-      <strong>{name}.biggle</strong>
+      {#if canShort}
+        <strong class="address"
+          >{name}<select value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label="Address ending" title="Address ending">
+            <option value="biggle">.biggle</option>
+            <option value="b">.b</option>
+          </select></strong
+        >
+      {:else}
+        <strong>{siteHost(name, tld)}</strong>
+      {/if}
       <span class="state">
         {#if mode === 'easy'}
           {#if easyState.saving}Saving…{:else if easyState.error}<span class="bad">{easyState.error}</span>{:else if easyState.dirty}Unsaved changes{:else}All changes saved{/if}
@@ -270,7 +296,7 @@
         <button class="link" onclick={askAgain}>ask again</button>.
       </p>
     {:else}
-      <p class="banner ok">Live at {name}.biggle. Changes go live when they save.</p>
+      <p class="banner ok">Live at {siteHost(name, tld)}. Changes go live when they save.</p>
     {/if}
   {/if}
 
@@ -351,6 +377,16 @@
 </div>
 
 <style>
+  .address select {
+    margin-left: 1px;
+    padding: 0 2px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--hover);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
   .editor {
     display: flex;
     flex-direction: column;

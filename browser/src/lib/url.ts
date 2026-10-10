@@ -2,14 +2,31 @@ import { PREVIEW_PREFIX, SITE_PREFIX } from './config';
 
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
-/** Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. */
-export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests';
-const INTERNAL_PAGES = new Set<string>(['start', 'admin', 'sites', 'nox', 'requests']);
-export const START = 'biggle://start';
+/**
+ * Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. Chat is built
+ * in too, but lives at biggle://chat.biggle.
+ */
+export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests' | 'settings' | 'chat';
+/** The address each built-in page answers to. The new tab page is biggle://newtab (or biggle://start). */
+const INTERNAL_HOSTS: Record<string, InternalPage> = {
+  newtab: 'start',
+  start: 'start',
+  admin: 'admin',
+  sites: 'sites',
+  nox: 'nox',
+  requests: 'requests',
+  settings: 'settings',
+};
+export const START = 'biggle://newtab';
 
-const isInternal = (s: string): s is InternalPage => INTERNAL_PAGES.has(s);
+const isInternal = (s: string) => Object.hasOwn(INTERNAL_HOSTS, s);
 
-export type SiteUrl = { kind: 'site'; name: string; path: string; search: string; hash: string; href: string };
+/** A site's address ends in .biggle, or .b for sites made by admins and people they trust. */
+export type Tld = 'biggle' | 'b';
+const SITE_HOST_RE = /^(.+)\.(biggle|b)$/;
+const TYPED_SITE_RE = /^[a-z0-9-]+\.(?:biggle|b)(?:[/?#]|$)/i;
+
+export type SiteUrl = { kind: 'site'; name: string; tld: Tld; path: string; search: string; hash: string; href: string };
 export type InternalUrl = { kind: 'internal'; page: InternalPage; path: string; search: string; hash: string; href: string };
 export type BiggleUrl = SiteUrl | InternalUrl;
 
@@ -21,13 +38,16 @@ export function parse(input: string): BiggleUrl | null {
   if (!m) return null;
   const host = m[1].toLowerCase();
   if (isInternal(host)) {
+    const page = INTERNAL_HOSTS[host];
+    const shown = page === 'start' ? 'newtab' : host;
     const path = (m[2] ?? '').replace(/^\/+|\/+$/g, '');
     const search = m[3] && m[3] !== '?' ? m[3] : '';
     const hash = m[4] && m[4] !== '#' ? m[4] : '';
-    return { kind: 'internal', page: host, path, search, hash, href: `biggle://${host}${path ? '/' + path : ''}${search}${hash}` };
+    return { kind: 'internal', page, path, search, hash, href: `biggle://${shown}${path ? '/' + path : ''}${search}${hash}` };
   }
-  if (!host.endsWith('.biggle')) return null;
-  const name = host.slice(0, -'.biggle'.length);
+  const site = SITE_HOST_RE.exec(host);
+  if (!site) return null;
+  const [, name, tld] = site as unknown as [string, string, Tld];
   if (!NAME_RE.test(name)) return null;
 
   // Resolve "." and ".." and percent-encode, without letting "//x" or "\x" turn into a host.
@@ -35,11 +55,22 @@ export function parse(input: string): BiggleUrl | null {
   const path = new URL(rawPath, 'https://x').pathname;
   const search = m[3] && m[3] !== '?' ? m[3] : '';
   const hash = m[4] && m[4] !== '#' ? m[4] : '';
-  return { kind: 'site', name, path, search, hash, href: `biggle://${name}.biggle${path}${search}${hash}` };
+  return { kind: 'site', name, tld, path, search, hash, href: `biggle://${name}.${tld}${path}${search}${hash}` };
 }
 
+/** "hello.biggle" or "hello.b". */
+export const siteHost = (name: string, tld: Tld | string | undefined) => `${name}.${tld === 'b' ? 'b' : 'biggle'}`;
+
+/** A site's front page. */
+export const siteHome = (name: string, tld?: Tld | string) => `biggle://${siteHost(name, tld)}/`;
+
 export function withHash(u: SiteUrl, hash: string): SiteUrl {
-  return parse(`biggle://${u.name}.biggle${u.path}${u.search}${hash}`) as SiteUrl;
+  return parse(`biggle://${u.name}.${u.tld}${u.path}${u.search}${hash}`) as SiteUrl;
+}
+
+/** The same address with the site's real ending. */
+export function withTld(u: SiteUrl, tld: Tld): SiteUrl {
+  return parse(`biggle://${u.name}.${tld}${u.path}${u.search}${u.hash}`) as SiteUrl;
 }
 
 /** Where the gateway serves a site's files from. Previews use a signed base instead. */
@@ -70,7 +101,7 @@ export function fromGateway(href: string, previewBase?: string, previewSite?: st
 /** Whether typed text is an address to open, rather than something to search for with Nox. */
 export function looksLikeAddress(text: string): boolean {
   const t = text.trim();
-  return /^(biggle:|https?:\/\/)/i.test(t) || /^[a-z0-9-]+\.biggle(?:[/?#]|$)/i.test(t) || isInternal(t.toLowerCase());
+  return /^(biggle:|https?:\/\/)/i.test(t) || TYPED_SITE_RE.test(t) || isInternal(t.toLowerCase());
 }
 
 /** The Nox search page for some text. */
@@ -87,7 +118,7 @@ export function fromInput(text: string): InputTarget {
     return u && { kind: 'biggle', href: u.href };
   }
   if (/^https?:\/\/\S+$/i.test(t)) return { kind: 'external', href: t };
-  if (/^[a-z0-9-]+\.biggle(?:[/?#]|$)/i.test(t)) {
+  if (TYPED_SITE_RE.test(t)) {
     const u = parse('biggle://' + t);
     return u && { kind: 'biggle', href: u.href };
   }

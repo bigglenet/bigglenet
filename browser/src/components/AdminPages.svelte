@@ -7,6 +7,7 @@
   import { browser, type Tab } from '../lib/browser.svelte';
   import { SERVER } from '../lib/config';
   import { sites as siteState } from '../lib/sites.svelte';
+  import { siteHome, siteHost } from '../lib/url';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
@@ -14,6 +15,7 @@
   type Status = 'live' | 'pending' | 'rejected';
   type Site = {
     name: string;
+    tld: 'biggle' | 'b';
     url: string | null;
     title: string | null;
     status: Status;
@@ -42,7 +44,7 @@
 
   // Linking a name to a site hosted somewhere else.
   let linkOpen = $state(false);
-  let form = $state({ name: '', url: '', title: '', live: false });
+  let form = $state({ name: '', url: '', title: '', live: false, tld: 'biggle' });
   let saving = $state(false);
   let formError = $state('');
 
@@ -77,7 +79,7 @@
   const shown = $derived(
     list.filter((s) => {
       if (filter !== 'all' && s.status !== filter) return false;
-      const q = search.trim().toLowerCase().replace(/\.biggle$/, '');
+      const q = search.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
       return !q || [s.name, s.title, s.owner, s.url].some((v) => v?.toLowerCase().includes(q));
     }),
   );
@@ -86,8 +88,8 @@
   const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
   function openSite(site: Site) {
-    if (site.status === 'live') browser.newTab(`biggle://${site.name}.biggle/`, { after: tab.id });
-    else browser.openPreview(site.name);
+    if (site.status === 'live') browser.newTab(siteHome(site.name, site.tld), { after: tab.id });
+    else browser.openPreview(site.name, '/', site.tld);
   }
 
   async function viewSource(site: Site) {
@@ -102,7 +104,7 @@
   }
 
   function editLink(site: Site) {
-    form = { name: site.name, url: site.url ?? '', title: site.title ?? '', live: !!site.live };
+    form = { name: site.name, url: site.url ?? '', title: site.title ?? '', live: !!site.live, tld: site.tld };
     linkOpen = true;
     document.querySelector('.admin-pages')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -112,9 +114,9 @@
     saving = true;
     formError = '';
     try {
-      const name = form.name.trim().toLowerCase().replace(/\.biggle$/, '');
-      await api('PUT', `/api/admin/names/${enc(name)}`, { url: form.url, title: form.title, live: form.live });
-      form = { name: '', url: '', title: '', live: false };
+      const name = form.name.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
+      await api('PUT', `/api/admin/names/${enc(name)}`, { url: form.url, title: form.title, live: form.live, tld: form.tld });
+      form = { name: '', url: '', title: '', live: false, tld: 'biggle' };
       linkOpen = false;
       await refresh();
     } catch (err) {
@@ -127,7 +129,7 @@
   async function saveTitle(site: Site, title: string) {
     await run(() =>
       site.url
-        ? api('PUT', `/api/admin/names/${enc(site.name)}`, { url: site.url, title, live: !!site.live })
+        ? api('PUT', `/api/admin/names/${enc(site.name)}`, { url: site.url, title, live: !!site.live, tld: site.tld })
         : api('PATCH', `/api/sites/${enc(site.name)}`, { title }),
     );
     renaming = null;
@@ -154,13 +156,16 @@
 
         {#if linkOpen}
           <form class="link-form" onsubmit={saveLink}>
-            <p class="muted small">Point a .biggle name at a site hosted somewhere else.</p>
+            <p class="muted small">Point a .biggle or .b name at a site hosted somewhere else.</p>
             <div class="fields">
               <label class="field">
                 <span>Name</span>
                 <span class="suffixed">
                   <input bind:value={form.name} placeholder="ethem" required autocapitalize="off" spellcheck="false" />
-                  <span class="suffix">.biggle</span>
+                  <select class="suffix-pick" bind:value={form.tld} aria-label="Address ending">
+                    <option value="biggle">.biggle</option>
+                    <option value="b">.b</option>
+                  </select>
                 </span>
               </label>
               <label class="field grow">
@@ -197,7 +202,7 @@
               <div class="row">
                 <div class="main">
                   <div class="name-line">
-                    <strong>{site.name}.biggle</strong>
+                    <strong>{siteHost(site.name, site.tld)}</strong>
                     <span class="pill {site.status}">{STATUS[site.status]}</span>
                     {#if site.live}<span class="pill">Live app</span>{/if}
                   </div>
@@ -221,6 +226,12 @@
                     <button class="ghost" onclick={() => browser.newTab(`biggle://sites/${site.name}`, { after: tab.id })}>Edit source</button>
                   {/if}
                   <button class="ghost" onclick={() => (renaming = { name: site.name, title: site.title ?? '' })}>Rename</button>
+                  <button
+                    class="ghost"
+                    title={site.tld === 'b' ? `Change the address to ${site.name}.biggle` : `Change the address to ${site.name}.b`}
+                    onclick={() => run(() => api('PATCH', `/api/admin/names/${enc(site.name)}`, { tld: site.tld === 'b' ? 'biggle' : 'b' }))}
+                    >Make it .{site.tld === 'b' ? 'biggle' : 'b'}</button
+                  >
                   {#if site.status === 'live'}
                     <button class="ghost" onclick={() => ((takingDown = site.name), (note = ''))}>Take down</button>
                   {:else}
@@ -228,10 +239,10 @@
                   {/if}
                   <button
                     class="ghost icon"
-                    aria-label="Delete {site.name}.biggle"
+                    aria-label="Delete {siteHost(site.name, site.tld)}"
                     title="Delete"
                     onclick={() => {
-                      if (confirm(`Delete ${site.name}.biggle${site.url ? '' : ' and all its files'}? This can't be undone.`)) {
+                      if (confirm(`Delete ${siteHost(site.name, site.tld)}${site.url ? '' : ' and all its files'}? This can't be undone.`)) {
                         run(() => api('DELETE', `/api/admin/names/${enc(site.name)}`));
                       }
                     }}
@@ -437,6 +448,15 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+  .suffix-pick {
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
   }
   .suffix {
     color: var(--muted);

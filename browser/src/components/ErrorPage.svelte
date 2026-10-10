@@ -1,13 +1,13 @@
 <script lang="ts">
   import { browser, type Tab } from '../lib/browser.svelte';
   import type { PageError } from '../lib/loader';
-  import { parse } from '../lib/url';
+  import { parse, siteHost } from '../lib/url';
   import Icon from './Icon.svelte';
 
   let { tab, error }: { tab: Tab; error: PageError } = $props();
 
   const u = $derived(parse(tab.url));
-  const host = $derived(u?.kind === 'site' ? `${u.name}.biggle` : tab.url);
+  const host = $derived(u?.kind === 'site' ? siteHost(u.name, u.tld) : tab.url);
   const path = $derived(u?.kind === 'site' ? u.path : '');
 
   const text = $derived.by((): { title: string; body: string } => {

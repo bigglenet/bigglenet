@@ -5,6 +5,7 @@ import { api } from './api';
 export type SiteStatus = 'pending' | 'live' | 'rejected';
 export type MySite = {
   name: string;
+  tld: 'biggle' | 'b';
   title: string | null;
   status: SiteStatus;
   note: string | null;

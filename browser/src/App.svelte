@@ -2,6 +2,8 @@
   import { account } from './lib/account.svelte';
   import { browser } from './lib/browser.svelte';
   import { initPlatform, isApp, ownWindowButtons } from './lib/platform';
+  import { calls } from './lib/calls.svelte';
+  import { chats } from './lib/chats.svelte';
   import { sites } from './lib/sites.svelte';
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
@@ -9,10 +11,13 @@
   import AdminPage from './components/AdminPage.svelte';
   import AdminPages from './components/AdminPages.svelte';
   import RequestsPage from './components/RequestsPage.svelte';
+  import SettingsPage from './components/SettingsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
-  import FriendsPanel from './components/FriendsPanel.svelte';
+  import CallToasts from './components/CallToasts.svelte';
+  import CallWindow from './components/CallWindow.svelte';
+  import ChatApp from './components/chat/ChatApp.svelte';
   import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
   import SiteEditor from './components/SiteEditor.svelte';
@@ -96,7 +101,8 @@
     let handled = true;
     if (browser.switcher) browser.switcher = false;
     else if (browser.external) browser.external = null;
-    else if (social.open && social.chatWith) social.closeChat();
+    else if (calls.expanded) calls.expanded = false;
+    else if (social.open && chats.back?.()) {}
     else if (social.open) social.open = false;
     else if (tab && tab.index > 0) browser.back(tab);
     else handled = false;
@@ -133,6 +139,10 @@
                 <NoxPage {tab} />
               {:else if tab.view.page === 'requests'}
                 <RequestsPage />
+              {:else if tab.view.page === 'settings'}
+                <SettingsPage {tab} />
+              {:else if tab.view.page === 'chat'}
+                <ChatApp {tab} path={tab.view.path} />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
@@ -149,7 +159,7 @@
         {/each}
       </main>
       {#if social.open}
-        <FriendsPanel />
+        <div class="chat-sidebar"><ChatApp sidebar /></div>
       {/if}
     </div>
   </div>
@@ -160,6 +170,10 @@
   {#if browser.external}
     <ExternalPrompt url={browser.external} />
   {/if}
+  {#if calls.chatId !== null}
+    <CallWindow />
+  {/if}
+  <CallToasts />
 {/if}
 {#if updates.ready && !updates.dismissed}
   <UpdateBanner />
@@ -205,6 +219,25 @@
   }
   .view.active {
     display: block;
+  }
+
+  .chat-sidebar {
+    flex: none;
+    width: 340px;
+    min-height: 0;
+    border-left: 1px solid var(--border);
+  }
+  @media (max-width: 699px) {
+    .chat-sidebar {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      width: auto;
+      border: 0;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--surface);
+    }
   }
 
   .progress {
