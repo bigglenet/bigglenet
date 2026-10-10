@@ -1,10 +1,11 @@
 import { SERVER } from './config';
 
-export type DirectoryEntry = { name: string; title: string | null };
+/** A live site. `created` is when its name was made (seconds). */
+export type DirectoryEntry = { name: string; title: string | null; created?: number };
 
 let cached: { at: number; promise: Promise<DirectoryEntry[]> } | null = null;
 
-/** Every .biggle name, for the start page. */
+/** Every live .biggle site, for Nox's index and the start page. */
 export function loadDirectory(): Promise<DirectoryEntry[]> {
   if (cached && Date.now() - cached.at < 30_000) return cached.promise;
   const promise = fetch(`${SERVER}/api/names`, { credentials: 'omit' })

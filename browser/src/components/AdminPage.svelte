@@ -1,11 +1,13 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
-  import { browser } from '../lib/browser.svelte';
+  import { browser, type Tab } from '../lib/browser.svelte';
   import { sites } from '../lib/sites.svelte';
   import Icon from './Icon.svelte';
 
-  type Name = { name: string; url: string | null; title: string | null; status: string; live: number; owner: string | null };
+  let { tab }: { tab: Tab } = $props();
+
+  type Name = { name: string; status: string };
   type Review = { name: string; title: string | null; owner: string | null; files: number; size: number; createdAt: number };
   type User = { username: string; admin: boolean; created_at: number };
 
@@ -16,9 +18,6 @@
   let users = $state<User[]>([]);
   let error = $state('');
 
-  let form = $state({ name: '', url: '', title: '', live: false });
-  let saving = $state(false);
-  let formError = $state('');
 
   const isAdmin = $derived(!!account.user?.admin);
 
@@ -52,22 +51,6 @@
     await run(() => api('POST', `/api/admin/sites/${encodeURIComponent(name)}/reject`, { note }));
     rejecting = null;
     note = '';
-  }
-
-  async function saveName(e: SubmitEvent) {
-    e.preventDefault();
-    saving = true;
-    formError = '';
-    try {
-      const name = form.name.trim().toLowerCase().replace(/\.biggle$/, '');
-      await api('PUT', `/api/admin/names/${encodeURIComponent(name)}`, { url: form.url, title: form.title, live: form.live });
-      form = { name: '', url: '', title: '', live: false };
-      await refresh();
-    } catch (err) {
-      formError = errorText(err);
-    } finally {
-      saving = false;
-    }
   }
 
   async function run(fn: () => Promise<unknown>) {
@@ -122,59 +105,16 @@
         </ul>
       </section>
 
-      <section>
-        <h2>Sites</h2>
-        <p class="muted">Every .biggle name. You can also point one at a site hosted somewhere else.</p>
-        <form class="name-form" onsubmit={saveName}>
-          <label class="field">
-            <span>Name</span>
-            <span class="suffixed">
-              <input bind:value={form.name} placeholder="ethem" required autocapitalize="off" spellcheck="false" />
-              <span class="suffix">.biggle</span>
-            </span>
-          </label>
-          <label class="field grow">
-            <span>Host URL</span>
-            <input bind:value={form.url} placeholder="https://ethem.pages.dev/" required type="url" />
-          </label>
-          <label class="field">
-            <span>Title</span>
-            <input bind:value={form.title} placeholder="Optional" />
-          </label>
-          <label class="check" title="Show a normal website (an app or a game) as it is, without needing .bhtml pages">
-            <input type="checkbox" bind:checked={form.live} />
-            Live app
-          </label>
-          <button class="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-        </form>
-        {#if formError}
-          <p class="error" role="alert">{formError}</p>
-        {/if}
-        <ul class="list">
-          {#each names as n (n.name)}
-            <li>
-              <div class="main">
-                <strong>{n.name}.biggle</strong>
-                <span class="muted small">
-                  {n.title ? `${n.title} · ` : ''}{n.url ?? `made in the editor by ${n.owner ?? 'a deleted account'}`}{n.live ? ' · live app' : ''}{n.status !== 'live' ? ` · ${n.status === 'pending' ? 'waiting for approval' : 'not approved'}` : ''}
-                </span>
-              </div>
-              {#if n.url}
-                <button class="ghost" onclick={() => (form = { name: n.name, url: n.url ?? '', title: n.title ?? '', live: !!n.live })}>Edit</button>
-              {/if}
-              <button
-                class="ghost icon"
-                aria-label="Delete {n.name}.biggle"
-                onclick={() => run(() => api('DELETE', `/api/admin/names/${n.name}`))}
-              >
-                <Icon name="trash" size={16} />
-              </button>
-            </li>
-          {:else}
-            <li class="muted">No sites yet.</li>
-          {/each}
-        </ul>
-      </section>
+      <button class="all-sites" onclick={() => browser.go(tab, 'biggle://admin/pages')}>
+        <span>
+          <strong>All sites</strong>
+          <span class="muted small">
+            {names.length} {names.length === 1 ? 'site' : 'sites'}{reviews.length ? `, ${reviews.length} waiting` : ''}. Open, approve, take down, rename, delete, link
+            sites hosted elsewhere, and see or edit their source.
+          </span>
+        </span>
+        <Icon name="forward" />
+      </button>
 
       <section>
         <h2>People</h2>
@@ -229,40 +169,30 @@
     margin: 0 0 14px;
   }
 
-  .name-form {
+  .all-sites {
+    width: 100%;
+    height: auto;
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 10px;
-    padding: 14px;
-    margin-bottom: 12px;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+    padding: 16px 18px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: var(--card);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
   }
-  .check input {
-    width: auto;
-    height: auto;
+  .all-sites:hover {
+    border-color: var(--accent);
   }
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 40px;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-  .field {
+  .all-sites > span {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    font-size: 12.5px;
-    font-weight: 600;
-    min-width: 140px;
-  }
-  .field.grow {
-    flex: 1;
-    min-width: 200px;
+    gap: 3px;
   }
   input {
     height: 36px;
@@ -280,17 +210,6 @@
     outline: 0;
     border-color: var(--accent);
   }
-  .suffixed {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .suffix {
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 14px;
-  }
-
   .list {
     margin: 0;
     padding: 0;
@@ -364,10 +283,5 @@
   .note {
     flex: 1 1 200px;
     width: auto;
-  }
-  .icon {
-    width: 34px;
-    padding: 0;
-    justify-content: center;
   }
 </style>

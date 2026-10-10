@@ -6,7 +6,9 @@ import { HttpError, json, NAME_RE, readJson, str } from './http';
 export async function listNames(req: Request, env: Env): Promise<Response> {
   await requireAdmin(req, env);
   const { results } = await env.DB.prepare(
-    `SELECT n.name, n.url, n.title, n.status, n.live, n.updated_at, u.username AS owner
+    `SELECT n.name, n.url, n.title, n.status, n.live, n.review_note AS note, n.created_at, n.updated_at, u.username AS owner,
+       (SELECT COUNT(*) FROM site_files f WHERE f.site = n.name) AS files,
+       (SELECT COALESCE(SUM(size), 0) FROM site_files f WHERE f.site = n.name) AS size
      FROM names n LEFT JOIN users u ON u.id = n.owner_id ORDER BY n.name`,
   ).all();
   return json({ names: results });

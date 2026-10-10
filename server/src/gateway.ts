@@ -24,9 +24,11 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
   return site;
 }
 
-/** Every name, for the browser's start page. */
+/** Every live site, for Nox's index and the start page's latest sites. */
 export async function directory(_req: Request, env: Env): Promise<Response> {
-  const { results } = await env.DB.prepare("SELECT name, title FROM names WHERE status = 'live' ORDER BY name").all<Site>();
+  const { results } = await env.DB.prepare(
+    "SELECT name, title, created_at AS created FROM names WHERE status = 'live' ORDER BY name",
+  ).all<Site>();
   return json({ names: results });
 }
 

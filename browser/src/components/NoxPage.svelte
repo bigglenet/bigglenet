@@ -6,6 +6,8 @@
   let { tab }: { tab: Tab } = $props();
 
   let query = $state('');
+  // With nothing searched, Nox shows its index: every site on the Bigglenet.
+  let order = $state<'name' | 'newest'>('name');
   const directory = loadDirectory();
 
   function qFromTab() {
@@ -29,7 +31,9 @@
 
   function results(sites: DirectoryEntry[]) {
     const q = query.trim().toLowerCase().replace(/\.biggle$/, '');
-    if (!q) return sites;
+    if (!q) {
+      return [...sites].sort((a, b) => (order === 'newest' ? (b.created ?? 0) - (a.created ?? 0) : a.name.localeCompare(b.name)));
+    }
     // Exact names first, then names starting with the search, then everything else that matches.
     const rank = (s: DirectoryEntry) => (s.name === q ? 0 : s.name.startsWith(q) ? 1 : 2);
     return sites
@@ -49,11 +53,22 @@
     </form>
 
     <section>
-      <h2>Results</h2>
       {#await directory}
+        <h2>Results</h2>
         <p class="muted">Loading…</p>
       {:then sites}
         {@const matched = results(sites)}
+        {#if query.trim()}
+          <h2>Results</h2>
+        {:else}
+          <div class="index-head">
+            <h2>Every site on the Bigglenet · {sites.length}</h2>
+            <div class="order" role="radiogroup" aria-label="Order">
+              <button role="radio" aria-checked={order === 'name'} class:on={order === 'name'} onclick={() => (order = 'name')}>A–Z</button>
+              <button role="radio" aria-checked={order === 'newest'} class:on={order === 'newest'} onclick={() => (order = 'newest')}>Newest</button>
+            </div>
+          </div>
+        {/if}
         {#if matched.length === 0}
           <p class="muted">No results.</p>
         {:else}
@@ -72,6 +87,7 @@
           </ul>
         {/if}
       {:catch}
+        <h2>Results</h2>
         <p class="muted">Can't reach the Biggle server right now.</p>
       {/await}
     </section>
@@ -137,6 +153,37 @@
     font-weight: 600;
   }
 
+  .index-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .index-head h2 {
+    margin: 0;
+  }
+  .order {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--hover);
+  }
+  .order button {
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .order button.on {
+    background: var(--card);
+    color: var(--text);
+  }
   section {
     margin-top: 40px;
   }

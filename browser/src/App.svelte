@@ -7,6 +7,7 @@
   import { updates } from './lib/updates.svelte';
   import { startSettings } from './lib/startpage.svelte';
   import AdminPage from './components/AdminPage.svelte';
+  import AdminPages from './components/AdminPages.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
@@ -123,8 +124,10 @@
         {#each browser.tabs as tab (tab.id)}
           <section class="view" class:active={tab.id === browser.activeId}>
             {#if tab.view.type === 'internal'}
-              {#if tab.view.page === 'admin'}
-                <AdminPage />
+              {#if tab.view.page === 'admin' && tab.view.path === 'pages'}
+                <AdminPages {tab} />
+              {:else if tab.view.page === 'admin'}
+                <AdminPage {tab} />
               {:else if tab.view.page === 'nox'}
                 <NoxPage {tab} />
               {:else if tab.view.page === 'sites' && tab.view.path}

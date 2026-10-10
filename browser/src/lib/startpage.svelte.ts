@@ -2,7 +2,7 @@
 // start page's Customize button. biggle://start always shows the start page, whatever's set.
 import { START, fromInput } from './url';
 
-export type Section = 'clock' | 'search' | 'shortcuts' | 'featured' | 'sites';
+export type Section = 'clock' | 'search' | 'shortcuts' | 'featured' | 'latest';
 export type Shortcut = { name: string; url: string };
 export type Backdrop = 'plain' | 'sunset' | 'ocean' | 'forest' | 'candy' | 'lavender';
 
@@ -11,7 +11,7 @@ export const SECTIONS: { id: Section; label: string }[] = [
   { id: 'search', label: 'Search box' },
   { id: 'shortcuts', label: 'My shortcuts' },
   { id: 'featured', label: 'home.biggle and "Make your own site"' },
-  { id: 'sites', label: 'Sites on the Bigglenet' },
+  { id: 'latest', label: 'Latest sites' },
 ];
 
 /** Each backdrop is a colour washed over the page's own background, so it suits light and dark. */
@@ -31,7 +31,8 @@ type Saved = { newTab: string | null; shown: Record<Section, boolean>; shortcuts
 
 const DEFAULTS: Saved = {
   newTab: null,
-  shown: { clock: false, search: true, shortcuts: true, featured: true, sites: true },
+  // Every site is in Nox's index (biggle://nox); the start page can show the newest few.
+  shown: { clock: false, search: true, shortcuts: true, featured: true, latest: false },
   shortcuts: [],
   backdrop: 'plain',
 };

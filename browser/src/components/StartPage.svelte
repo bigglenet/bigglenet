@@ -46,6 +46,7 @@
           <input bind:value={query} placeholder="Search with Nox or go to a .biggle address" aria-label="Search with Nox" spellcheck="false" />
           <button type="submit">Nox</button>
         </form>
+        <button class="browse" onclick={() => browser.go(tab, 'biggle://nox')}>Browse every site in Nox →</button>
       {/if}
 
       {#if settings.shown.shortcuts && settings.shortcuts.length}
@@ -80,17 +81,18 @@
         </button>
       {/if}
 
-      {#if settings.shown.sites}
+      {#if settings.shown.latest}
         <section>
-          <h2>Sites on the Bigglenet</h2>
+          <h2>Latest sites</h2>
           {#await directory}
             <p class="muted">Loading…</p>
           {:then sites}
-            {#if sites.length === 0}
+            {@const latest = [...sites].sort((x, y) => (y.created ?? 0) - (x.created ?? 0)).slice(0, 6)}
+            {#if latest.length === 0}
               <p class="muted">No sites yet.</p>
             {:else}
               <ul class="sites">
-                {#each sites.filter((s) => s.name !== 'home') as site (site.name)}
+                {#each latest as site (site.name)}
                   <li>
                     <button onclick={() => browser.go(tab, `biggle://${site.name}.biggle/`)}>
                       <span class="tile">{site.name[0].toUpperCase()}</span>
@@ -172,6 +174,21 @@
     margin: 8px 0 0;
     color: var(--muted);
     font-size: 16px;
+  }
+
+  .browse {
+    display: block;
+    margin: 10px auto 0;
+    padding: 4px 8px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13.5px;
+  }
+  .browse:hover {
+    color: var(--text);
+    text-decoration: underline;
   }
 
   .shortcuts {

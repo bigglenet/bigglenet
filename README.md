@@ -9,6 +9,8 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 - **A built-in site editor:** pick a name and a look, add text, pictures and buttons. No code or hosting needed. Admins approve every new site.
 - **Import a website you already have:** from its link, a folder or a .zip.
 - **`.biggle` names:** sites made in the editor get theirs straight away; you can also host files anywhere and point a name at them.
+- **Nox:** search the Bigglenet, or browse its index of every site (`biggle://nox`).
+- **A new tab page you can customize:** shortcuts, a clock, a background, or open any page you like instead.
 - **One Biggle ID:** sign up with your email or Google, and every site can greet you by name.
 - **Friends and chat:** add friends and message them live, right in the browser.
 - **No ads, no tracking:** pages run sandboxed, with no cookies, and can't load anything from outside the Bigglenet.

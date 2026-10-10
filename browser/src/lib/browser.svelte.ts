@@ -315,7 +315,7 @@ class Browser {
 
 function internalTitle(page: InternalPage, path: string): string {
   if (page === 'start') return 'New tab';
-  if (page === 'admin') return 'Admin';
+  if (page === 'admin') return path === 'pages' ? 'All sites' : 'Admin';
   if (page === 'nox') return 'Nox';
   return path ? `Editing ${path}.biggle` : 'My sites';
 }
