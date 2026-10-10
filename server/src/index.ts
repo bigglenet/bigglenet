@@ -11,11 +11,13 @@
 //   email to JOIN_ADDRESS             confirming an email address (inbox.ts)
 //   /api/admin/*                     names and users (admins only)
 //   /api/friends*, /api/messages/*   friends and direct messages
+//   /api/requests*                   feature requests and votes
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
+import * as requests from './requests';
 import * as google from './google';
 import { fail, HttpError, preflight } from './http';
 import { fetchForImport } from './importer';
@@ -72,6 +74,13 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.deleteFile],
 
   ['POST', /^\/api\/import\/fetch$/, fetchForImport],
+
+  ['GET', /^\/api\/requests$/, requests.list],
+  ['POST', /^\/api\/requests$/, requests.create],
+  ['POST', /^\/api\/requests\/(\d+)\/vote$/, requests.vote],
+  ['DELETE', /^\/api\/requests\/(\d+)\/vote$/, requests.vote],
+  ['PATCH', /^\/api\/requests\/(\d+)$/, requests.update],
+  ['DELETE', /^\/api\/requests\/(\d+)$/, requests.remove],
 
   ['GET', /^\/api\/friends$/, social.listFriends],
   ['POST', /^\/api\/friends$/, social.addFriend],

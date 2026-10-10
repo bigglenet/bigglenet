@@ -64,6 +64,7 @@
             {#if sites.reviews}<span class="count">{sites.reviews} to approve</span>{/if}
           </button>
         {/if}
+        <button role="menuitem" onclick={() => openPage('biggle://requests')}><Icon name="idea" size={16} /> Request a feature</button>
         <button role="menuitem" onclick={signOut}><Icon name="logout" size={16} /> Sign out</button>
       </div>
     {/if}

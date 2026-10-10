@@ -14,7 +14,7 @@ const PREVIEW_TTL = 60 * 60;
 
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
-  'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security',
+  'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests',
 ]);
 
 export const FILE_TYPES: Record<string, string> = {

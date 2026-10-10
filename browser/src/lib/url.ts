@@ -3,8 +3,8 @@ import { PREVIEW_PREFIX, SITE_PREFIX } from './config';
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /** Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. */
-export type InternalPage = 'start' | 'admin' | 'sites' | 'nox';
-const INTERNAL_PAGES = new Set<string>(['start', 'admin', 'sites', 'nox']);
+export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests';
+const INTERNAL_PAGES = new Set<string>(['start', 'admin', 'sites', 'nox', 'requests']);
 export const START = 'biggle://start';
 
 const isInternal = (s: string): s is InternalPage => INTERNAL_PAGES.has(s);

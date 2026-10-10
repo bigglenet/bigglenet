@@ -8,6 +8,7 @@
   import { startSettings } from './lib/startpage.svelte';
   import AdminPage from './components/AdminPage.svelte';
   import AdminPages from './components/AdminPages.svelte';
+  import RequestsPage from './components/RequestsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
@@ -130,6 +131,8 @@
                 <AdminPage {tab} />
               {:else if tab.view.page === 'nox'}
                 <NoxPage {tab} />
+              {:else if tab.view.page === 'requests'}
+                <RequestsPage />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
