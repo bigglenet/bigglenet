@@ -8,38 +8,53 @@
     browser.newTab();
     browser.focusAddress();
   }
+
+  // With lots of tabs the strip scrolls sideways, so the new-tab and window buttons stay put.
+  let strip = $state<HTMLElement>();
+  $effect(() => {
+    void browser.activeId;
+    void browser.tabs.length;
+    strip?.querySelector('.tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
+
+  function onwheel(e: WheelEvent) {
+    if (!strip || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    strip.scrollLeft += e.deltaY;
+  }
 </script>
 
-<div class="tabbar" role="tablist" aria-label="Tabs" data-tauri-drag-region>
-  {#each browser.tabs as tab (tab.id)}
-    <div
-      class="tab"
-      class:active={tab.id === browser.activeId}
-      onauxclick={(e) => e.button === 1 && browser.closeTab(tab.id)}
-    >
-      <button
-        class="tab-main"
-        role="tab"
-        aria-selected={tab.id === browser.activeId}
-        title={tab.title}
-        onclick={() => (browser.activeId = tab.id)}
+<div class="tabbar" data-tauri-drag-region>
+  <div class="tabs" role="tablist" aria-label="Tabs" bind:this={strip} {onwheel} data-tauri-drag-region>
+    {#each browser.tabs as tab (tab.id)}
+      <div
+        class="tab"
+        class:active={tab.id === browser.activeId}
+        onauxclick={(e) => e.button === 1 && browser.closeTab(tab.id)}
       >
-        <span class="tab-icon">
-          {#if tab.loading}
-            <span class="spinner"></span>
-          {:else if tab.icon}
-            <img src={tab.icon} alt="" />
-          {:else}
-            <Icon name="globe" size={14} />
-          {/if}
-        </span>
-        <span class="tab-title">{tab.title}</span>
-      </button>
-      <button class="tab-close" aria-label="Close {tab.title}" onclick={() => browser.closeTab(tab.id)}>
-        <Icon name="close" size={13} />
-      </button>
-    </div>
-  {/each}
+        <button
+          class="tab-main"
+          role="tab"
+          aria-selected={tab.id === browser.activeId}
+          title={tab.title}
+          onclick={() => (browser.activeId = tab.id)}
+        >
+          <span class="tab-icon">
+            {#if tab.loading}
+              <span class="spinner"></span>
+            {:else if tab.icon}
+              <img src={tab.icon} alt="" />
+            {:else}
+              <Icon name="globe" size={14} />
+            {/if}
+          </span>
+          <span class="tab-title">{tab.title}</span>
+        </button>
+        <button class="tab-close" aria-label="Close {tab.title}" onclick={() => browser.closeTab(tab.id)}>
+          <Icon name="close" size={13} />
+        </button>
+      </div>
+    {/each}
+  </div>
   <button class="new-tab" aria-label="New tab" title="New tab" onclick={newTab}>
     <Icon name="plus" size={16} />
   </button>
@@ -73,6 +88,21 @@
     :global(html:not([data-titlebar])) .tabbar {
       display: none;
     }
+  }
+
+  .tabs {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    align-self: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tab {
