@@ -98,4 +98,12 @@ jobs:
             --data-binary @latest.json \
             "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=latest.json" > /dev/null
 
-      - run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false
+      # Only the newest version becomes "latest" (which installed apps update from), so if two
+      # releases build at once and an older one finishes last, it doesn't take over.
+      - name: Publish
+        run: |
+          newest=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" \
+            --jq "[.[] | select(.draft == false) | .tag_name] + [\"$GITHUB_REF_NAME\"] | map(ltrimstr(\"v\")) | sort_by(split(\".\") | map(tonumber)) | last")
+          latest=$([ "v$newest" = "$GITHUB_REF_NAME" ] && echo true || echo false)
+          echo "Newest is v$newest, so make_latest=$latest"
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -f make_latest=$latest
