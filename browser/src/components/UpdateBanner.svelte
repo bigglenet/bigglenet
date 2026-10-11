@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { overlays } from '../lib/overlays.svelte';
   import { updates } from '../lib/updates.svelte';
   import Icon from './Icon.svelte';
+
+  // A site view (see SiteView.svelte) steps aside while this shows.
+  $effect(() => overlays.hold());
 </script>
 
 <div class="update" role="status">

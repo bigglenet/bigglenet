@@ -1,7 +1,11 @@
 <script lang="ts">
   import { browser } from '../lib/browser.svelte';
+  import { overlays } from '../lib/overlays.svelte';
   import { openExternal } from '../lib/platform';
   import Icon from './Icon.svelte';
+
+  // A site view (see SiteView.svelte) steps aside while this shows.
+  $effect(() => overlays.hold());
 
   let { url }: { url: string } = $props();
 

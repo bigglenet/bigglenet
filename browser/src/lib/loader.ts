@@ -23,8 +23,11 @@ export type PageError = { code: ErrorCode; status?: number; detail?: string };
 
 export type LoadResult =
   | { type: 'page'; href: string; srcdoc: string }
-  /** A site that loads straight from its own host, like any website. */
-  | { type: 'web'; href: string; url: string; title: string | null }
+  /**
+   * A site that loads straight from its own host, like any website. `window`: in one of its own;
+   * `relay`: through the desktop app's relay (see desktop/src-tauri/src/relay.rs).
+   */
+  | { type: 'web'; href: string; url: string; title: string | null; window: boolean; relay: boolean }
   | { type: 'error'; href: string; error: PageError }
   | { type: 'aborted' };
 
@@ -56,10 +59,10 @@ export async function load(
 
   try {
     if (res.headers.get('X-Biggle-Direct')) {
-      const d = (await res.json()) as { direct?: unknown; title?: unknown };
+      const d = (await res.json()) as { direct?: unknown; title?: unknown; window?: unknown; relay?: unknown };
       const url = typeof d.direct === 'string' && /^https?:\/\//i.test(d.direct) ? d.direct : null;
       if (!url) return fail({ code: 'http', status: res.status });
-      return { type: 'web', href: final.href, url, title: typeof d.title === 'string' ? d.title : null };
+      return { type: 'web', href: final.href, url, title: typeof d.title === 'string' ? d.title : null, window: d.window === true, relay: d.relay === true };
     }
     const biggleError = res.headers.get('X-Biggle-Error');
     if (biggleError) {

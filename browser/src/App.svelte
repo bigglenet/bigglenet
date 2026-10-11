@@ -20,6 +20,8 @@
   import ChatApp from './components/chat/ChatApp.svelte';
   import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
+  import SiteView from './components/SiteView.svelte';
+  import SiteWindow from './components/SiteWindow.svelte';
   import WebFrame from './components/WebFrame.svelte';
   import SiteEditor from './components/SiteEditor.svelte';
   import SitesPage from './components/SitesPage.svelte';
@@ -153,6 +155,10 @@
               {/if}
             {:else if tab.view.type === 'page'}
               <PageFrame {tab} view={tab.view} />
+            {:else if tab.view.type === 'web' && tab.view.window && isApp}
+              <SiteView {tab} view={tab.view} />
+            {:else if tab.view.type === 'web' && tab.view.window}
+              <SiteWindow {tab} view={tab.view} />
             {:else if tab.view.type === 'web'}
               <WebFrame {tab} view={tab.view} />
             {:else}

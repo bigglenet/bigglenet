@@ -29,7 +29,7 @@
   let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
   let nameEdited = false;
   let progress = $state('');
-  let imported = $state<{ name: string; tld: 'biggle' | 'b'; count: number; skipped: Skipped[]; live?: 'live' | 'direct' } | null>(null);
+  let imported = $state<{ name: string; tld: 'biggle' | 'b'; count: number; skipped: Skipped[]; live?: 'live' | 'direct' | 'window' } | null>(null);
   let folderInput = $state<HTMLInputElement>();
   let zipInput = $state<HTMLInputElement>();
 
@@ -115,7 +115,7 @@
       let source: Source;
       if (from === 'link' && how !== 'copy') {
         const url = webSource(link).start;
-        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, {
+        const saved = await api<{ window?: boolean }>('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, {
           url: url.href,
           title: title.trim() || url.host,
           live: how === 'live',
@@ -123,7 +123,7 @@
           tld,
         });
         await sites.refreshMine();
-        imported = { name: clean, tld, count: 0, skipped: [], live: how };
+        imported = { name: clean, tld, count: 0, skipped: [], live: how === 'direct' && saved.window ? 'window' : how };
         mode = null;
         name = title = link = '';
         nameEdited = false;
@@ -196,6 +196,11 @@
           <h2>{siteHost(imported.name, imported.tld)} is ready</h2>
           {#if imported.live === 'direct'}
             <p class="muted">It's live for everyone and loads straight from the original website, at full speed.</p>
+          {:else if imported.live === 'window'}
+            <p class="muted">
+              It's live for everyone and loads straight from the original website. It needs things a page shown inside another
+              can't have (like cross-origin isolation), so it runs as a page of its own.
+            </p>
           {:else if imported.live}
             <p class="muted">It's live for everyone, straight from the original site.</p>
           {:else}

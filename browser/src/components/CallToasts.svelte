@@ -2,6 +2,7 @@
   // Someone calling you, and short notes about calls ("No answer").
   import { calls } from '../lib/calls.svelte';
   import { chats } from '../lib/chats.svelte';
+  import { overlays } from '../lib/overlays.svelte';
   import { social } from '../lib/social.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
@@ -10,6 +11,10 @@
   const chat = $derived(chats.get(ring?.chatId ?? null));
   const caller = $derived(ring ? social.nameOf(ring.from) : '');
   const where = $derived(chat?.kind === 'group' ? chats.title(chat) : '');
+  // Someone calling has to be seen, even over a game.
+  $effect(() => {
+    if (ring) return overlays.hold();
+  });
 </script>
 
 {#if ring}

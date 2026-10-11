@@ -21,6 +21,7 @@
     status: Status;
     live: number;
     direct: number;
+    own_window: number;
     note: string | null;
     owner: string | null;
     files: number;
@@ -47,10 +48,10 @@
   let linkOpen = $state(false);
   // How a linked site loads: as .bhtml pages, as a live app (normal pages turned into .bhtml as
   // they pass through), or straight from the internet.
-  type How = 'site' | 'live' | 'direct';
-  const HOW: Record<How, string> = { site: '.bhtml site', live: 'Live app', direct: 'Straight from the internet' };
-  const howOf = (s: Site): How => (s.direct ? 'direct' : s.live ? 'live' : 'site');
-  const howBody = (how: string) => ({ live: how === 'live', direct: how === 'direct' });
+  type How = 'site' | 'live' | 'direct' | 'window';
+  const HOW: Record<How, string> = { site: '.bhtml site', live: 'Live app', direct: 'Straight from the internet', window: 'Own page' };
+  const howOf = (s: Site): How => (s.direct ? (s.own_window ? 'window' : 'direct') : s.live ? 'live' : 'site');
+  const howBody = (how: string) => ({ live: how === 'live', direct: how === 'direct' || how === 'window', window: how === 'window' });
   let form = $state({ name: '', url: '', title: '', how: 'site', tld: 'biggle' });
   let saving = $state(false);
   let formError = $state('');
@@ -189,6 +190,7 @@
                   <option value="site">.bhtml site</option>
                   <option value="live">Live app, through the Bigglenet</option>
                   <option value="direct">Straight from the internet</option>
+                  <option value="window">Straight from the internet, as its own page</option>
                 </select>
               </label>
               <button class="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
@@ -196,7 +198,12 @@
             <p id="how-hint" class="muted small">
               {#if form.how === 'direct'}
                 The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports.
-                Bigglenet pages features (sign-in, biggle.* calls) aren't available to it.
+                Bigglenet pages features (sign-in, biggle.* calls) aren't available to it. Games that need cross-origin isolation,
+                and sites that won't be shown inside other apps, run as their own page automatically.
+              {:else if form.how === 'window'}
+                The real website runs as a page of its own, straight from its host: in its tab in the desktop app (people can pop
+                it out into a window), and in a browser tab on phones. For games that need cross-origin isolation (threads) and
+                sites that won't be shown inside other apps.
               {:else if form.how === 'live'}
                 A normal website (an app or a game) shown through the Bigglenet, without needing .bhtml pages.
               {:else}

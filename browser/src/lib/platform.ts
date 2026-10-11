@@ -20,6 +20,50 @@ export async function openExternal(url: string) {
   }
 }
 
+// Direct sites that have to be a top-level page (games that need cross-origin isolation, sites
+// that won't be shown inside other apps) get a web view of their own in the desktop app: laid
+// over the tab ("site view"), or popped out into a window. `relay` sends them through the app's
+// relay on macOS and Linux, whose engine needs a slightly different isolation header.
+
+/** Show a site view over the tab's page area, at these bounds (CSS pixels). */
+export async function siteViewShow(site: string, url: string, relay: boolean, rect: DOMRect) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('site_view_show', { site, url, relay, x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+}
+
+export async function siteViewHide(site: string) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('site_view_hide', { site });
+}
+
+export async function siteViewClose(site: string) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('site_view_close', { site });
+}
+
+/** Called with a site's key and its page's title when the title changes. */
+export async function onSiteViewTitle(handler: (site: string, title: string) => void): Promise<() => void> {
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen<[string, string]>('site-view-title', (e) => handler(e.payload[0], e.payload[1]));
+}
+
+/** Open a site in a window of its own. If it's open already, it comes to the front. */
+export async function openSiteWindow(site: string, url: string, title: string, relay: boolean) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('open_site_window', { site, url, title, relay });
+}
+
+export async function closeSiteWindow(site: string) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('close_site_window', { site });
+}
+
+/** Called with a site's key when its own window closes. Returns a function that stops listening. */
+export async function onSiteWindowClosed(handler: (site: string) => void): Promise<() => void> {
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen<string>('site-window-closed', (e) => handler(e.payload));
+}
+
 /** Close the desktop app's window (which quits it). */
 export async function closeWindow() {
   const { getCurrentWindow } = await import('@tauri-apps/api/window');

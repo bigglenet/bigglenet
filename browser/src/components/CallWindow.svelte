@@ -4,6 +4,7 @@
   import { calls, type Remote } from '../lib/calls.svelte';
   import { duration, srcObject } from '../lib/chatformat';
   import { chats } from '../lib/chats.svelte';
+  import { overlays } from '../lib/overlays.svelte';
   import { social } from '../lib/social.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
@@ -24,6 +25,9 @@
   );
 
   const hasVideo = (r: Remote) => r.video && !!r.stream?.getVideoTracks().length;
+
+  // A site view would cover the call. Big, it covers everything anyway.
+  $effect(() => overlays.hold());
 
   function openChat() {
     if (calls.chatId === null) return;

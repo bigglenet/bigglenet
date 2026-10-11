@@ -1,12 +1,17 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
   import { browser } from '../lib/browser.svelte';
+  import { overlays } from '../lib/overlays.svelte';
   import { sites } from '../lib/sites.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
 
   let open = $state(false);
   let root = $state<HTMLElement>();
+
+  $effect(() => {
+    if (open) return overlays.hold();
+  });
 
   $effect(() => {
     if (!open) return;

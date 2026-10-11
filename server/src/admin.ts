@@ -7,7 +7,7 @@ import { moveSite } from './sites';
 export async function listNames(req: Request, env: Env): Promise<Response> {
   await requireAdmin(req, env);
   const { results } = await env.DB.prepare(
-    `SELECT n.name, n.tld, n.url, n.title, n.status, n.live, n.direct, n.review_note AS note, n.created_at, n.updated_at, u.username AS owner,
+    `SELECT n.name, n.tld, n.url, n.title, n.status, n.live, n.direct, n.own_window, n.review_note AS note, n.created_at, n.updated_at, u.username AS owner,
        (SELECT COUNT(*) FROM site_files f WHERE f.site = n.name) AS files,
        (SELECT COALESCE(SUM(size), 0) FROM site_files f WHERE f.site = n.name) AS size
      FROM names n LEFT JOIN users u ON u.id = n.owner_id ORDER BY n.name`,
@@ -43,26 +43,35 @@ export async function setName(req: Request, env: Env, rawName: string): Promise<
   }
   const title = str(body.title).trim().slice(0, 100) || null;
   const live = body.live === true && !direct ? 1 : 0;
-  if (direct) await checkFramable(req, url);
+  // Some direct sites have to open in a window of their own: games that need cross-origin
+  // isolation, and sites that won't be shown inside other apps. Asked for, or found out here.
+  const ownWindow = direct ? Math.max(body.window === true ? WINDOW : 0, await needsOwnWindow(req, url)) : 0;
   const tld = body.tld === 'b' || body.tld === 'biggle' ? body.tld : (address.tld ?? 'biggle');
   const name = siteKey(address.name, tld);
 
   await env.DB.prepare(
-    `INSERT INTO names (name, url, title, status, live, direct, tld) VALUES (?, ?, ?, 'live', ?, ?, ?)
+    `INSERT INTO names (name, url, title, status, live, direct, own_window, tld) VALUES (?, ?, ?, 'live', ?, ?, ?, ?)
      ON CONFLICT(name) DO UPDATE SET url = excluded.url, title = excluded.title, status = 'live', live = excluded.live,
-       direct = excluded.direct, tld = excluded.tld, updated_at = unixepoch()`,
+       direct = excluded.direct, own_window = excluded.own_window, tld = excluded.tld, updated_at = unixepoch()`,
   )
-    .bind(name, url.href, title, live, direct, tld)
+    .bind(name, url.href, title, live, direct, ownWindow, tld)
     .run();
   forget(name);
-  return json({ name, url: url.href, title, live: !!live, direct: !!direct, tld });
+  return json({ name, url: url.href, title, live: !!live, direct: !!direct, window: ownWindow > 0, tld });
 }
 
+/** names.own_window: in a tab, in a window of its own, or in one through the desktop app's relay. */
+const WINDOW = 1;
+const WINDOW_RELAY = 2;
+
 /**
- * A direct link shows the website inside the Biggle browser, so the website has to allow that.
- * Many big sites don't (X-Frame-Options, or CSP frame-ancestors).
+ * Whether a direct site has to open in a window of its own instead of inside a tab: it asks for
+ * cross-origin isolation (Cross-Origin-Embedder-Policy, for games with threads), which a page
+ * only gets at the top, or it won't be shown inside other apps (X-Frame-Options, CSP
+ * frame-ancestors). COEP "credentialless" also needs the desktop app's relay on macOS and Linux,
+ * whose engine only understands "require-corp".
  */
-async function checkFramable(req: Request, url: URL) {
+async function needsOwnWindow(req: Request, url: URL): Promise<number> {
   if (url.host === new URL(req.url).host) throw new HttpError(400, 'bad_url', "A direct link can't point at the Bigglenet itself.");
   let res: Response;
   try {
@@ -71,11 +80,13 @@ async function checkFramable(req: Request, url: URL) {
     throw new HttpError(400, 'unreachable', "Couldn't reach that website.");
   }
   await res.body?.cancel();
-  const refused = new HttpError(400, 'not_framable', "That website doesn't let other apps show it, so it can't load straight from the internet. Try a live link instead.");
+  const coep = (res.headers.get('Cross-Origin-Embedder-Policy') ?? '').toLowerCase();
+  if (coep.includes('credentialless')) return WINDOW_RELAY;
+  if (coep.includes('require-corp')) return WINDOW;
   const xfo = (res.headers.get('X-Frame-Options') ?? '').toLowerCase();
-  if (xfo.includes('deny') || xfo.includes('sameorigin')) throw refused;
+  if (xfo.includes('deny') || xfo.includes('sameorigin')) return WINDOW;
   const ancestors = /(?:^|;)\s*frame-ancestors\s+([^;]*)/i.exec(res.headers.get('Content-Security-Policy') ?? '')?.[1].trim().split(/\s+/);
-  if (ancestors && !ancestors.includes('*')) throw refused;
+  return ancestors && !ancestors.includes('*') ? WINDOW : 0;
 }
 
 /** Change a site's address ending: name.biggle or name.b. */

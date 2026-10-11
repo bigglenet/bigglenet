@@ -11,8 +11,11 @@ import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
   | { type: 'page'; site: string; srcdoc: string }
-  /** A real website, loaded straight from its own host. */
-  | { type: 'web'; site: string; url: string }
+  /**
+   * A real website, loaded straight from its own host: in the tab, or (`window`) in a window of
+   * its own, for games that need cross-origin isolation.
+   */
+  | { type: 'web'; site: string; url: string; window: boolean; relay: boolean }
   | { type: 'error'; error: PageError };
 
 export type Tab = {
@@ -175,7 +178,7 @@ class Browser {
       if (result.type === 'page') {
         tab.view = { type: 'page', site: siteKey(u), srcdoc: result.srcdoc };
       } else if (result.type === 'web') {
-        tab.view = { type: 'web', site: siteKey(u), url: result.url };
+        tab.view = { type: 'web', site: siteKey(u), url: result.url, window: result.window, relay: result.relay };
         if (result.title) tab.title = result.title;
       } else {
         tab.view = { type: 'error', error: result.error };
