@@ -1,6 +1,6 @@
 export const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Expose-Headers': 'X-Biggle-Error',
+  'Access-Control-Expose-Headers': 'X-Biggle-Error, X-Biggle-Direct',
 };
 
 /** Thrown by handlers; turned into a JSON error response. */

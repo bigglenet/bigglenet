@@ -20,6 +20,7 @@
     title: string | null;
     status: Status;
     live: number;
+    direct: number;
     note: string | null;
     owner: string | null;
     files: number;
@@ -44,7 +45,13 @@
 
   // Linking a name to a site hosted somewhere else.
   let linkOpen = $state(false);
-  let form = $state({ name: '', url: '', title: '', live: false, tld: 'biggle' });
+  // How a linked site loads: as .bhtml pages, as a live app (normal pages turned into .bhtml as
+  // they pass through), or straight from the internet.
+  type How = 'site' | 'live' | 'direct';
+  const HOW: Record<How, string> = { site: '.bhtml site', live: 'Live app', direct: 'Straight from the internet' };
+  const howOf = (s: Site): How => (s.direct ? 'direct' : s.live ? 'live' : 'site');
+  const howBody = (how: string) => ({ live: how === 'live', direct: how === 'direct' });
+  let form = $state({ name: '', url: '', title: '', how: 'site', tld: 'biggle' });
   let saving = $state(false);
   let formError = $state('');
 
@@ -104,7 +111,7 @@
   }
 
   function editLink(site: Site) {
-    form = { name: site.name.replace(/\.b$/, ''), url: site.url ?? '', title: site.title ?? '', live: !!site.live, tld: site.tld };
+    form = { name: site.name.replace(/\.b$/, ''), url: site.url ?? '', title: site.title ?? '', how: howOf(site), tld: site.tld };
     linkOpen = true;
     document.querySelector('.admin-pages')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -115,8 +122,8 @@
     formError = '';
     try {
       const name = form.name.trim().toLowerCase().replace(/\.(biggle|b)$/, '');
-      await api('PUT', `/api/admin/names/${enc(name)}`, { url: form.url, title: form.title, live: form.live, tld: form.tld });
-      form = { name: '', url: '', title: '', live: false, tld: 'biggle' };
+      await api('PUT', `/api/admin/names/${enc(name)}`, { url: form.url, title: form.title, ...howBody(form.how), tld: form.tld });
+      form = { name: '', url: '', title: '', how: 'site', tld: 'biggle' };
       linkOpen = false;
       await refresh();
     } catch (err) {
@@ -129,7 +136,7 @@
   async function saveTitle(site: Site, title: string) {
     await run(() =>
       site.url
-        ? api('PUT', `/api/admin/names/${enc(site.name)}`, { url: site.url, title, live: !!site.live, tld: site.tld })
+        ? api('PUT', `/api/admin/names/${enc(site.name)}`, { url: site.url, title, ...howBody(howOf(site)), tld: site.tld })
         : api('PATCH', `/api/sites/${enc(site.name)}`, { title }),
     );
     renaming = null;
@@ -176,12 +183,26 @@
                 <span>Title</span>
                 <input bind:value={form.title} placeholder="Optional" />
               </label>
-              <label class="check" title="Show a normal website (an app or a game) as it is, without needing .bhtml pages">
-                <input type="checkbox" bind:checked={form.live} />
-                Live app
+              <label class="field">
+                <span>How it loads</span>
+                <select bind:value={form.how} aria-describedby="how-hint">
+                  <option value="site">.bhtml site</option>
+                  <option value="live">Live app, through the Bigglenet</option>
+                  <option value="direct">Straight from the internet</option>
+                </select>
               </label>
               <button class="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
+            <p id="how-hint" class="muted small">
+              {#if form.how === 'direct'}
+                The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports.
+                Bigglenet pages features (sign-in, biggle.* calls) aren't available to it.
+              {:else if form.how === 'live'}
+                A normal website (an app or a game) shown through the Bigglenet, without needing .bhtml pages.
+              {:else}
+                A site made of .bhtml pages, hosted somewhere else.
+              {/if}
+            </p>
             {#if formError}<p class="error" role="alert">{formError}</p>{/if}
           </form>
         {/if}
@@ -204,7 +225,7 @@
                   <div class="name-line">
                     <strong>{siteHost(site.name, site.tld)}</strong>
                     <span class="pill {site.status}">{STATUS[site.status]}</span>
-                    {#if site.live}<span class="pill">Live app</span>{/if}
+                    {#if site.url && howOf(site) !== 'site'}<span class="pill">{HOW[howOf(site)]}</span>{/if}
                   </div>
                   {#if site.title}<span class="title">{site.title}</span>{/if}
                   <span class="muted small">
@@ -355,7 +376,8 @@
     font: inherit;
     cursor: pointer;
   }
-  input:not([type='checkbox']) {
+  input:not([type='checkbox']),
+  .field select {
     height: 36px;
     padding: 0 10px;
     border: 1px solid var(--border);

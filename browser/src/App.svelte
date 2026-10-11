@@ -20,6 +20,7 @@
   import ChatApp from './components/chat/ChatApp.svelte';
   import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
+  import WebFrame from './components/WebFrame.svelte';
   import SiteEditor from './components/SiteEditor.svelte';
   import SitesPage from './components/SitesPage.svelte';
   import StartPage from './components/StartPage.svelte';
@@ -152,6 +153,8 @@
               {/if}
             {:else if tab.view.type === 'page'}
               <PageFrame {tab} view={tab.view} />
+            {:else if tab.view.type === 'web'}
+              <WebFrame {tab} view={tab.view} />
             {:else}
               <ErrorPage {tab} error={tab.view.error} />
             {/if}

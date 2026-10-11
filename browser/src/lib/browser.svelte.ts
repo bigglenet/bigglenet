@@ -11,6 +11,8 @@ import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
   | { type: 'page'; site: string; srcdoc: string }
+  /** A real website, loaded straight from its own host. */
+  | { type: 'web'; site: string; url: string }
   | { type: 'error'; error: PageError };
 
 export type Tab = {
@@ -172,6 +174,9 @@ class Browser {
       }
       if (result.type === 'page') {
         tab.view = { type: 'page', site: siteKey(u), srcdoc: result.srcdoc };
+      } else if (result.type === 'web') {
+        tab.view = { type: 'web', site: siteKey(u), url: result.url };
+        if (result.title) tab.title = result.title;
       } else {
         tab.view = { type: 'error', error: result.error };
         tab.loading = false;

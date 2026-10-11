@@ -3,7 +3,7 @@
 import { blobBytes, CORS, fail, json, redirect, SITE_KEY_RE, siteAddress } from './http';
 import { checkPreviewToken } from './sites';
 
-type Site = { name: string; url: string | null; title: string | null; status: string; live: number; tld: string };
+type Site = { name: string; url: string | null; title: string | null; status: string; live: number; direct: number; tld: string };
 
 const USER_AGENT = 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
@@ -19,7 +19,7 @@ async function resolve(env: Env, name: string): Promise<Site | null> {
   if (!SITE_KEY_RE.test(name)) return null;
   const hit = resolveCache.get(name);
   if (hit && Date.now() - hit.at < RESOLVE_TTL_MS) return hit.site;
-  const site = await env.DB.prepare('SELECT name, url, title, status, live, tld FROM names WHERE name = ?').bind(name).first<Site>();
+  const site = await env.DB.prepare('SELECT name, url, title, status, live, direct, tld FROM names WHERE name = ?').bind(name).first<Site>();
   resolveCache.set(name, { site, at: Date.now() });
   return site;
 }
@@ -35,7 +35,7 @@ export async function directory(_req: Request, env: Env): Promise<Response> {
 export async function resolveName(_req: Request, env: Env, name: string): Promise<Response> {
   const site = await resolve(env, name);
   if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${siteAddress(name)} doesn't exist.`);
-  return json({ name: site.name, tld: site.tld, url: site.url, title: site.title });
+  return json({ name: site.name, tld: site.tld, url: site.url, title: site.title, direct: !!site.direct });
 }
 
 const MAX_BODY = 1_000_000;
@@ -44,6 +44,8 @@ const readOnly = (req: Request) => req.method === 'GET' || req.method === 'HEAD'
 export async function gateway(req: Request, env: Env, name: string, rest: string, search: string): Promise<Response> {
   const site = await resolve(env, name);
   if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${siteAddress(name)} doesn't exist.`);
+  // A direct link: the browser loads the website itself, so just say where it is.
+  if (site.url && site.direct) return direct(site.url, site.title, rest, search);
   // Only live apps can be sent things (forms, logging a result…); other sites are read-only.
   const sending = !readOnly(req);
   if (sending && !(site.url && site.live)) return fail(405, 'method_not_allowed', 'Sites are read-only.');
@@ -183,6 +185,18 @@ function livePage(res: Response, fix: (url: string) => string): ReadableStream {
       },
     }),
   );
+}
+
+function direct(siteUrl: string, title: string | null, rest: string, search: string): Response {
+  // The front page is the address as given; other paths are inside its folder.
+  const home = new URL(siteUrl);
+  const folder = new URL('./', home);
+  const path = rest.replace(/^\//, '');
+  let target = path || search ? new URL(path + search, folder) : home;
+  if (!inside(target, folder)) target = home;
+  return new Response(JSON.stringify({ direct: target.href, title }), {
+    headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Biggle-Direct': '1' },
+  });
 }
 
 function inside(url: URL, base: URL): boolean {

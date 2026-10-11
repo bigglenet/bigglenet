@@ -23,6 +23,8 @@ export type PageError = { code: ErrorCode; status?: number; detail?: string };
 
 export type LoadResult =
   | { type: 'page'; href: string; srcdoc: string }
+  /** A site that loads straight from its own host, like any website. */
+  | { type: 'web'; href: string; url: string; title: string | null }
   | { type: 'error'; href: string; error: PageError }
   | { type: 'aborted' };
 
@@ -53,6 +55,12 @@ export async function load(
   const fail = (error: PageError): LoadResult => ({ type: 'error', href: final.href, error });
 
   try {
+    if (res.headers.get('X-Biggle-Direct')) {
+      const d = (await res.json()) as { direct?: unknown; title?: unknown };
+      const url = typeof d.direct === 'string' && /^https?:\/\//i.test(d.direct) ? d.direct : null;
+      if (!url) return fail({ code: 'http', status: res.status });
+      return { type: 'web', href: final.href, url, title: typeof d.title === 'string' ? d.title : null };
+    }
     const biggleError = res.headers.get('X-Biggle-Error');
     if (biggleError) {
       const body = await res.json().catch(() => ({}));

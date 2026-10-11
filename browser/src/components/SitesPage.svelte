@@ -23,12 +23,13 @@
   // Importing a site that already exists, from its address or its files.
   let from = $state<'link' | 'files'>('link');
   let link = $state('');
-  // Admins can link a site instead of copying it: right for apps and games.
-  let live = $state(false);
+  // Admins can link a site instead of copying it: as a live app through the Bigglenet, or
+  // straight from the internet (full speed, for games and WebAssembly ports).
+  let how = $state<'copy' | 'live' | 'direct'>('copy');
   let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
   let nameEdited = false;
   let progress = $state('');
-  let imported = $state<{ name: string; tld: 'biggle' | 'b'; count: number; skipped: Skipped[]; live?: boolean } | null>(null);
+  let imported = $state<{ name: string; tld: 'biggle' | 'b'; count: number; skipped: Skipped[]; live?: 'live' | 'direct' } | null>(null);
   let folderInput = $state<HTMLInputElement>();
   let zipInput = $state<HTMLInputElement>();
 
@@ -112,11 +113,17 @@
     progress = '';
     try {
       let source: Source;
-      if (from === 'link' && live) {
+      if (from === 'link' && how !== 'copy') {
         const url = webSource(link).start;
-        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, { url: url.href, title: title.trim() || url.host, live: true, tld });
+        await api('PUT', `/api/admin/names/${encodeURIComponent(clean)}`, {
+          url: url.href,
+          title: title.trim() || url.host,
+          live: how === 'live',
+          direct: how === 'direct',
+          tld,
+        });
         await sites.refreshMine();
-        imported = { name: clean, tld, count: 0, skipped: [], live: true };
+        imported = { name: clean, tld, count: 0, skipped: [], live: how };
         mode = null;
         name = title = link = '';
         nameEdited = false;
@@ -187,7 +194,9 @@
       {#if imported}
         <div class="create done">
           <h2>{siteHost(imported.name, imported.tld)} is ready</h2>
-          {#if imported.live}
+          {#if imported.live === 'direct'}
+            <p class="muted">It's live for everyone and loads straight from the original website, at full speed.</p>
+          {:else if imported.live}
             <p class="muted">It's live for everyone, straight from the original site.</p>
           {:else}
             <p class="muted">
@@ -236,13 +245,27 @@
                   spellcheck="false"
                   required
                 />
-                <span class="hint">Its pages, pictures and styles get copied here. It has to be a public website.</span>
+                <span class="hint">{how === 'copy' ? 'Its pages, pictures and styles get copied here. ' : ''}It has to be a public website.</span>
               </label>
               {#if account.user?.admin}
-                <label class="check">
-                  <input type="checkbox" bind:checked={live} />
-                  Keep it live instead of copying it: best for games and apps. It loads from the original site every time.
-                </label>
+                <fieldset class="how">
+                  <legend>How should it work?</legend>
+                  <label class="check">
+                    <input type="radio" name="how" value="copy" bind:group={how} />
+                    <span><strong>Copy it here</strong> — its pages, pictures and styles become a Bigglenet site.</span>
+                  </label>
+                  <label class="check">
+                    <input type="radio" name="how" value="live" bind:group={how} />
+                    <span><strong>Keep it live</strong> — loads from the original site through the Bigglenet every time. Good for apps.</span>
+                  </label>
+                  <label class="check">
+                    <input type="radio" name="how" value="direct" bind:group={how} />
+                    <span
+                      ><strong>Straight from the internet</strong> — the real website, like in any browser. Fastest: best for games and
+                      WebAssembly ports.</span
+                    >
+                  </label>
+                </fieldset>
               {/if}
             {:else}
               <div class="field">
@@ -614,6 +637,30 @@
   .check input {
     width: auto;
     margin: 0;
+  }
+  .how {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .how legend {
+    margin-bottom: 6px;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .how .check {
+    align-items: flex-start;
+    line-height: 1.4;
+  }
+  .how .check input {
+    margin-top: 3px;
+  }
+  .how strong {
+    color: var(--text);
   }
 
   .error {
