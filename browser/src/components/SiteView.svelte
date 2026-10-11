@@ -1,10 +1,11 @@
 <script lang="ts">
-  // A direct site that has to be a top-level page (a game that needs cross-origin isolation, or a
-  // site that won't be shown inside other apps), in the desktop app. It gets a web view of its
-  // own, laid exactly over this tab's page area, so it's in the tab like any page. A bar above it
-  // can pop it out into a window of its own, or open it in the computer's web browser.
+  // A site straight from the internet, in the desktop app: a real Chromium page of its own, laid
+  // exactly over this tab's page area, so it's in the tab like any page but runs like it would
+  // in any browser (full speed, cross-origin isolation for games that need it). See
+  // desktop/main/sites.js. Sites that have to be a page of their own (`window`) get a bar above
+  // them that can pop them out into a window, or open them in the computer's web browser.
   //
-  // The web view is drawn above everything in the Biggle window, so it hides when this tab isn't
+  // The page is drawn above everything in the Biggle window, so it hides when this tab isn't
   // showing and while a Bigglenet menu or dialog is open (see overlays.svelte.ts).
   import { untrack } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
@@ -21,7 +22,7 @@
   } from '../lib/platform';
   import Icon from './Icon.svelte';
 
-  let { tab, view }: { tab: Tab; view: { site: string; url: string; relay: boolean } } = $props();
+  let { tab, view }: { tab: Tab; view: { site: string; url: string; window: boolean } } = $props();
 
   /** In the tab, or popped out into a window of its own. */
   let mode = $state<'tab' | 'window'>('tab');
@@ -73,7 +74,7 @@
     frame = requestAnimationFrame(async () => {
       if (!slot || !untrack(() => showing)) return;
       try {
-        await siteViewShow(view.site, view.url, view.relay, slot.getBoundingClientRect());
+        await siteViewShow(view.site, view.url, slot.getBoundingClientRect());
         made = true;
       } catch (e) {
         // Couldn't make one here: a window of its own still works.
@@ -103,7 +104,7 @@
     made = false;
     await siteViewClose(view.site).catch(() => {});
     try {
-      await openSiteWindow(view.site, view.url, tab.title, view.relay);
+      await openSiteWindow(view.site, view.url, tab.title);
       windowOpen = true;
     } catch (e) {
       error = message(e);
@@ -119,6 +120,7 @@
 </script>
 
 <div class="site">
+  {#if view.window || mode === 'window'}
   <div class="bar">
     <Icon name="globe" size={14} />
     <span class="host">{host}</span>
@@ -128,8 +130,9 @@
     {:else}
       <button onclick={putBack} title="Show it in this tab again"><Icon name="tabs" size={14} /> Back in the tab</button>
     {/if}
-    <button onclick={() => openExternal(view.url)} title="Some games only work in Chrome or Edge">Open in your browser</button>
+    <button onclick={() => openExternal(view.url)} title="Open it in your computer's web browser">Open in your browser</button>
   </div>
+  {/if}
 
   {#if mode === 'tab'}
     <div class="slot" bind:this={slot}></div>
@@ -141,7 +144,7 @@
       </p>
       <div class="actions">
         {#if windowOpen}
-          <button class="primary" onclick={() => openSiteWindow(view.site, view.url, tab.title, view.relay)}>Show its window</button>
+          <button class="primary" onclick={() => openSiteWindow(view.site, view.url, tab.title)}>Show its window</button>
         {:else}
           <button class="primary" onclick={popOut}>Open it again</button>
         {/if}

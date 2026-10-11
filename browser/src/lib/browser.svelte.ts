@@ -15,7 +15,7 @@ export type View =
    * A real website, loaded straight from its own host: in the tab, or (`window`) in a window of
    * its own, for games that need cross-origin isolation.
    */
-  | { type: 'web'; site: string; url: string; window: boolean; relay: boolean }
+  | { type: 'web'; site: string; url: string; window: boolean }
   | { type: 'error'; error: PageError };
 
 export type Tab = {
@@ -178,7 +178,7 @@ class Browser {
       if (result.type === 'page') {
         tab.view = { type: 'page', site: siteKey(u), srcdoc: result.srcdoc };
       } else if (result.type === 'web') {
-        tab.view = { type: 'web', site: siteKey(u), url: result.url, window: result.window, relay: result.relay };
+        tab.view = { type: 'web', site: siteKey(u), url: result.url, window: result.window };
         if (result.title) tab.title = result.title;
       } else {
         tab.view = { type: 'error', error: result.error };

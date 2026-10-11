@@ -43,7 +43,7 @@ To host it yourself, save it as `index.bhtml`, upload the folder to any static h
 
 ```
 browser/      the Biggle browser (Svelte), also served as the PWA
-desktop/      the desktop app (Tauri), wrapping the browser
+desktop/      the desktop app (Electron), wrapping the browser
 server/       Cloudflare Worker: Biggle DNS, site gateway, accounts, friends, chat
 sites/home/   home.biggle, the Bigglenet's homepage
 examples/     example sites (hello.biggle)
@@ -111,16 +111,18 @@ npm run site -w server -- push <name> <folder> ["Title"] --owner <username> --re
 
 ## Release
 
-Bump the version in `desktop/src-tauri/tauri.conf.json` and push a matching tag. GitHub Actions builds the Mac, Windows and Linux apps, signs the updates and publishes them as a release. Installed apps check the latest release's `latest.json`, download the update in the background and offer a restart.
+`npm run release` bumps the version, deploys the website and pushes a matching tag. GitHub Actions builds the Mac, Windows and Linux apps, signs the updates and publishes them as a release. Installed apps check the latest release's `latest.json`, download the update in the background and offer a restart. To check the builds without releasing, run the Release workflow by hand on GitHub: the files are attached to the run.
 
 ```bash
-git tag v0.2.0 && git push origin v0.2.0
+npm run release              # 0.4.0 → 0.4.1
+npm run release -- 0.5.0     # a version of your choosing
 ```
 
-Updates are signed with a private key kept outside the repo, in `~/.tauri/bigglenet.key`, and as the `TAURI_SIGNING_PRIVATE_KEY` Actions secret. Back it up: without it, installed apps can't receive updates. Building locally needs it too:
+Updates are signed (minisign) with a private key kept outside the repo, in `~/.tauri/bigglenet.key`, and as the `TAURI_SIGNING_PRIVATE_KEY` Actions secret. The key and its name date from when the desktop app was built with Tauri; the Electron app checks the same signatures, which is how older apps update to it. Back it up: without it, installed apps can't receive updates. Building locally needs it too:
 
 ```bash
-TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/bigglenet.key)" npm run app:build
+npm run build -w browser
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/bigglenet.key)" npm run dist -w desktop
 ```
 
 The web app updates itself on every deploy and offers a reload.

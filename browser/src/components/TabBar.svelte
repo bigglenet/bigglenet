@@ -23,8 +23,8 @@
   }
 </script>
 
-<div class="tabbar" data-tauri-drag-region>
-  <div class="tabs" role="tablist" aria-label="Tabs" bind:this={strip} {onwheel} data-tauri-drag-region>
+<div class="tabbar">
+  <div class="tabs" role="tablist" aria-label="Tabs" bind:this={strip} {onwheel}>
     {#each browser.tabs as tab (tab.id)}
       <div
         class="tab"
@@ -71,6 +71,14 @@
     padding: 6px 8px 0;
     background: var(--chrome);
     min-width: 0;
+  }
+  /* In the desktop app the tab bar is the title bar: its empty parts move the window. */
+  :global([data-titlebar]) .tabbar {
+    -webkit-app-region: drag;
+  }
+  :global([data-titlebar]) .tab,
+  :global([data-titlebar]) .new-tab {
+    -webkit-app-region: no-drag;
   }
   /* Desktop app on macOS: leave room for the window buttons. */
   :global([data-titlebar='overlay']) .tabbar {

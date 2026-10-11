@@ -37,7 +37,10 @@
   if (!browser.restoreTabs()) browser.newTab(opening ?? startSettings.newTabAddress);
   else if (opening) browser.newTab(opening);
   $effect(() => browser.saveTabs());
-  initPlatform((href) => browser.openFromOutside(href));
+  initPlatform(
+    (href) => browser.openFromOutside(href),
+    (key) => browser.shortcut(key),
+  );
   updates.start();
 
   // You need a Biggle ID with a confirmed email (or Google) to use Bigglenet.
@@ -120,8 +123,10 @@
 </svelte:head>
 
 {#if !ready}
-  {#if ownWindowButtons}
-    <div class="titlebar" data-tauri-drag-region><WindowControls /></div>
+  {#if isApp}
+    <div class="titlebar">
+      {#if ownWindowButtons}<WindowControls />{/if}
+    </div>
   {/if}
   <AuthScreen />
 {:else}
@@ -155,7 +160,7 @@
               {/if}
             {:else if tab.view.type === 'page'}
               <PageFrame {tab} view={tab.view} />
-            {:else if tab.view.type === 'web' && tab.view.window && isApp}
+            {:else if tab.view.type === 'web' && isApp}
               <SiteView {tab} view={tab.view} />
             {:else if tab.view.type === 'web' && tab.view.window}
               <SiteWindow {tab} view={tab.view} />
@@ -191,6 +196,7 @@
 <style>
   /* Before signing in there's no tab bar, so this keeps the window draggable and closable. */
   .titlebar {
+    -webkit-app-region: drag;
     position: fixed;
     top: 0;
     left: 0;

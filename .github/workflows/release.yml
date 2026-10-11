@@ -1,16 +1,21 @@
-# Push a tag like v0.2.0 to build the desktop apps and publish them as a GitHub release.
-# The tag must match the version in desktop/src-tauri/tauri.conf.json.
+# Push a tag like v0.4.0 to build the desktop apps and publish them as a GitHub release.
+# The tag must match the version in desktop/package.json.
+#
+# Run it by hand ("Run workflow" on GitHub) for a dry run: it builds everything and attaches the
+# files to the run, without making a release.
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 jobs:
   create-release:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     outputs:
       id: ${{ steps.release.outputs.id }}
@@ -30,59 +35,63 @@ jobs:
 
   build:
     needs: create-release
+    # A dry run has no release to make, but still builds.
+    if: ${{ !cancelled() && (needs.create-release.result == 'success' || needs.create-release.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            args: --target aarch64-apple-darwin
-          - os: macos-latest
-            args: --target x86_64-apple-darwin
-          - os: windows-latest
-            args: ''
-          - os: ubuntu-22.04
-            args: ''
+        # The Mac job builds both Apple silicon and Intel.
+        os: [macos-latest, windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Linux build dependencies
+      - name: Install Linux build tools
         if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        run: sudo apt-get update && sudo apt-get install -y rpm
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: desktop/src-tauri -> target
-
       - run: npm ci
+      - run: npm run build -w browser
 
-      - uses: tauri-apps/tauri-action@v1
+      - name: Build the app
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Signs updates so installed apps can trust them. See "Release" in the README.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: npm run dist -w desktop
+
+      - name: Attach the files to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.create-release.outputs.id }}
+        run: |
+          for file in desktop/dist/release/*; do
+            name=$(basename "$file")
+            curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Content-Type: application/octet-stream' \
+              --data-binary @"$file" \
+              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=$name" > /dev/null
+            echo "Uploaded $name"
+          done
+
+      - name: Keep the files (dry run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
         with:
-          projectPath: desktop
-          releaseId: ${{ needs.create-release.outputs.id }}
-          args: ${{ matrix.args }}
-          # latest.json is written once at the end instead: these jobs run side by side and
-          # would overwrite each other's entries in it.
-          uploadUpdaterJson: false
+          name: bigglenet-${{ matrix.os }}
+          path: desktop/dist/release/*
 
   publish:
     needs: [create-release, build]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}

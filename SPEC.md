@@ -12,7 +12,7 @@ A small alternative web for me and my friends. Sites are written in **BHTML**, l
 | `.biggle` names | Admin-only: admins hand names out and set where they point |
 | Accounts | Open sign-up, one login everywhere (Biggle ID), friends and messaging |
 | "Better than the web" | No ads, no tracking, enforced by the browser |
-| Desktop app | Tauri |
+| Desktop app | Electron (Tauri before 0.4) |
 | Mobile | PWA |
 | Servers | `bigglenet.ethembeldagli.dev` on Cloudflare |
 
@@ -51,7 +51,7 @@ A small alternative web for me and my friends. Sites are written in **BHTML**, l
 
 One web app (Vite + TypeScript + Svelte) used in two places:
 
-- **Desktop:** wrapped in Tauri. Registers `biggle://` so links from other apps open in Biggle.
+- **Desktop:** wrapped in Electron. Registers `biggle://` so links from other apps open in Biggle. Sites straight from the internet get real Chromium pages in their tabs.
 - **Mobile:** installable PWA served from `bigglenet.ethembeldagli.dev`. Phones won't let a PWA own `biggle://`, so you type addresses in the app's address bar.
 
 Features: address bar, tabs, back/forward, bookmarks, history, friends/chat sidebar.
@@ -69,7 +69,7 @@ bigglenet/
   examples/   sample site (hello.biggle)
   server/     Cloudflare Worker: DNS, gateway, accounts, friends, messages
   browser/    shared browser UI (Vite + TS + Svelte)
-  desktop/    Tauri wrapper
+  desktop/    Electron wrapper
 ```
 
 ## Status
@@ -81,5 +81,5 @@ All seven steps of the original plan are done. v0.1.1 added the home.biggle home
 3. Worker: Biggle DNS and the site gateway.
 4. Accounts and `biggle.me()`. Sign-up started invite-only and opened to everyone in v0.1.1.
 5. Friends and live messaging (Durable Object WebSockets).
-6. Tauri desktop app with the `biggle://` scheme.
+6. Desktop app with the `biggle://` scheme.
 7. PWA served from `bigglenet.ethembeldagli.dev`.

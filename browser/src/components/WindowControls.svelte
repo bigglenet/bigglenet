@@ -1,28 +1,15 @@
 <script lang="ts">
   // Minimize, maximize and close, for the desktop app on Windows and Linux, where the tab bar
   // takes the place of the system title bar. Styled like the system's own buttons.
-  import type { Window } from '@tauri-apps/api/window';
+  import { desktop } from '../lib/platform';
 
-  let win = $state<Window | null>(null);
+  const win = desktop?.window;
   let maximized = $state(false);
 
   $effect(() => {
-    let stop: (() => void) | undefined;
-    let gone = false;
-    import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
-      const w = getCurrentWindow();
-      win = w;
-      maximized = await w.isMaximized();
-      const unlisten = await w.onResized(async () => {
-        maximized = await w.isMaximized();
-      });
-      if (gone) unlisten();
-      else stop = unlisten;
-    });
-    return () => {
-      gone = true;
-      stop?.();
-    };
+    if (!win) return;
+    win.isMaximized().then((m) => (maximized = m));
+    return win.onMaximizedChange((m) => (maximized = m));
   });
 </script>
 
@@ -44,6 +31,7 @@
 
 <style>
   .controls {
+    -webkit-app-region: no-drag;
     flex: none;
     display: flex;
     align-self: stretch;

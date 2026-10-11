@@ -18,7 +18,7 @@ if (out('git branch --show-current') !== 'main') fail('Release from the main bra
 if (out('git status --porcelain')) fail('Commit or put away your changes first.');
 run('git pull --ff-only');
 
-const current = JSON.parse(readFileSync('desktop/src-tauri/tauri.conf.json', 'utf8')).version;
+const current = JSON.parse(readFileSync('desktop/package.json', 'utf8')).version;
 const next = process.argv[2] ?? current.replace(/\d+$/, (n) => String(Number(n) + 1));
 if (!/^\d+\.\d+\.\d+$/.test(next)) fail(`"${next}" isn't a version like 1.2.3.`);
 if (out(`git tag -l v${next}`)) fail(`v${next} already exists.`);
@@ -30,11 +30,8 @@ function edit(path, change) {
   writeFileSync(path, after);
 }
 const json = (s) => s.replace(`"version": "${current}"`, `"version": "${next}"`);
-edit('desktop/src-tauri/tauri.conf.json', json);
 edit('desktop/package.json', json);
 edit('package.json', json);
-edit('desktop/src-tauri/Cargo.toml', (s) => s.replace(/^version = "[^"]*"/m, `version = "${next}"`));
-edit('desktop/src-tauri/Cargo.lock', (s) => s.replace(/(name = "bigglenet"\nversion = )"[^"]*"/, `$1"${next}"`));
 edit('README.md', (s) => s.replace(/Bigglenet - v[\d.]+/, `Bigglenet - v${next}`));
 run('npm install --package-lock-only --ignore-scripts --no-audit --no-fund');
 

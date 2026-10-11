@@ -1,13 +1,130 @@
 {
-  "name": "bigglenet-desktop",
-  "private": true,
+  "name": "bigglenet",
+  "productName": "Bigglenet",
   "version": "0.3.3",
+  "private": true,
+  "description": "The Biggle browser",
+  "author": "Bigglenet <noreply@bigglenet.ethembeldagli.dev>",
+  "homepage": "https://bigglenet.ethembeldagli.dev",
+  "type": "module",
+  "main": "main/main.js",
   "scripts": {
-    "tauri": "tauri",
-    "dev": "tauri dev",
-    "build": "tauri build"
+    "dev": "electron .",
+    "dist": "node scripts/dist.mjs"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.1"
+    "@tauri-apps/cli": "^2.12.1",
+    "electron": "44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "dev.ethembeldagli.bigglenet",
+    "productName": "Bigglenet",
+    "copyright": "Copyright (c) 2026 bigglenet",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**",
+      "preload/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../browser/dist",
+        "to": "app"
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Bigglenet",
+        "schemes": [
+          "biggle"
+        ]
+      }
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "dir"
+      ],
+      "icon": "build/icon.icns",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "minimumSystemVersion": "11.0",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Bigglenet uses your microphone for voice and video calls with your friends.",
+        "NSCameraUsageDescription": "Bigglenet uses your camera for video calls with your friends."
+      }
+    },
+    "dmg": {
+      "artifactName": "Bigglenet_${version}_${arch}.dmg"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Bigglenet_${version}_x64-setup.exe",
+      "shortcutName": "Bigglenet",
+      "include": "build/installer.nsh"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icons",
+      "category": "Network",
+      "executableName": "bigglenet",
+      "synopsis": "The Biggle browser",
+      "description": "Browse .biggle sites on the Bigglenet, chat with friends, and leave ads and trackers behind.",
+      "maintainer": "Bigglenet <noreply@bigglenet.ethembeldagli.dev>"
+    },
+    "appImage": {
+      "artifactName": "Bigglenet_${version}_amd64.AppImage"
+    },
+    "deb": {
+      "packageName": "bigglenet",
+      "artifactName": "Bigglenet_${version}_amd64.deb"
+    },
+    "rpm": {
+      "packageName": "bigglenet",
+      "artifactName": "Bigglenet-${version}-1.x86_64.rpm"
+    }
   }
 }

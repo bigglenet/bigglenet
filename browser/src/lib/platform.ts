@@ -1,6 +1,35 @@
-// Differences between the desktop app (Tauri) and the PWA / plain web.
+// Differences between the desktop app (Electron, see desktop/) and the PWA / plain web.
 
-export const isApp = '__TAURI_INTERNALS__' in window;
+type Rect = { x: number; y: number; width: number; height: number };
+type Stop = () => void;
+
+/** What the desktop app offers the browser (desktop/preload/preload.cjs). */
+type Desktop = {
+  openExternal(url: string): Promise<void>;
+  window: {
+    minimize(): Promise<void>;
+    toggleMaximize(): Promise<void>;
+    close(): Promise<void>;
+    isMaximized(): Promise<boolean>;
+    onMaximizedChange(callback: (maximized: boolean) => void): Stop;
+  };
+  links: { initial(): Promise<string[]>; onOpen(callback: (url: string) => void): Stop };
+  sites: {
+    show(site: string, url: string, rect: Rect): Promise<void>;
+    hide(site: string): Promise<void>;
+    close(site: string): Promise<void>;
+    onTitle(callback: (site: string, title: string) => void): Stop;
+    openWindow(site: string, url: string, title: string): Promise<void>;
+    closeWindow(site: string): Promise<void>;
+    onWindowClosed(callback: (site: string) => void): Stop;
+  };
+  onShortcut(callback: (key: string) => void): Stop;
+  updates: { check(): Promise<{ version: string } | null>; install(): Promise<void> };
+};
+
+/** The desktop app, when running inside it. */
+export const desktop = (window as unknown as { bigglenet?: Desktop }).bigglenet;
+export const isApp = !!desktop;
 const system = navigator.platform || navigator.userAgent;
 const isMac = /Mac/.test(system);
 
@@ -12,62 +41,48 @@ export const ownWindowButtons = isApp && !isMac;
 
 /** Open a normal-web link outside Biggle. */
 export async function openExternal(url: string) {
-  if (isApp) {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
-    await openUrl(url);
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  if (desktop) await desktop.openExternal(url);
+  else window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-// Direct sites that have to be a top-level page (games that need cross-origin isolation, sites
-// that won't be shown inside other apps) get a web view of their own in the desktop app: laid
-// over the tab ("site view"), or popped out into a window. `relay` sends them through the app's
-// relay on macOS and Linux, whose engine needs a slightly different isolation header.
+// Sites straight from the internet get a real Chromium page of their own in the desktop app,
+// laid over their tab ("site view"), or popped out into a window. See desktop/main/sites.js.
 
 /** Show a site view over the tab's page area, at these bounds (CSS pixels). */
-export async function siteViewShow(site: string, url: string, relay: boolean, rect: DOMRect) {
-  const { invoke } = await import('@tauri-apps/api/core');
-  await invoke('site_view_show', { site, url, relay, x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+export async function siteViewShow(site: string, url: string, rect: DOMRect) {
+  await desktop?.sites.show(site, url, { x: rect.left, y: rect.top, width: rect.width, height: rect.height });
 }
 
 export async function siteViewHide(site: string) {
-  const { invoke } = await import('@tauri-apps/api/core');
-  await invoke('site_view_hide', { site });
+  await desktop?.sites.hide(site);
 }
 
 export async function siteViewClose(site: string) {
-  const { invoke } = await import('@tauri-apps/api/core');
-  await invoke('site_view_close', { site });
+  await desktop?.sites.close(site);
 }
 
 /** Called with a site's key and its page's title when the title changes. */
-export async function onSiteViewTitle(handler: (site: string, title: string) => void): Promise<() => void> {
-  const { listen } = await import('@tauri-apps/api/event');
-  return listen<[string, string]>('site-view-title', (e) => handler(e.payload[0], e.payload[1]));
+export async function onSiteViewTitle(handler: (site: string, title: string) => void): Promise<Stop> {
+  return desktop?.sites.onTitle(handler) ?? (() => {});
 }
 
 /** Open a site in a window of its own. If it's open already, it comes to the front. */
-export async function openSiteWindow(site: string, url: string, title: string, relay: boolean) {
-  const { invoke } = await import('@tauri-apps/api/core');
-  await invoke('open_site_window', { site, url, title, relay });
+export async function openSiteWindow(site: string, url: string, title: string) {
+  await desktop?.sites.openWindow(site, url, title);
 }
 
 export async function closeSiteWindow(site: string) {
-  const { invoke } = await import('@tauri-apps/api/core');
-  await invoke('close_site_window', { site });
+  await desktop?.sites.closeWindow(site);
 }
 
 /** Called with a site's key when its own window closes. Returns a function that stops listening. */
-export async function onSiteWindowClosed(handler: (site: string) => void): Promise<() => void> {
-  const { listen } = await import('@tauri-apps/api/event');
-  return listen<string>('site-window-closed', (e) => handler(e.payload));
+export async function onSiteWindowClosed(handler: (site: string) => void): Promise<Stop> {
+  return desktop?.sites.onWindowClosed(handler) ?? (() => {});
 }
 
 /** Close the desktop app's window (which quits it). */
 export async function closeWindow() {
-  const { getCurrentWindow } = await import('@tauri-apps/api/window');
-  await getCurrentWindow().close();
+  await desktop?.window.close();
 }
 
 /** The PWA's offline cache. Registered even on the install screen, so phones can install it. */
@@ -77,14 +92,17 @@ export function registerServiceWorker() {
   }
 }
 
-/** Set up the app shell. `open` is called with biggle:// links from other apps. */
-export async function initPlatform(open: (href: string) => void) {
-  if (!isApp) return;
+/**
+ * Set up the app shell. `open` is called with biggle:// links from other apps, `shortcut` with
+ * keyboard shortcuts pressed while a site view has the keyboard.
+ */
+export async function initPlatform(open: (href: string) => void, shortcut: (key: string) => void) {
+  if (!desktop) return;
   // The tabs sit in the title bar: next to the window buttons on macOS, with our own elsewhere.
   document.documentElement.dataset.titlebar = isMac ? 'overlay' : 'custom';
   if (!isMac) document.documentElement.dataset.os = /Win/.test(system) ? 'windows' : 'linux';
 
-  const { getCurrent, onOpenUrl } = await import('@tauri-apps/plugin-deep-link');
-  (await getCurrent())?.forEach(open);
-  await onOpenUrl((urls) => urls.forEach(open));
+  desktop.onShortcut(shortcut);
+  (await desktop.links.initial()).forEach(open);
+  desktop.links.onOpen(open);
 }
