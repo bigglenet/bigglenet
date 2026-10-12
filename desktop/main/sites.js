@@ -108,7 +108,8 @@ export function setupSites() {
       entry.owner.webContents.send('site-view:permission', entry.id, id, origin, what);
     });
   }
-  setupDownloads([persistent, privateSession]);
+  // Downloads from sites, and from the browser's own page (.biggle pages, chat files).
+  setupDownloads([persistent, privateSession, session.defaultSession]);
 
   ipcMain.handle('site-permission:answer', (_event, requestId, allow, remember) => {
     const p = pending.get(requestId);

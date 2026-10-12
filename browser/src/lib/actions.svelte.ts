@@ -1,7 +1,7 @@
 // Things you can do to the page in a tab, from the toolbar's page menu, the command palette or a
 // keyboard shortcut: reader mode, picture-in-picture, printing, game mode, saving for offline.
 import { browser, type Tab } from './browser.svelte';
-import { t } from './i18n.svelte';
+import { plural, t } from './i18n.svelte';
 import { notices } from './notify.svelte';
 import { offline } from './offline.svelte';
 import { controlFor } from './pagecontrol';
@@ -54,7 +54,7 @@ export async function saveForOffline(tab: Tab) {
   browser.say(t('Saving {site} for offline…', { site: u.name }));
   try {
     const pages = await offline.save(site);
-    browser.say(t('Saved {n} pages. They open even without a connection.', { n: pages }));
+    browser.say(plural(pages, 'Saved 1 page. It opens even without a connection.', 'Saved {n} pages. They open even without a connection.'));
   } catch (e) {
     browser.say(e instanceof Error ? e.message : t('Couldn’t save it for offline.'));
   }
