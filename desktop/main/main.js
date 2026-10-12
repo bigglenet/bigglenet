@@ -75,7 +75,7 @@ function start() {
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) => callback(allowed.has(permission)));
   session.defaultSession.setPermissionCheckHandler((_contents, permission) => allowed.has(permission));
 
-  setupMenu();
+  setupMenu(getMain);
   const closeSites = setupSites(getMain);
 
   ipcMain.handle('window:minimize', () => getMain()?.minimize());

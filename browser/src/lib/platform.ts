@@ -24,7 +24,13 @@ type Desktop = {
     onWindowClosed(callback: (site: string) => void): Stop;
   };
   onShortcut(callback: (key: string) => void): Stop;
-  updates: { check(): Promise<{ version: string } | null>; install(): Promise<void> };
+  info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
+  updates: {
+    check(): Promise<{ version: string; downloaded: boolean } | null>;
+    download(): Promise<{ version: string }>;
+    install(): Promise<void>;
+    onCheckRequested(callback: () => void): Stop;
+  };
 };
 
 /** The desktop app, when running inside it. */

@@ -1,23 +1,43 @@
 <script lang="ts">
+  // A new version is ready (restart or reload), or Bigglenet was just updated (what's new).
+  import { browser } from '../lib/browser.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { updates } from '../lib/updates.svelte';
   import Icon from './Icon.svelte';
+
+  const ready = $derived(updates.ready && !updates.dismissed);
+
+  function whatsNew() {
+    updates.justUpdated = null;
+    browser.newTab('biggle://settings/whats-new');
+  }
 
   // A site view (see SiteView.svelte) steps aside while this shows.
   $effect(() => overlays.hold());
 </script>
 
 <div class="update" role="status">
-  <span class="text">
-    <strong>{updates.version ? `Bigglenet ${updates.version} is ready` : 'A new Bigglenet is ready'}</strong>
-    <span>{updates.version ? 'Restart to start using it.' : 'Reload to start using it.'}</span>
-  </span>
-  <button class="go" disabled={updates.installing} onclick={() => updates.apply()}>
-    {updates.installing ? 'Updating…' : updates.version ? 'Restart' : 'Reload'}
-  </button>
-  <button class="later" aria-label="Later" title="Later" onclick={() => (updates.dismissed = true)}>
-    <Icon name="close" size={15} />
-  </button>
+  {#if ready}
+    <span class="text">
+      <strong>{updates.version ? `Bigglenet ${updates.version} is ready` : 'A new Bigglenet is ready'}</strong>
+      <span>{updates.version ? 'Restart to start using it.' : 'Reload to start using it.'}</span>
+    </span>
+    <button class="go" disabled={updates.installing} onclick={() => updates.apply()}>
+      {updates.installing ? 'Updating…' : updates.version ? 'Restart' : 'Reload'}
+    </button>
+    <button class="later" aria-label="Later" title="Later" onclick={() => (updates.dismissed = true)}>
+      <Icon name="close" size={15} />
+    </button>
+  {:else}
+    <span class="text">
+      <strong>Bigglenet is now {updates.justUpdated}</strong>
+      <span>See what’s changed.</span>
+    </span>
+    <button class="go" onclick={whatsNew}>What’s new</button>
+    <button class="later" aria-label="Close" title="Close" onclick={() => (updates.justUpdated = null)}>
+      <Icon name="close" size={15} />
+    </button>
+  {/if}
 </div>
 
 <style>

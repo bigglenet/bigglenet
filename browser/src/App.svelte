@@ -1,7 +1,7 @@
 <script lang="ts">
   import { account } from './lib/account.svelte';
   import { browser } from './lib/browser.svelte';
-  import { initPlatform, isApp, ownWindowButtons } from './lib/platform';
+  import { desktop, initPlatform, isApp, ownWindowButtons } from './lib/platform';
   import { calls } from './lib/calls.svelte';
   import { chats } from './lib/chats.svelte';
   import { sites } from './lib/sites.svelte';
@@ -41,6 +41,11 @@
     (href) => browser.openFromOutside(href),
     (key) => browser.shortcut(key),
   );
+  // "Check for Updates…" in the Mac menu: show Settings → Updates, and check.
+  desktop?.updates.onCheckRequested(() => {
+    if (ready) browser.openFromOutside('biggle://settings/updates');
+    updates.check(true);
+  });
   updates.start();
 
   // You need a Biggle ID with a confirmed email (or Google) to use Bigglenet.
@@ -148,7 +153,7 @@
               {:else if tab.view.page === 'requests'}
                 <RequestsPage />
               {:else if tab.view.page === 'settings'}
-                <SettingsPage {tab} />
+                <SettingsPage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'chat'}
                 <ChatApp {tab} path={tab.view.path} />
               {:else if tab.view.page === 'sites' && tab.view.path}
@@ -189,7 +194,7 @@
   {/if}
   <CallToasts />
 {/if}
-{#if updates.ready && !updates.dismissed}
+{#if (updates.ready && !updates.dismissed) || (ready && updates.justUpdated)}
   <UpdateBanner />
 {/if}
 

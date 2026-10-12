@@ -31,7 +31,9 @@ for (const [name, asset] of assets) {
   const sig = assets.get(`${name}.sig`);
   if (!kind || !sig) continue;
   const signature = gh('-H', 'Accept: application/octet-stream', `repos/${repo}/releases/assets/${sig.id}`).trim();
-  for (const platform of kind[1]) platforms[platform] = { signature, url: asset.url };
+  // The plain download link: the API link (asset.url) only gives the file to requests that ask
+  // for application/octet-stream, which the desktop app's updater (0.4.0 and 0.4.1) didn't.
+  for (const platform of kind[1]) platforms[platform] = { signature, url: asset.browser_download_url };
 }
 
 const missing = ['darwin-aarch64', 'darwin-x86_64', 'linux-x86_64', 'windows-x86_64'].filter((p) => !platforms[p]);

@@ -33,6 +33,9 @@
   let sending = $state(false);
   let formError = $state('');
 
+  // Asking "are you sure?" in the page: the desktop app before 0.4 never showed confirm() dialogs.
+  let deleting = $state<number | null>(null);
+
   // An admin answering a request.
   let answering = $state<{ id: number; status: Status; reply: string } | null>(null);
 
@@ -103,7 +106,7 @@
   }
 
   async function remove(r: Request) {
-    if (!confirm(`Delete "${r.title}"?`)) return;
+    deleting = null;
     try {
       await api('DELETE', `/api/requests/${r.id}`);
       requests = requests.filter((x) => x.id !== r.id);
@@ -169,7 +172,13 @@
                 <button class="link" onclick={() => (answering = { id: r.id, status: r.status, reply: r.reply ?? '' })}>Answer</button>
               {/if}
               {#if r.mine || isAdmin}
-                <button class="link" onclick={() => remove(r)}>Delete</button>
+                {#if deleting === r.id}
+                  <span>Delete it?</span>
+                  <button class="link danger" onclick={() => remove(r)}>Yes, delete</button>
+                  <button class="link" onclick={() => (deleting = null)}>Keep</button>
+                {:else}
+                  <button class="link" onclick={() => (deleting = r.id)}>Delete</button>
+                {/if}
               {/if}
             </div>
             {#if answering?.id === r.id}
@@ -428,6 +437,9 @@
   }
   .link:hover {
     color: var(--text);
+  }
+  .link.danger {
+    color: var(--danger);
   }
   .pill {
     padding: 2px 8px;

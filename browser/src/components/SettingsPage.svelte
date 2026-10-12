@@ -1,10 +1,39 @@
 <script lang="ts">
-  // biggle://settings: what new tabs open, and a way back to the normal new tab page.
+  // biggle://settings: what new tabs open (and a way back to the normal new tab page), updates,
+  // which version this is, and what's new in each version. biggle://settings/updates and
+  // biggle://settings/whats-new open at those parts.
+  import { tick } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
+  import { CHANGELOG } from '../lib/changelog';
+  import { desktop } from '../lib/platform';
   import { startSettings as settings } from '../lib/startpage.svelte';
+  import { updates } from '../lib/updates.svelte';
   import Icon from './Icon.svelte';
 
-  let { tab }: { tab: Tab } = $props();
+  let { tab, path = '' }: { tab: Tab; path?: string } = $props();
+
+  // Open at the part the address names.
+  let page = $state<HTMLElement>();
+  $effect(() => {
+    const id = path;
+    if (id) tick().then(() => page?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: 'start' }));
+  });
+
+  // The desktop app's engine, for About.
+  let engine = $state<{ electron: string; chromium: string } | null>(null);
+  $effect(() => {
+    desktop?.info().then((i) => (engine = i));
+  });
+
+  const UPDATE_TEXT: Record<string, string> = {
+    idle: '',
+    checking: 'Checking…',
+    current: 'You’re up to date.',
+    failed: 'Couldn’t check for updates.',
+  };
+  let showAll = $state(false);
+  const releases = $derived(showAll ? CHANGELOG : CHANGELOG.slice(0, 4));
+  const date = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString([], { dateStyle: 'medium' });
 
   let ownPage = $state(settings.newTab !== null);
   let pageText = $state(settings.newTab ?? '');
@@ -35,11 +64,11 @@
   }
 </script>
 
-<div class="settings">
+<div class="settings" bind:this={page}>
   <div class="inner">
     <h1>Settings</h1>
 
-    <section>
+    <section id="new-tabs">
       <h2>New tabs</h2>
       {#if settings.newTab}
         <div class="current">
@@ -70,6 +99,78 @@
         <p class="muted small">The new tab page is always at <code>biggle://newtab</code>, whatever new tabs open.</p>
       </div>
     </section>
+
+    <section id="updates">
+      <h2>Updates</h2>
+      <div class="update-row">
+        <div>
+          <strong>Bigglenet {updates.current}</strong>
+          <p class="muted small">
+            {#if updates.status === 'ready'}
+              {updates.version ? `Bigglenet ${updates.version} is ready.` : 'A new version is ready.'}
+              {desktop ? 'Restart to start using it.' : 'Reload to start using it.'}
+            {:else if updates.status === 'downloading'}
+              Downloading Bigglenet {updates.version}…
+            {:else if updates.status === 'failed'}
+              {UPDATE_TEXT.failed} {updates.error}
+            {:else if UPDATE_TEXT[updates.status]}
+              {UPDATE_TEXT[updates.status]}
+            {:else}
+              {desktop ? 'Updates download by themselves; you’re asked before restarting.' : 'The web app updates itself.'}
+            {/if}
+          </p>
+        </div>
+        {#if updates.status === 'ready'}
+          <button class="primary" disabled={updates.installing} onclick={() => updates.apply()}>
+            {updates.installing ? 'Updating…' : desktop ? 'Restart' : 'Reload'}
+          </button>
+        {:else}
+          <button class="ghost" disabled={updates.status === 'checking' || updates.status === 'downloading'} onclick={() => updates.check(true)}>
+            Check for updates
+          </button>
+        {/if}
+      </div>
+    </section>
+
+    <section id="about">
+      <h2>About</h2>
+      <dl class="about">
+        <dt>Version</dt>
+        <dd>{updates.current}</dd>
+        <dt>App</dt>
+        <dd>{desktop ? 'Desktop app' : 'Web app'}</dd>
+        {#if engine}
+          <dt>Engine</dt>
+          <dd>Chromium {engine.chromium} (Electron {engine.electron})</dd>
+        {/if}
+      </dl>
+      <div class="links">
+        <button class="ghost" onclick={() => browser.go(tab, 'biggle://requests')}><Icon name="idea" size={15} /> Request a feature</button>
+        <a class="ghost" href="https://github.com/bigglenet/bigglenet/releases" target="_blank" rel="noreferrer"><Icon name="external" size={14} /> All releases</a>
+      </div>
+      <p class="muted small">Made by the Bigglenet. Open source, MIT licence.</p>
+    </section>
+
+    <section id="whats-new">
+      <h2>What’s new</h2>
+      <ol class="changelog">
+        {#each releases as r (r.version)}
+          <li>
+            <div class="release-head">
+              <strong>{r.version}</strong>
+              {#if r.version === updates.current}<span class="pill">This version</span>{/if}
+              <span class="muted small">{date(r.date)}</span>
+            </div>
+            <ul>
+              {#each r.changes as change, i (i)}<li>{change}</li>{/each}
+            </ul>
+          </li>
+        {/each}
+      </ol>
+      {#if !showAll && CHANGELOG.length > releases.length}
+        <button class="ghost" onclick={() => (showAll = true)}>Show older versions</button>
+      {/if}
+    </section>
   </div>
 </div>
 
@@ -94,6 +195,8 @@
     font-size: 17px;
   }
   section {
+    margin-bottom: 18px;
+    scroll-margin-top: 16px;
     padding: 20px;
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -214,5 +317,68 @@
     border-radius: 6px;
     background: var(--hover);
     font-size: 12.5px;
+  }
+  .update-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .update-row p {
+    margin-top: 2px;
+  }
+  .about {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 18px;
+    margin: 0 0 14px;
+    font-size: 14px;
+  }
+  .about dt {
+    color: var(--muted);
+  }
+  .about dd {
+    margin: 0;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  a.ghost {
+    text-decoration: none;
+  }
+  .changelog {
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+  .changelog > li {
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+  }
+  .changelog > li:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .release-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .changelog ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .pill {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    font-size: 11.5px;
+    font-weight: 700;
   }
 </style>

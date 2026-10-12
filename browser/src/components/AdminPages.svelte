@@ -40,6 +40,8 @@
 
   // What's being done to a site right now.
   let takingDown = $state<string | null>(null);
+  // Asking "are you sure?" in the page: the desktop app before 0.4 never showed confirm() dialogs.
+  let deleting = $state<string | null>(null);
   let note = $state('');
   let renaming = $state<{ name: string; title: string } | null>(null);
   let source = $state<{ name: string; text: string | null; error: string } | null>(null);
@@ -269,17 +271,28 @@
                     class="ghost icon"
                     aria-label="Delete {siteHost(site.name, site.tld)}"
                     title="Delete"
-                    onclick={() => {
-                      if (confirm(`Delete ${siteHost(site.name, site.tld)}${site.url ? '' : ' and all its files'}? This can't be undone.`)) {
-                        run(() => api('DELETE', `/api/admin/names/${enc(site.name)}`));
-                      }
-                    }}
+                    onclick={() => (deleting = site.name)}
                   >
                     <Icon name="trash" size={16} />
                   </button>
                 </div>
               </div>
 
+              {#if deleting === site.name}
+                <div class="inline">
+                  <span class="confirm-text"
+                    >Delete {siteHost(site.name, site.tld)}{site.url ? '' : ' and all its files'}? This can't be undone.</span
+                  >
+                  <button
+                    class="danger"
+                    onclick={async () => {
+                      await run(() => api('DELETE', `/api/admin/names/${enc(site.name)}`));
+                      deleting = null;
+                    }}>Delete</button
+                  >
+                  <button class="ghost" onclick={() => (deleting = null)}>Cancel</button>
+                </div>
+              {/if}
               {#if takingDown === site.name}
                 <div class="inline">
                   <input bind:value={note} placeholder="Why? The owner sees this (optional)" maxlength="300" />
@@ -590,6 +603,12 @@
   .inline input {
     flex: 1;
     min-width: 200px;
+  }
+  .confirm-text {
+    flex: 1;
+    min-width: 200px;
+    align-self: center;
+    font-size: 14px;
   }
 
   .source {

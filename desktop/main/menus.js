@@ -5,14 +5,34 @@ import { app, Menu } from 'electron';
  * macOS needs a menu bar for ⌘C, ⌘V, ⌘Q and the like. It leaves out Reload (⌘R) and Close (⌘W):
  * the Biggle browser uses those for its tabs. Windows and Linux get none, as before.
  */
-export function setupMenu() {
+export function setupMenu(getMain) {
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
     return;
   }
+  // The Biggle browser does the checking and shows what it found (Settings → Updates).
+  const checkForUpdates = () => {
+    const main = getMain();
+    main?.webContents.send('updates:check-requested');
+    main?.focus();
+  };
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
-      { role: 'appMenu' },
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { label: 'Check for Updates…', click: checkForUpdates },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' },
+        ],
+      },
       { role: 'editMenu' },
       { label: 'View', submenu: [{ role: 'togglefullscreen' }] },
       { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }] },

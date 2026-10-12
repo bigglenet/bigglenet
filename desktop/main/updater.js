@@ -39,24 +39,37 @@ function newer(a, b) {
   return false;
 }
 
+/** The newest version, if it's newer than this one: { version, entry }. */
+let found = null;
 /** The downloaded, checked update, waiting to be installed. */
 let ready = null;
 let checking = null;
+let downloading = null;
 
+/** Ask the feed whether there's a newer version. */
 async function check() {
   if (!app.isPackaged) return null;
-  if (ready) return { version: ready.version };
+  if (ready) return { version: ready.version, downloaded: true };
   const res = await net.fetch(FEED, { cache: 'no-store' });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`The update server answered ${res.status}.`);
   const feed = await res.json();
   if (typeof feed.version !== 'string' || !newer(feed.version, app.getVersion())) return null;
   const entry = feedKeys()
     .map((key) => feed.platforms?.[key])
     .find((e) => e && typeof e.url === 'string' && typeof e.signature === 'string');
   if (!entry) return null;
+  found = { version: feed.version, entry };
+  return { version: feed.version, downloaded: false };
+}
 
-  const download = await net.fetch(entry.url);
-  if (!download.ok) return null;
+/** Download the newer version found by check(), and check its signature. */
+async function download() {
+  if (ready) return { version: ready.version };
+  if (!found) throw new Error('There’s no update to download.');
+  const { version, entry } = found;
+  // GitHub's API links only give the file to requests that ask for it as bytes.
+  const download = await net.fetch(entry.url, { headers: { Accept: 'application/octet-stream' } });
+  if (!download.ok) throw new Error(`The download failed (${download.status}).`);
   const data = Buffer.from(await download.arrayBuffer());
   if (!verifySignature(data, entry.signature, PUBLIC_KEY)) throw new Error("The update's signature doesn't match. Not installing it.");
 
@@ -64,8 +77,8 @@ async function check() {
   mkdirSync(dir, { recursive: true });
   const file = join(dir, basename(new URL(entry.url).pathname));
   writeFileSync(file, data);
-  ready = { version: feed.version, file };
-  return { version: feed.version };
+  ready = { version, file };
+  return { version };
 }
 
 /** Install the downloaded update and start the new version. */
@@ -122,5 +135,16 @@ export function setupUpdater() {
     checking ??= check().finally(() => (checking = null));
     return checking;
   });
+  ipcMain.handle('updates:download', () => {
+    downloading ??= download().finally(() => (downloading = null));
+    return downloading;
+  });
   ipcMain.handle('updates:install', () => install());
+  // The version and engine, for Settings and About.
+  ipcMain.handle('app:info', () => ({
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chromium: process.versions.chrome,
+    packaged: app.isPackaged,
+  }));
 }

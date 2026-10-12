@@ -43,8 +43,12 @@ contextBridge.exposeInMainWorld('bigglenet', {
     onWindowClosed: (callback) => on('site-window:closed', callback),
   },
   onShortcut: (callback) => on('shortcut', callback),
+  info: () => ipcRenderer.invoke('app:info'),
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
+    download: () => ipcRenderer.invoke('updates:download'),
     install: () => ipcRenderer.invoke('updates:install'),
+    // "Check for Updates…" in the macOS app menu.
+    onCheckRequested: (callback) => on('updates:check-requested', callback),
   },
 });
