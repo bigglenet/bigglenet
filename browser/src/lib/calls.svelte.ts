@@ -24,7 +24,7 @@ const FALLBACK_MS = 3_000;
 type Signal =
   | { t: 'offer' | 'answer'; sdp: string }
   | { t: 'ice'; c: RTCIceCandidateInit[] }
-  | { t: 'state'; audio: boolean; video: boolean };
+  | { t: 'state'; audio: boolean; video: boolean; screen?: boolean };
 
 export type Remote = {
   username: string;
@@ -33,6 +33,8 @@ export type Remote = {
   video: boolean;
   state: 'connecting' | 'connected' | 'lost';
   speaking: boolean;
+  /** Showing their screen instead of their camera. */
+  screen?: boolean;
 };
 
 type Peer = {
@@ -67,9 +69,12 @@ class Calls {
   notice = $state('');
   /** The call window is big. */
   expanded = $state(false);
+  /** We're showing everyone our screen. */
+  sharing = $state(false);
 
   private mic: MediaStreamTrack | null = null;
   private camera: MediaStreamTrack | null = null;
+  private screen: MediaStreamTrack | null = null;
   private peers = new Map<string, Peer>();
   /** Connection details from someone we have no connection with yet. */
   private orphans = new Map<string, RTCIceCandidateInit[]>();
@@ -149,7 +154,9 @@ class Calls {
     this.orphans.clear();
     this.mic?.stop();
     this.camera?.stop();
-    this.mic = this.camera = null;
+    this.screen?.stop();
+    this.mic = this.camera = this.screen = null;
+    this.sharing = false;
     this.myMeter?.close();
     this.myMeter = undefined;
     this.preview = null;
@@ -227,9 +234,11 @@ class Calls {
     if (this.camera) {
       this.camera.stop();
       this.camera = null;
-      this.preview = null;
       this.cameraOn = false;
-      for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(null);
+      if (!this.screen) {
+        this.preview = null;
+        for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(null);
+      }
     } else {
       try {
         this.camera = (await navigator.mediaDevices.getUserMedia({ video: VIDEO })).getVideoTracks()[0];
@@ -237,15 +246,55 @@ class Calls {
         return this.say("Couldn't use your camera.");
       }
       if (this.chatId === null) return this.camera.stop();
-      this.preview = new MediaStream([this.camera]);
       this.cameraOn = true;
-      for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(this.camera);
+      // While sharing the screen, the screen stays what everyone sees.
+      if (!this.screen) {
+        this.preview = new MediaStream([this.camera]);
+        for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(this.camera);
+      }
     }
     this.shareState();
   }
 
+  /** Show everyone your screen (or a window), instead of your camera. */
+  async toggleScreen() {
+    if (this.screen) return this.stopScreen();
+    if (!navigator.mediaDevices?.getDisplayMedia) return this.say("Screen sharing doesn't work here.");
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    } catch {
+      return; // They changed their mind.
+    }
+    const track = stream.getVideoTracks()[0];
+    if (this.chatId === null || !track) return stream.getTracks().forEach((t) => t.stop());
+    track.contentHint = 'detail';
+    track.onended = () => this.stopScreen();
+    this.screen = track;
+    this.sharing = true;
+    this.preview = new MediaStream([track]);
+    for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(track);
+    this.shareState();
+  }
+
+  stopScreen() {
+    if (!this.screen) return;
+    this.screen.onended = null;
+    this.screen.stop();
+    this.screen = null;
+    this.sharing = false;
+    this.preview = this.camera ? new MediaStream([this.camera]) : null;
+    for (const p of this.peers.values()) sender(p.pc, 'video')?.replaceTrack(this.camera);
+    this.shareState();
+  }
+
+  /** What we send as video: the screen while sharing it, otherwise the camera. */
+  private get videoTrack() {
+    return this.screen ?? this.camera;
+  }
+
   private shareState(to?: string) {
-    const data: Signal = { t: 'state', audio: this.micOn, video: this.cameraOn };
+    const data: Signal = { t: 'state', audio: this.micOn, video: this.cameraOn || this.sharing, screen: this.sharing };
     for (const name of to ? [to] : this.peers.keys()) this.signal(name, data);
   }
 
@@ -344,6 +393,7 @@ class Calls {
         if (r) {
           r.audio = !!s.audio;
           r.video = !!s.video;
+          r.screen = !!s.screen;
         }
       }
     } catch {}
@@ -435,7 +485,7 @@ class Calls {
     const { pc } = peer;
     // Always offer both, so the camera can come on later without starting over.
     pc.addTransceiver(this.mic ?? 'audio', { direction: 'sendrecv' });
-    pc.addTransceiver(this.camera ?? 'video', { direction: 'sendrecv' });
+    pc.addTransceiver(this.videoTrack ?? 'video', { direction: 'sendrecv' });
     try {
       await pc.setLocalDescription(await pc.createOffer());
       if (this.peers.get(username) !== peer) return;
@@ -454,7 +504,7 @@ class Calls {
     await pc.setRemoteDescription({ type: 'offer', sdp });
     for (const t of pc.getTransceivers()) {
       t.direction = 'sendrecv';
-      await t.sender.replaceTrack(t.receiver.track.kind === 'audio' ? this.mic : this.camera);
+      await t.sender.replaceTrack(t.receiver.track.kind === 'audio' ? this.mic : this.videoTrack);
     }
     await pc.setLocalDescription(await pc.createAnswer());
     if (this.peers.get(from) !== peer) return;

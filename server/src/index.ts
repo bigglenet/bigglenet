@@ -26,6 +26,7 @@ import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
 import * as notifications from './notifications';
 import * as people from './people';
+import { linkPreview } from './previews';
 import * as requests from './requests';
 import * as google from './google';
 import { serveFile } from './files';
@@ -107,6 +108,13 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/chats\/(\d+)\/members\/me$/, chat.leaveChat],
   ['GET', /^\/api\/chats\/(\d+)\/messages$/, chat.listMessages],
   ['POST', /^\/api\/chats\/(\d+)\/messages$/, chat.sendMessage],
+  ['GET', /^\/api\/chats\/(\d+)\/messages\/(\d+)$/, chat.getMessage],
+  ['PATCH', /^\/api\/chats\/(\d+)\/messages\/(\d+)$/, chat.editMessage],
+  ['DELETE', /^\/api\/chats\/(\d+)\/messages\/(\d+)$/, chat.deleteMessage],
+  ['POST', /^\/api\/chats\/(\d+)\/messages\/(\d+)\/reactions$/, chat.react],
+  ['POST', /^\/api\/chats\/(\d+)\/files$/, chat.uploadFile],
+  ['POST', /^\/api\/chats\/(\d+)\/typing$/, chat.typing],
+  ['POST', /^\/api\/chats\/(\d+)\/together$/, chat.together],
   ['POST', /^\/api\/chats\/(\d+)\/read$/, chat.markRead],
   ['POST', /^\/api\/chats\/(\d+)\/call$/, chat.call],
   ['POST', /^\/api\/chats\/(\d+)\/signal$/, chat.signal],
@@ -129,6 +137,8 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/blocks$/, people.listBlocks],
   ['POST', /^\/api\/blocks$/, people.block],
   ['DELETE', /^\/api\/blocks\/([^/]+)$/, people.unblock],
+
+  ['GET', /^\/api\/link-preview$/, linkPreview],
 
   ['GET', /^\/api\/notifications$/, notifications.list],
   ['POST', /^\/api\/notifications\/read$/, notifications.markRead],

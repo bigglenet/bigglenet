@@ -8,6 +8,11 @@ export type LiveEvent =
   /** One-to-one messages, for apps from before group chats. */
   | { type: 'message'; message: unknown }
   | { type: 'chat-message'; message: unknown }
+  | { type: 'chat-message-update'; message: unknown }
+  | { type: 'chat-reactions'; chatId: number; messageId: number; reactions: unknown }
+  | { type: 'chat-seen'; chatId: number; username: string; upTo: number }
+  | { type: 'typing'; chatId: number; username: string }
+  | { type: 'together'; chatId: number; from: string; data: unknown }
   | { type: 'chats' }
   | { type: 'chat-read'; chatId: number }
   | { type: 'call'; chatId: number; members: { username: string; video: boolean }[]; ring?: { from: string; video: boolean } }

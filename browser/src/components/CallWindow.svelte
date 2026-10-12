@@ -5,9 +5,12 @@
   import { duration, srcObject } from '../lib/chatformat';
   import { chats } from '../lib/chats.svelte';
   import { overlays } from '../lib/overlays.svelte';
+  import { t } from '../lib/i18n.svelte';
   import { social } from '../lib/social.svelte';
+  import { together } from '../lib/together.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import TogetherPlayer from './TogetherPlayer.svelte';
 
   const chat = $derived(calls.chat);
   const title = $derived(chat ? chats.title(chat) : 'Call');
@@ -29,6 +32,28 @@
   // A site view would cover the call. Big, it covers everything anyway.
   $effect(() => overlays.hold());
 
+  // Watching together: paste a link.
+  let picking = $state(false);
+  let link = $state('');
+  let linkError = $state('');
+  function share(e: SubmitEvent) {
+    e.preventDefault();
+    linkError = together.start(link) ?? '';
+    if (linkError) return void (linkError = t(linkError));
+    picking = false;
+    link = '';
+    calls.expanded = true;
+  }
+  // Someone joined: whoever put something on tells them what's playing.
+  let people = 0;
+  $effect(() => {
+    const n = chat?.call.length ?? 0;
+    if (n > people) together.greet();
+    people = n;
+  });
+  // The call ended: so did watching together.
+  $effect(() => () => together.reset());
+
   function openChat() {
     if (calls.chatId === null) return;
     calls.expanded = false;
@@ -36,10 +61,10 @@
   }
 </script>
 
-{#snippet tile(name: string, stream: MediaStream | null, video: boolean, opts: { user?: string; mine?: boolean; muted?: boolean; speaking?: boolean; note?: string })}
+{#snippet tile(name: string, stream: MediaStream | null, video: boolean, opts: { user?: string; mine?: boolean; muted?: boolean; speaking?: boolean; note?: string; screen?: boolean })}
   <div class="tile" class:speaking={opts.speaking} class:has-video={video}>
     {#if video && stream}
-      <video use:srcObject={stream} autoplay playsinline muted class:mirror={opts.mine}></video>
+      <video use:srcObject={stream} autoplay playsinline muted class:mirror={opts.mine && !calls.sharing} class:screen={opts.screen}></video>
     {:else}
       <Avatar {name} user={opts.user} size={calls.expanded ? 84 : 48} />
     {/if}
@@ -62,16 +87,30 @@
     </button>
   </header>
 
+  {#if together.shared}
+    <TogetherPlayer shared={together.shared} />
+  {/if}
+  {#if picking}
+    <form class="pick" onsubmit={share}>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input bind:value={link} placeholder={t('Paste a YouTube link, or a link to a video or song')} aria-label={t('Link to watch together')} autofocus />
+      <button class="go" disabled={!link.trim()}>{t('Play')}</button>
+      <button type="button" class="cancel" onclick={() => ((picking = false), (linkError = ''))}>{t('Cancel')}</button>
+      {#if linkError}<p class="pick-error">{linkError}</p>{/if}
+    </form>
+  {/if}
+
   <div class="tiles" class:many={calls.remotes.length > 1} class:solo={calls.remotes.length === 0}>
     {#each calls.remotes as r (r.username)}
       {@render tile(social.nameOf(r.username), r.stream, hasVideo(r), {
         user: r.username,
+        screen: r.screen,
         muted: !r.audio,
         speaking: r.speaking,
         note: r.state === 'connecting' ? 'Connecting…' : r.state === 'lost' ? 'Reconnecting…' : '',
       })}
     {/each}
-    {@render tile(me, calls.preview, calls.cameraOn, { user: account.user?.username, mine: true, muted: !calls.micOn, speaking: calls.speaking })}
+    {@render tile(me, calls.preview, calls.cameraOn || calls.sharing, { user: account.user?.username, mine: true, muted: !calls.micOn, speaking: calls.speaking, screen: calls.sharing })}
   </div>
 
   <!-- What everyone says. Pictures are muted, so the sound comes from here. -->
@@ -85,6 +124,25 @@
     </button>
     <button class="round" class:off={!calls.cameraOn} aria-pressed={calls.cameraOn} aria-label={calls.cameraOn ? 'Turn camera off' : 'Turn camera on'} title={calls.cameraOn ? 'Camera off' : 'Camera on'} onclick={() => calls.toggleCamera()}>
       <Icon name={calls.cameraOn ? 'video' : 'videoOff'} size={19} />
+    </button>
+    <button
+      class="round"
+      class:on={calls.sharing}
+      aria-pressed={calls.sharing}
+      aria-label={calls.sharing ? t('Stop sharing your screen') : t('Share your screen')}
+      title={calls.sharing ? t('Stop sharing') : t('Share screen')}
+      onclick={() => calls.toggleScreen()}
+    >
+      <Icon name="screen" size={19} />
+    </button>
+    <button
+      class="round"
+      class:on={!!together.shared || picking}
+      aria-label={t('Watch or listen together')}
+      title={t('Watch or listen together')}
+      onclick={() => (together.shared ? together.stop() : (picking = !picking))}
+    >
+      <Icon name="play" size={19} />
     </button>
     <button class="round end" aria-label="Leave call" title="Leave" onclick={() => calls.leave()}>
       <Icon name="hangUp" size={20} />
@@ -284,6 +342,57 @@
   .round.off {
     background: #f6f4f0;
     color: #161616;
+  }
+  .round.on {
+    background: #f6f4f0;
+    color: #161616;
+  }
+  video.screen {
+    object-fit: contain;
+    background: #000;
+  }
+  .pick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #1d1d1d;
+  }
+  .pick input {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    background: #111;
+    color: #f6f4f0;
+    font: inherit;
+    font-size: 13px;
+  }
+  .pick .go,
+  .pick .cancel {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .pick .go {
+    border: 0;
+    background: #f6f4f0;
+    color: #161616;
+  }
+  .pick .cancel {
+    border: 1px solid #3a3a3a;
+    background: none;
+    color: #cfcbc4;
+  }
+  .pick-error {
+    flex-basis: 100%;
+    margin: 0;
+    color: #f2a39b;
+    font-size: 12.5px;
   }
   .round.end {
     background: #d93025;

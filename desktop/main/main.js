@@ -2,7 +2,7 @@
 // on phones (browser/), loaded from the app's own files. .biggle and .b pages run inside it just
 // as on the web; sites straight from the internet get real Chromium pages over their tab
 // (sites.js).
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, net, protocol, session, shell } from 'electron';
+import { app, BrowserWindow, desktopCapturer, ipcMain, nativeImage, nativeTheme, net, protocol, session, shell } from 'electron';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -76,6 +76,46 @@ function start() {
   const allowed = new Set(['media', 'fullscreen', 'pointerLock', 'clipboard-sanitized-write', 'notifications']);
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) => callback(allowed.has(permission)));
   session.defaultSession.setPermissionCheckHandler((_contents, permission) => allowed.has(permission));
+
+  // Sharing your screen in a call: the system's own picker where there is one (macOS 15 and
+  // later), otherwise the browser shows the screens and windows to pick from.
+  const picks = new Map();
+  let nextPick = 0;
+  session.defaultSession.setDisplayMediaRequestHandler(
+    async (_request, callback) => {
+      const main = getMain();
+      let sources = [];
+      try {
+        sources = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 320, height: 200 } });
+      } catch {}
+      if (!main || !sources.length) return callback({});
+      const id = ++nextPick;
+      picks.set(id, (sourceId) => {
+        const source = sources.find((s) => s.id === sourceId);
+        callback(source ? { video: source } : {});
+      });
+      main.webContents.send(
+        'screen:choose',
+        id,
+        sources.map((s) => ({ id: s.id, name: s.name, thumbnail: s.thumbnail.toDataURL(), screen: s.id.startsWith('screen:') })),
+      );
+    },
+    { useSystemPicker: true },
+  );
+  ipcMain.handle('screen:chosen', (_event, id, sourceId) => {
+    picks.get(id)?.(typeof sourceId === 'string' ? sourceId : null);
+    picks.delete(id);
+  });
+
+  // YouTube's player (watching together in a call) only plays on pages from a web address.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['https://www.youtube-nocookie.com/*', 'https://www.youtube.com/*'] },
+    (details, callback) => {
+      const headers = { ...details.requestHeaders };
+      if (!headers.Referer || !/^https:/.test(headers.Referer)) headers.Referer = 'https://bigglenet.ethembeldagli.dev/';
+      callback({ requestHeaders: headers });
+    },
+  );
 
   setupMenu(getMain);
   const closeSites = setupSites(getMain);

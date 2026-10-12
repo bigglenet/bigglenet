@@ -10,11 +10,16 @@
   import { errorText } from '../../lib/api';
   import { browser } from '../../lib/browser.svelte';
   import { calls } from '../../lib/calls.svelte';
-  import { clock, dayLabel, fullTime, linkify, sameDay, type Part } from '../../lib/chatformat';
-  import { chats, type Chat, type ChatMessage } from '../../lib/chats.svelte';
+  import { clock, dayLabel, fullTime, sameDay, type Part } from '../../lib/chatformat';
+  import { chats, type Attachment, type Chat, type ChatMessage } from '../../lib/chats.svelte';
+  import { t } from '../../lib/i18n.svelte';
+  import { people } from '../../lib/people.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
+  import ChatBubble from './ChatBubble.svelte';
+  import ChatComposer from './ChatComposer.svelte';
+  import ImageViewer from './ImageViewer.svelte';
 
   let {
     chat,
@@ -35,15 +40,21 @@
   const subtitle = $derived(
     chat.kind === 'group'
       ? `${chat.members.length} ${chat.members.length === 1 ? 'person' : 'people'}`
-      : [friend?.nickname ? `@${other}` : '', friend ? (friend.online ? 'Online' : 'Offline') : ''].filter(Boolean).join(' · '),
+      : [friend?.nickname ? `@${other}` : '', friend ? people.statusLine(other!) || (friend.online ? t('Online') : t('Offline')) : '']
+          .filter(Boolean)
+          .join(' · '),
   );
   const inThisCall = $derived(calls.chatId === chat.id);
   const inCall = $derived(chat.call.filter((m) => m.username !== me));
 
   let list = $state<HTMLElement>();
-  let input = $state<HTMLTextAreaElement>();
+  let composer = $state<ReturnType<typeof ChatComposer>>();
   let text = $state('');
   let error = $state('');
+  let replyTo = $state<ChatMessage | null>(null);
+  let editing = $state<ChatMessage | null>(null);
+  let viewing = $state<Attachment | null>(null);
+  let dropping = $state(false);
   let stick = true;
   let shownChat = 0;
   let visible = $state(document.visibilityState === 'visible');
@@ -55,7 +66,9 @@
       chats.load(id);
       text = drafts.get(id) ?? '';
       error = '';
-      if (matchMedia('(pointer: fine)').matches) tick().then(() => input?.focus());
+      replyTo = null;
+      editing = null;
+      if (matchMedia('(pointer: fine)').matches) tick().then(() => composer?.focus());
     });
     return () => {
       if (text.trim()) drafts.set(id, text);
@@ -101,26 +114,54 @@
     list.scrollTop += list.scrollHeight - before;
   }
 
-  async function send(e?: SubmitEvent) {
-    e?.preventDefault();
-    const body = text.trim();
-    if (!body) return;
-    text = '';
-    error = '';
-    stick = true;
-    try {
-      await chats.send(chat.id, body);
-    } catch (err) {
-      error = errorText(err);
-    }
+  // Time capsules open on their own: fetch the next one when its time comes.
+  $effect(() => {
+    const now = Date.now();
+    const next = messages.filter((m) => m.locked && m.unlockAt && m.unlockAt > now).sort((a, b) => a.unlockAt! - b.unlockAt!)[0];
+    if (!next) return;
+    const timer = setTimeout(() => chats.reloadMessage(chat.id, next.id), Math.min(next.unlockAt! - now + 500, 2 ** 31 - 1));
+    return () => clearTimeout(timer);
+  });
+
+  /** Scroll to a message (the one a reply quotes), if it's loaded. */
+  function jump(id: number) {
+    const el = list?.querySelector(`[data-message="${id}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1400);
   }
 
-  function onkeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-      e.preventDefault();
-      send();
-    }
+  // Dropping files on the chat sends them.
+  function ondragover(e: DragEvent) {
+    if (!canTalk || !e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    dropping = true;
   }
+  function ondrop(e: DragEvent) {
+    dropping = false;
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (!files.length || !canTalk) return;
+    e.preventDefault();
+    stick = true;
+    composer?.addFiles(files);
+  }
+
+  // Who's typing.
+  const typing = $derived(Object.entries(chats.typing[chat.id] ?? {}).filter(([u, until]) => u !== me && until > Date.now()).map(([u]) => social.nameOf(u)));
+
+  /** "Seen" under the newest of my messages someone has read (and who, in groups). */
+  const seen = $derived.by(() => {
+    const out = new Map<number, string>();
+    const reads = chat.reads ?? {};
+    const others = chat.members.filter((u) => u !== me);
+    const lastMine = [...messages].reverse().find((m) => m.from === me && m.kind === 'text' && m.id > 0);
+    if (!lastMine) return out;
+    const readers = others.filter((u) => (reads[u] ?? 0) >= lastMine.id);
+    if (!readers.length) return out;
+    out.set(lastMine.id, chat.kind === 'direct' ? t('Seen') : readers.length === others.length ? t('Seen by everyone') : t('Seen by {names}', { names: readers.map((u) => social.nameOf(u)).join(', ') }));
+    return out;
+  });
 
   function openLink(link: NonNullable<Part['link']>) {
     if (link.kind === 'external') browser.external = link.href;
@@ -128,7 +169,7 @@
   }
 
   const sameRun = (a?: ChatMessage, b?: ChatMessage) =>
-    !!a && !!b && a.kind === 'text' && b.kind === 'text' && a.from === b.from && b.at - a.at < 5 * 60_000 && sameDay(a.at, b.at);
+    !!a && !!b && a.kind === 'text' && b.kind === 'text' && a.from === b.from && b.at - a.at < 5 * 60_000 && sameDay(a.at, b.at) && !b.reply;
 
   const rows = $derived(
     messages.map((m, i) => ({
@@ -187,7 +228,17 @@
   </div>
 {/if}
 
-<div class="messages scroll" bind:this={list} onscroll={() => list && list.scrollTop < 40 && older()} aria-live="polite">
+<div
+  class="messages scroll"
+  class:dropping
+  bind:this={list}
+  onscroll={() => list && list.scrollTop < 40 && older()}
+  aria-live="polite"
+  role="log"
+  {ondragover}
+  ondragleave={() => (dropping = false)}
+  {ondrop}
+>
   {#if thread?.more}
     <button class="older" disabled={thread.loading} onclick={older}>{thread.loading ? 'Loading…' : 'Load older messages'}</button>
   {/if}
@@ -196,22 +247,23 @@
     {#if r.m.kind === 'event'}
       <p class="event" title={fullTime(r.m.at)}>{r.m.from ? `${who(r.m.from)} ${r.m.body}` : r.m.body} · {clock(r.m.at)}</p>
     {:else}
-      <div class="msg" class:mine={r.mine} class:first={r.first} class:last={r.last}>
+      <div class="msg" class:mine={r.mine} class:first={r.first} class:last={r.last} data-message={r.m.id}>
         {#if chat.kind === 'group' && !r.mine}
           <span class="side">{#if r.last}<Avatar name={social.nameOf(r.m.from)} user={r.m.from} size={28} />{/if}</span>
         {/if}
-        <div class="stack">
-          {#if chat.kind === 'group' && !r.mine && r.first}<span class="sender">{social.nameOf(r.m.from)}</span>{/if}
-          <div class="bubble" class:pending={r.m.pending === true} class:failed={r.m.pending === 'failed'} title={fullTime(r.m.at)}>{#each linkify(r.m.body) as part, i (i)}{#if part.link}<button class="inline-link" onclick={() => openLink(part.link!)}>{part.text}</button>{:else}{part.text}{/if}{/each}</div>
-          {#if r.m.pending === 'failed'}
-            <span class="note failed-note">
-              Not sent · <button class="link" onclick={() => chats.retry(r.m)}>Try again</button> ·
-              <button class="link" onclick={() => chats.discard(r.m)}>Delete</button>
-            </span>
-          {:else if r.last}
-            <span class="note">{r.m.pending ? 'Sending…' : clock(r.m.at)}</span>
-          {/if}
-        </div>
+        <ChatBubble
+          m={r.m}
+          {chat}
+          mine={r.mine}
+          first={r.first}
+          last={r.last}
+          seen={seen.get(r.m.id) ?? ''}
+          onreply={(m) => ((editing = null), (replyTo = m))}
+          onedit={(m) => ((replyTo = null), (editing = m))}
+          onview={(a) => (viewing = a)}
+          onlink={openLink}
+          onjump={jump}
+        />
       </div>
     {/if}
   {:else}
@@ -229,14 +281,20 @@
   {/each}
 </div>
 
+{#if typing.length}
+  <p class="typing" aria-live="polite">
+    <span class="dots"><span></span><span></span><span></span></span>
+    {typing.length === 1 ? t('{name} is typing…', { name: typing[0] }) : t('{names} are typing…', { names: names(typing) })}
+  </p>
+{/if}
 {#if error}<p class="error composer-error" role="alert">{error}</p>{/if}
 {#if canTalk}
-  <form class="composer" onsubmit={send}>
-    <textarea bind:this={input} bind:value={text} {onkeydown} rows="1" maxlength="2000" placeholder="Message {title}" aria-label="Message {title}"></textarea>
-    <button class="icon solid" aria-label="Send" disabled={!text.trim()}><Icon name="send" size={16} /></button>
-  </form>
+  <ChatComposer bind:this={composer} {chat} {title} bind:text bind:replyTo bind:editing onsent={() => (stick = true)} />
 {:else}
   <p class="cant muted">You and {other} aren't friends any more, so you can't message each other.</p>
+{/if}
+{#if viewing}
+  <ImageViewer a={viewing} onclose={() => (viewing = null)} />
 {/if}
 
 <style>
@@ -363,87 +421,57 @@
   .msg.last .side {
     margin-bottom: 18px;
   }
-  .stack {
-    min-width: 0;
+  .msg :global(.flash) ,
+  .msg:global(.flash) {
+    animation: flash 1.4s ease-out;
+  }
+  @keyframes flash {
+    0%,
+    40% {
+      background: var(--accent-soft);
+    }
+  }
+  .messages.dropping {
+    outline: 2px dashed var(--accent);
+    outline-offset: -8px;
+  }
+  .typing {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .mine .stack {
-    align-items: flex-end;
-  }
-  .sender {
-    margin: 0 0 3px 12px;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0 16px 6px;
     color: var(--muted);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12.5px;
   }
-  .bubble {
-    max-width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px 18px 18px 6px;
-    background: var(--card);
-    font-size: 14.5px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    user-select: text;
+  .dots {
+    display: inline-flex;
+    gap: 3px;
   }
-  .msg.first .bubble {
-    border-top-left-radius: 18px;
+  .dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: bounce 1.2s infinite ease-in-out;
   }
-  .msg.last .bubble {
-    border-bottom-left-radius: 18px;
+  .dots span:nth-child(2) {
+    animation-delay: 0.15s;
   }
-  .mine .bubble {
-    border-color: var(--accent);
-    border-radius: 18px 6px 6px 18px;
-    background: var(--accent);
-    color: var(--on-accent);
+  .dots span:nth-child(3) {
+    animation-delay: 0.3s;
   }
-  .mine.first .bubble {
-    border-top-right-radius: 18px;
-  }
-  .mine.last .bubble {
-    border-bottom-right-radius: 18px;
-  }
-  .bubble.pending {
-    opacity: 0.55;
-  }
-  .bubble.failed {
-    border-color: var(--danger);
-    background: none;
-    color: var(--text);
-  }
-  .inline-link {
-    display: inline;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    overflow-wrap: anywhere;
-  }
-  .note {
-    margin: 3px 6px 0;
-    color: var(--muted);
-    font-size: 11.5px;
-  }
-  .failed-note {
-    color: var(--danger);
-  }
-  .link {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-weight: 600;
-    text-decoration: underline;
+  @keyframes bounce {
+    0%,
+    80%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
   }
 
   .hello {
@@ -466,38 +494,6 @@
   .composer-error {
     margin: 0;
     padding: 0 14px 6px;
-  }
-  .composer {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 10px 12px 12px;
-    border-top: 1px solid var(--border);
-  }
-  textarea {
-    flex: 1;
-    min-width: 0;
-    min-height: 36px;
-    max-height: 160px;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card);
-    color: var(--text);
-    font: inherit;
-    font-size: 14.5px;
-    line-height: 1.35;
-    resize: none;
-    field-sizing: content;
-  }
-  textarea:focus {
-    outline: 0;
-    border-color: var(--accent);
-  }
-  .composer .icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
   }
   .cant {
     margin: 0;

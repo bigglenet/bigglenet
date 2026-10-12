@@ -2,6 +2,7 @@
 
 type Rect = { x: number; y: number; width: number; height: number };
 type Stop = () => void;
+export type ScreenSource = { id: string; name: string; thumbnail: string; screen: boolean };
 
 /** What the desktop app offers the browser (desktop/preload/preload.cjs). */
 type Desktop = {
@@ -32,6 +33,10 @@ type Desktop = {
   };
   /** The unread count on the app's icon. `image`: the same as a picture, for Windows' taskbar. */
   badge(count: number, image: string | null): Promise<void>;
+  screen: {
+    onChoose(callback: (id: number, sources: ScreenSource[]) => void): Stop;
+    chosen(id: number, sourceId: string | null): Promise<void>;
+  };
   onShortcut(callback: (key: string) => void): Stop;
   info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
   updates: {

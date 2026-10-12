@@ -24,6 +24,7 @@
   import GuestbookDialog from './components/GuestbookDialog.svelte';
   import HistoryPage from './components/HistoryPage.svelte';
   import ProfilePage from './components/ProfilePage.svelte';
+  import ScreenPicker from './components/ScreenPicker.svelte';
   import RequestsPage from './components/RequestsPage.svelte';
   import SettingsPage from './components/SettingsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
@@ -251,6 +252,7 @@
   {#if signing.request}
     <GuestbookDialog />
   {/if}
+  {#if isApp}<ScreenPicker />{/if}
 {/if}
 {#if (updates.ready && !updates.dismissed) || (ready && updates.justUpdated)}
   <UpdateBanner />

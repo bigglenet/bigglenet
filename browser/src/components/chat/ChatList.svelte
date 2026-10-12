@@ -3,7 +3,8 @@
   import { account } from '../../lib/account.svelte';
   import { calls } from '../../lib/calls.svelte';
   import { shortTime } from '../../lib/chatformat';
-  import { chats, type Chat } from '../../lib/chats.svelte';
+  import { chats, fileLabel, type Chat } from '../../lib/chats.svelte';
+  import { t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
@@ -28,11 +29,17 @@
 
   function preview(c: Chat): string {
     const l = c.last;
-    if (!l) return c.kind === 'group' ? 'New group' : 'Say hi';
-    const who = (u: string | null) => (u === me ? 'You' : social.nameOf(u));
+    if (!l) return c.kind === 'group' ? t('New group') : t('Say hi');
+    const who = (u: string | null) => (u === me ? t('You') : social.nameOf(u));
     if (l.kind === 'event') return l.from ? `${who(l.from)} ${l.body}` : l.body;
-    if (l.from === me) return `You: ${l.body}`;
-    return c.kind === 'group' ? `${who(l.from)}: ${l.body}` : l.body;
+    // What it was, when it wasn't just text.
+    const what = l.deleted
+      ? t('Message deleted')
+      : l.capsule && !l.body && !l.file
+        ? t('⏳ Time capsule')
+        : l.body || (l.file ? fileLabel(l.file) : '');
+    if (l.from === me) return `${t('You')}: ${what}`;
+    return c.kind === 'group' ? `${who(l.from)}: ${what}` : what;
   }
 </script>
 

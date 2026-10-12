@@ -48,6 +48,11 @@ contextBridge.exposeInMainWorld('bigglenet', {
     zoom: (site, factor) => ipcRenderer.invoke('site-view:zoom', site, factor),
   },
   badge: (count, image) => ipcRenderer.invoke('app:badge', count, image),
+  screen: {
+    /** Pick a screen or window to share: called with the request's id and what there is. */
+    onChoose: (callback) => on('screen:choose', callback),
+    chosen: (id, sourceId) => ipcRenderer.invoke('screen:chosen', id, sourceId),
+  },
   onShortcut: (callback) => on('shortcut', callback),
   info: () => ipcRenderer.invoke('app:info'),
   updates: {

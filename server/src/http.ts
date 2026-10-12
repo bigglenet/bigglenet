@@ -44,7 +44,7 @@ export function preflight(): Response {
     headers: {
       ...CORS,
       'Access-Control-Allow-Methods': 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-File-Name',
       'Access-Control-Max-Age': '86400',
     },
   });

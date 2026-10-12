@@ -2,12 +2,14 @@
 import { account } from './account.svelte';
 import { api } from './api';
 import { calls } from './calls.svelte';
-import { chats, type ChatMessage } from './chats.svelte';
+import { chats, fileLabel, type ChatMessage, type Reaction } from './chats.svelte';
+import { t } from './i18n.svelte';
 import { SERVER } from './config';
 import { notices } from './notify.svelte';
 import { notifications, type Notification } from './notifications.svelte';
 import { people, type Activity, type Status } from './people.svelte';
 import { sites } from './sites.svelte';
+import { together } from './together.svelte';
 
 export type Friend = {
   username: string;
@@ -22,6 +24,11 @@ export type Friend = {
 
 type LiveEvent =
   | { type: 'chat-message'; message: ChatMessage }
+  | { type: 'chat-message-update'; message: ChatMessage }
+  | { type: 'chat-reactions'; chatId: number; messageId: number; reactions: Reaction[] }
+  | { type: 'chat-seen'; chatId: number; username: string; upTo: number }
+  | { type: 'typing'; chatId: number; username: string }
+  | { type: 'together'; chatId: number; from: string; data: Record<string, unknown> }
   | { type: 'chats' }
   | { type: 'chat-read'; chatId: number }
   | { type: 'call'; chatId: number; members: { username: string; video: boolean }[]; ring?: { from: string; video: boolean } }
@@ -135,8 +142,20 @@ class Social {
   private onEvent(ev: LiveEvent) {
     switch (ev.type) {
       case 'chat-message':
+        if (ev.message.from && people.isBlocked(ev.message.from)) ev.message = { ...ev.message, body: '', attachment: null, blocked: true };
         chats.onMessage(ev.message);
         return this.notifyMessage(ev.message);
+      case 'chat-message-update':
+        return chats.onUpdate(ev.message);
+      case 'chat-reactions':
+        return chats.onReactions(ev.chatId, ev.messageId, ev.reactions);
+      case 'chat-seen':
+        return chats.onSeen(ev.chatId, ev.username, ev.upTo);
+      case 'typing':
+        if (!people.isBlocked(ev.username)) chats.onTyping(ev.chatId, ev.username);
+        return;
+      case 'together':
+        return together.onRemote(ev.chatId, ev.from, ev.data);
       case 'chats':
         return chats.refresh();
       case 'chat-read':
@@ -178,7 +197,8 @@ class Social {
     const chat = chats.get(m.chatId);
     const from = this.nameOf(m.from);
     const title = chat?.kind === 'group' ? `${from} in ${chats.title(chat)}` : from;
-    notices.message(title, m.body, m.chatId, () => this.showChat(m.chatId));
+    const body = m.locked ? t('⏳ Sent you a time capsule') : m.body || (m.attachment ? fileLabel(m.attachment) : '');
+    notices.message(title, body, m.chatId, () => this.showChat(m.chatId));
   }
 
   async refreshFriends() {
