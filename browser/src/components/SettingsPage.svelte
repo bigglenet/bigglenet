@@ -1,11 +1,13 @@
 <script lang="ts">
-  // biggle://settings: what new tabs open (and a way back to the normal new tab page), updates,
-  // which version this is, and what's new in each version. biggle://settings/updates and
-  // biggle://settings/whats-new open at those parts.
+  // biggle://settings: what new tabs open (and a way back to the normal new tab page), the
+  // bookmarks bar, notifications, updates, which version this is, and what's new in each version.
+  // biggle://settings/updates, /notifications and /whats-new open at those parts.
   import { tick } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
+  import { bookmarks } from '../lib/bookmarks.svelte';
   import { CHANGELOG } from '../lib/changelog';
-  import { desktop } from '../lib/platform';
+  import { notices } from '../lib/notify.svelte';
+  import { desktop, isMac } from '../lib/platform';
   import { startSettings as settings } from '../lib/startpage.svelte';
   import { updates } from '../lib/updates.svelte';
   import Icon from './Icon.svelte';
@@ -98,6 +100,48 @@
         <button class="ghost" onclick={customize}><Icon name="settings" size={15} /> Customize the new tab page</button>
         <p class="muted small">The new tab page is always at <code>biggle://newtab</code>, whatever new tabs open.</p>
       </div>
+    </section>
+
+    <section id="bookmarks">
+      <h2>Bookmarks and history</h2>
+      <label class="choice">
+        <input type="checkbox" checked={bookmarks.bar} onchange={(e) => bookmarks.showBar(e.currentTarget.checked)} />
+        <span>
+          <strong>Show the bookmarks bar</strong><br />
+          <span class="muted">Under the address bar, once you’ve bookmarked something ({isMac ? '⌘D' : 'Ctrl+D'}). {isMac ? '⇧⌘B' : 'Ctrl+Shift+B'} shows and hides it.</span>
+        </span>
+      </label>
+      <div class="links">
+        <button class="ghost" onclick={() => browser.go(tab, 'biggle://bookmarks')}><Icon name="star" size={15} /> All bookmarks</button>
+        <button class="ghost" onclick={() => browser.go(tab, 'biggle://history')}><Icon name="clock" size={15} /> History</button>
+      </div>
+      <p class="muted small">Bookmarks and history stay on this device.</p>
+    </section>
+
+    <section id="notifications">
+      <h2>Notifications</h2>
+      <label class="choice">
+        <input type="checkbox" checked={notices.enabled} onchange={(e) => notices.setEnabled(e.currentTarget.checked)} />
+        <span>
+          <strong>Tell me when someone messages or calls me</strong><br />
+          <span class="muted">While Bigglenet is open but you’re using something else.</span>
+        </span>
+      </label>
+      {#if notices.enabled}
+        {#if notices.permission === 'default'}
+          <div class="current">
+            <span>Your browser needs to allow Bigglenet’s notifications first.</span>
+            <button class="primary" onclick={() => notices.allow()}>Allow notifications</button>
+          </div>
+        {:else if notices.permission === 'denied'}
+          <p class="error">Your browser is blocking Bigglenet’s notifications. Allow them in its site settings, then come back.</p>
+        {:else if notices.permission === 'unsupported'}
+          <p class="muted small">This browser can’t show notifications.</p>
+        {:else}
+          <button class="ghost" onclick={() => notices.test()}><Icon name="bell" size={15} /> Send a test notification</button>
+        {/if}
+      {/if}
+      <p class="muted small" style:margin-top="12px">New messages are also counted on Bigglenet’s icon{desktop ? (isMac ? ' in the Dock' : ' in the taskbar') : ''}.</p>
     </section>
 
     <section id="updates">

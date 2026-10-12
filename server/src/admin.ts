@@ -9,7 +9,8 @@ export async function listNames(req: Request, env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT n.name, n.tld, n.url, n.title, n.status, n.live, n.direct, n.own_window, n.review_note AS note, n.created_at, n.updated_at, u.username AS owner,
        (SELECT COUNT(*) FROM site_files f WHERE f.site = n.name) AS files,
-       (SELECT COALESCE(SUM(size), 0) FROM site_files f WHERE f.site = n.name) AS size
+       (SELECT COALESCE(SUM(size), 0) FROM site_files f WHERE f.site = n.name) AS size,
+       (SELECT COUNT(*) FROM site_visits v WHERE v.site = n.name) AS visits
      FROM names n LEFT JOIN users u ON u.id = n.owner_id ORDER BY n.name`,
   ).all();
   return json({ names: results });

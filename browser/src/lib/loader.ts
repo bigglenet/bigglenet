@@ -1,3 +1,4 @@
+import findCore from './find-core.js?raw';
 import runtime from './page-runtime.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { isApp } from './platform';
@@ -113,7 +114,13 @@ const CSP = [
 
 const BASE_CSS =
   'biggle-signed-in,biggle-signed-out{display:contents}' +
-  'biggle-signed-in[hidden],biggle-signed-out[hidden]{display:none!important}';
+  'biggle-signed-in[hidden],biggle-signed-out[hidden]{display:none!important}' +
+  // Find in page (⌘F): every match, and the one that's showing.
+  '::highlight(biggle-find){background:#ffe86b;color:#111}' +
+  '::highlight(biggle-find-current){background:#ff9a3d;color:#111}';
+
+// The page runtime, with find in page (find-core.js) in scope but out of the page's way.
+const PAGE_SCRIPT = `(function(){${findCore.replace(/^export function/m, 'function')}\n${runtime}})();`;
 
 const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const html = (s: string) => attr(s).replace(/>/g, '&gt;');
@@ -136,7 +143,7 @@ function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string):
     app: isApp,
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');
-  return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${runtime}</script>${body}`;
+  return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${PAGE_SCRIPT}</script>${body}`;
 }
 
 /** A page from BHTML text that's already in hand, such as the site editor's live preview. */

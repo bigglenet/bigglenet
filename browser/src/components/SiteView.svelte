@@ -9,9 +9,11 @@
   // showing and while a Bigglenet menu or dialog is open (see overlays.svelte.ts).
   import { untrack } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
+  import { provideFinder } from '../lib/find.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import {
     closeSiteWindow,
+    desktop,
     onSiteViewTitle,
     onSiteWindowClosed,
     openExternal,
@@ -20,6 +22,7 @@
     siteViewHide,
     siteViewShow,
   } from '../lib/platform';
+  import { zoom } from '../lib/zoom.svelte';
   import Icon from './Icon.svelte';
 
   let { tab, view }: { tab: Tab; view: { site: string; url: string; window: boolean } } = $props();
@@ -54,8 +57,9 @@
       mode = 'tab';
       error = '';
       made = false;
+      ready = false;
       browser.frameLoaded(tab);
-      keep(onSiteViewTitle((s, title) => s === site && title.trim() && (tab.title = title.trim().slice(0, 200))));
+      keep(onSiteViewTitle((s, title) => s === site && title.trim() && browser.titled(tab, title.trim().slice(0, 200))));
       keep(onSiteWindowClosed((s) => s === site && (windowOpen = false)));
     });
     return () => {
@@ -76,6 +80,7 @@
       try {
         await siteViewShow(view.site, view.url, slot.getBoundingClientRect());
         made = true;
+        ready = true;
       } catch (e) {
         // Couldn't make one here: a window of its own still works.
         error = message(e);
@@ -99,9 +104,29 @@
     };
   });
 
+  // Its zoom (⌘+ / ⌘−), once the web view is there.
+  let ready = $state(false);
+  $effect(() => {
+    const z = zoom.of(tab.url);
+    if (ready) desktop?.sites.zoom(untrack(() => view.site), z).catch(() => {});
+  });
+
+  // Find in page: Chromium's own. Not while it's in a window of its own.
+  $effect(() => {
+    const site = view.site;
+    return provideFinder(tab.id, {
+      find: async (text, dir) => {
+        if (mode !== 'tab' || !desktop) return null;
+        return desktop.sites.find(site, text, { forward: dir !== 'prev', first: dir === 'first' });
+      },
+      clear: () => void desktop?.sites.stopFind(site).catch(() => {}),
+    });
+  });
+
   async function popOut() {
     mode = 'window';
     made = false;
+    ready = false;
     await siteViewClose(view.site).catch(() => {});
     try {
       await openSiteWindow(view.site, view.url, tab.title);

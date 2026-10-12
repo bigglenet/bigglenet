@@ -5,6 +5,19 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '0.5.0',
+    date: '2026-10-12',
+    changes: [
+      'Bookmarks: ⌘D (Ctrl+D) or the star in the address bar, a bookmarks bar, and biggle://bookmarks to sort them.',
+      'History at biggle://history (⌘Y on a Mac, Ctrl+H elsewhere), and ⇧⌘T (Ctrl+Shift+T) brings back a tab you closed.',
+      'Find in page with ⌘F (Ctrl+F), on every page, including sites straight from the internet.',
+      'Zoom with ⌘+ and ⌘− (Ctrl on Windows and Linux), remembered for each site. ⌘0 goes back to 100%.',
+      'Notifications for new messages and calls while you’re using another app, and the unread count on Bigglenet’s icon.',
+      'Site owners see how many visits their sites get, in My sites.',
+      'New blocks in the site editor: Total visits, and a Guestbook visitors can sign. Code sites can use <biggle-visits> and <biggle-guestbook>.',
+    ],
+  },
+  {
     version: '0.4.2',
     date: '2026-10-12',
     changes: [

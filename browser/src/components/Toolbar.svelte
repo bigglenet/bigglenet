@@ -2,10 +2,13 @@
   import { browser } from '../lib/browser.svelte';
   import { social } from '../lib/social.svelte';
   import { parse, siteHost, START } from '../lib/url';
+  import { zoom } from '../lib/zoom.svelte';
   import AccountButton from './AccountButton.svelte';
+  import BookmarkButton from './BookmarkButton.svelte';
   import Icon from './Icon.svelte';
 
   const tab = $derived(browser.active);
+  const zoomed = $derived(tab ? zoom.of(tab.url) : 1);
   const site = $derived.by(() => {
     const u = tab && parse(tab.url);
     return u?.kind === 'site' ? u : null;
@@ -115,6 +118,15 @@
     {#if tab?.preview && site}
       <span class="preview" title="This site is waiting for approval. Only its owner and admins can see it.">Preview</span>
     {/if}
+    {#if zoomed !== 1 && !editing}
+      <button
+        type="button"
+        class="zoom"
+        title="Zoomed to {Math.round(zoomed * 100)}%. Click to go back to 100%."
+        onclick={() => tab && zoom.reset(tab.url)}>{Math.round(zoomed * 100)}%</button
+      >
+    {/if}
+    <BookmarkButton />
   </form>
 
   <div class="side">
@@ -307,6 +319,23 @@
     color: var(--on-accent);
     font-size: 11.5px;
     font-weight: 700;
+  }
+
+  .zoom {
+    flex: none;
+    height: 24px;
+    margin-right: 4px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .zoom:hover {
+    border-color: var(--accent);
   }
 
   .pretty {

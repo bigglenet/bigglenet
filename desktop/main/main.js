@@ -2,7 +2,7 @@
 // on phones (browser/), loaded from the app's own files. .biggle and .b pages run inside it just
 // as on the web; sites straight from the internet get real Chromium pages over their tab
 // (sites.js).
-import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, net, protocol, session, shell } from 'electron';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -45,6 +45,8 @@ if (!setupLinks(getMain)) {
   // Bigglenet is already open; the link (if any) went to it.
   app.quit();
 } else {
+  // Windows shows notifications under this name (the installer's shortcuts use the same one).
+  if (isWindows) app.setAppUserModelId('dev.ethembeldagli.bigglenet');
   migrateOldData();
   setupMigration();
   setupUpdater();
@@ -70,8 +72,8 @@ function start() {
   }
 
   // The browser's own page may use the camera and microphone (calls in chat.biggle), go full
-  // screen and copy to the clipboard. Nothing else.
-  const allowed = new Set(['media', 'fullscreen', 'pointerLock', 'clipboard-sanitized-write']);
+  // screen, copy to the clipboard and show notifications (new messages). Nothing else.
+  const allowed = new Set(['media', 'fullscreen', 'pointerLock', 'clipboard-sanitized-write', 'notifications']);
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) => callback(allowed.has(permission)));
   session.defaultSession.setPermissionCheckHandler((_contents, permission) => allowed.has(permission));
 
@@ -85,6 +87,25 @@ function start() {
   });
   ipcMain.handle('window:close', () => getMain()?.close());
   ipcMain.handle('window:is-maximized', () => !!getMain()?.isMaximized());
+  ipcMain.handle('window:is-focused', () => !!getMain()?.isFocused());
+  ipcMain.handle('window:focus', () => {
+    const win = getMain();
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+  // Unread messages on the app's icon: a number on the Dock (and Linux launchers that show one),
+  // a red dot with the number over the taskbar button on Windows.
+  ipcMain.handle('app:badge', (_event, count, image) => {
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    if (isWindows) {
+      const icon = n && typeof image === 'string' && image.startsWith('data:image/png') ? nativeImage.createFromDataURL(image) : null;
+      getMain()?.setOverlayIcon(icon, n ? `${n} unread` : '');
+    } else {
+      app.setBadgeCount(n);
+    }
+  });
   ipcMain.handle('shell:open-external', (_event, url) => {
     if (typeof url === 'string' && /^(https?|mailto|tel):/i.test(url)) return shell.openExternal(url);
   });

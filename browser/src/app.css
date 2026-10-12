@@ -95,3 +95,13 @@ button:disabled {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Find in page (⌘F) on the browser's own pages. Pages get the same (see loader.ts). */
+::highlight(biggle-find) {
+  background: #ffe86b;
+  color: #111;
+}
+::highlight(biggle-find-current) {
+  background: #ff9a3d;
+  color: #111;
+}

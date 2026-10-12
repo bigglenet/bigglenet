@@ -53,3 +53,18 @@ self.addEventListener('fetch', (event) => {
     ),
   );
 });
+
+// A message notification tapped on a phone (see src/lib/notify.svelte.ts): open Bigglenet at
+// that chat.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const chatId = event.notification.data?.chatId;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows[0];
+      if (!open) return self.clients.openWindow('/');
+      if (typeof chatId === 'number') open.postMessage({ type: 'open-chat', chatId });
+      return open.focus();
+    }),
+  );
+});

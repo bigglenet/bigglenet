@@ -12,6 +12,10 @@ type Desktop = {
     close(): Promise<void>;
     isMaximized(): Promise<boolean>;
     onMaximizedChange(callback: (maximized: boolean) => void): Stop;
+    /** Whether Bigglenet's window is the one in use (a site view in it counts). */
+    isFocused(): Promise<boolean>;
+    /** Bring Bigglenet's window to the front. */
+    focus(): Promise<void>;
   };
   links: { initial(): Promise<string[]>; onOpen(callback: (url: string) => void): Stop };
   sites: {
@@ -22,7 +26,12 @@ type Desktop = {
     openWindow(site: string, url: string, title: string): Promise<void>;
     closeWindow(site: string): Promise<void>;
     onWindowClosed(callback: (site: string) => void): Stop;
+    find(site: string, text: string, options: { forward: boolean; first: boolean }): Promise<{ count: number; index: number } | null>;
+    stopFind(site: string): Promise<void>;
+    zoom(site: string, factor: number): Promise<void>;
   };
+  /** The unread count on the app's icon. `image`: the same as a picture, for Windows' taskbar. */
+  badge(count: number, image: string | null): Promise<void>;
   onShortcut(callback: (key: string) => void): Stop;
   info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
   updates: {
@@ -37,7 +46,7 @@ type Desktop = {
 export const desktop = (window as unknown as { bigglenet?: Desktop }).bigglenet;
 export const isApp = !!desktop;
 const system = navigator.platform || navigator.userAgent;
-const isMac = /Mac/.test(system);
+export const isMac = /Mac|iPhone|iPad/.test(system);
 
 /**
  * The desktop app on Windows and Linux has no system title bar: its tab bar is the title bar,

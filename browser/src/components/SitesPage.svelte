@@ -179,6 +179,11 @@
               <div class="site-main">
                 <strong>{siteHost(site.name, site.tld)}</strong>
                 <span class="muted">{site.title}</span>
+                {#if site.status === 'live' && site.visits !== undefined}
+                  <span class="visits">
+                    {site.visits.toLocaleString()} {site.visits === 1 ? 'visit' : 'visits'} · {(site.week ?? 0).toLocaleString()} this week
+                  </span>
+                {/if}
                 {#if site.status === 'rejected' && site.note}
                   <span class="note">“{site.note}”</span>
                 {/if}
@@ -449,6 +454,11 @@
     margin-top: 4px;
     font-size: 13.5px;
     color: var(--danger);
+  }
+  .visits {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--muted);
   }
   .pill {
     padding: 3px 10px;

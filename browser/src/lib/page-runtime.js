@@ -1,5 +1,6 @@
 // Runs inside every BHTML page, before the page's own scripts.
-// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local, app } right before this.
+// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local, app } right before this,
+// and puts createFinder() (find-core.js) in scope for find in page.
 (() => {
   'use strict';
 
@@ -218,6 +219,120 @@
     }
   });
 
+  // How many visits this site has had (one per person per day), shown by <biggle-visits>:
+  // kind="visits" (the default), "visitors" (different people), "today" or "week".
+  let visitCounts = null;
+  const getVisits = () => (visitCounts ??= call('visits').catch((e) => ((visitCounts = null), Promise.reject(e))));
+  customElements.define('biggle-visits', class extends HTMLElement {
+    connectedCallback() {
+      const kind = ['visits', 'visitors', 'today', 'week'].includes(this.getAttribute('kind')) ? this.getAttribute('kind') : 'visits';
+      getVisits().then(
+        (counts) => (this.textContent = Number(counts?.[kind] ?? 0).toLocaleString()),
+        () => {},
+      );
+    }
+  });
+
+  // <biggle-guestbook>: notes visitors leave on this site. Signing opens a box in the browser
+  // itself, so a page can't sign anything for you. Style it with ::part(note), ::part(author),
+  // ::part(date), ::part(body), ::part(button) and ::part(title); it picks up the page's --accent.
+  const GUESTBOOK_CSS = `
+:host{display:block;margin:24px 0}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+h2{flex:1;margin:0;font-size:1.3em}
+.total{font-weight:400;opacity:.6;font-size:.8em}
+button{font:inherit;cursor:pointer}
+.sign{padding:.55em 1.1em;border:0;border-radius:999px;background:var(--accent,#2563eb);color:#fff;font-weight:700}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColor 5%,transparent);border:1px solid color-mix(in srgb,currentColor 12%,transparent)}
+.meta{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:.85em}
+.author{font-weight:700}
+.date{opacity:.6}
+.remove{margin-left:auto;padding:0 4px;border:0;background:none;color:inherit;opacity:.5;font-size:1.1em;line-height:1}
+.remove:hover{opacity:1}
+.body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{margin:0;opacity:.7}
+.more{margin-top:12px;padding:.4em 1em;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-radius:999px;background:none;color:inherit}
+.error{margin:8px 0 0;color:#d93025;font-size:.9em}
+`;
+  customElements.define('biggle-guestbook', class extends HTMLElement {
+    connectedCallback() {
+      if (this.shadowRoot) return;
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = `<style>${GUESTBOOK_CSS}</style>
+<div class="head"><h2 part="title"><span class="title"></span> <span class="total"></span></h2><button class="sign" part="button">Sign the guestbook</button></div>
+<ol></ol><p class="empty" hidden>Nobody has signed it yet. Be the first!</p>
+<button class="more" part="button" hidden>Show older notes</button><p class="error" role="alert" hidden></p>`;
+      const $ = (sel) => root.querySelector(sel);
+      $('.title').textContent = this.getAttribute('heading') || 'Guestbook';
+      const list = $('ol');
+      let total = 0;
+      let oldest = null;
+      const showError = (e) => {
+        $('.error').textContent = e?.message || String(e);
+        $('.error').hidden = false;
+      };
+      const update = () => {
+        $('.total').textContent = total ? `· ${total.toLocaleString()}` : '';
+        $('.empty').hidden = list.children.length > 0;
+      };
+      const noteEl = (n) => {
+        const li = document.createElement('li');
+        li.setAttribute('part', 'note');
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const author = document.createElement('span');
+        author.className = 'author';
+        author.setAttribute('part', 'author');
+        author.textContent = n.author;
+        const date = document.createElement('time');
+        date.className = 'date';
+        date.setAttribute('part', 'date');
+        const d = new Date(n.at * 1000);
+        date.dateTime = d.toISOString();
+        date.textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+        meta.append(author, date);
+        if (n.canDelete) {
+          const remove = document.createElement('button');
+          remove.className = 'remove';
+          remove.title = 'Take this note down';
+          remove.setAttribute('aria-label', 'Take this note down');
+          remove.textContent = '×';
+          remove.onclick = () =>
+            call('guestbook.delete', n.id).then(() => {
+              li.remove();
+              total = Math.max(0, total - 1);
+              update();
+            }, showError);
+          meta.append(remove);
+        }
+        const body = document.createElement('p');
+        body.className = 'body';
+        body.setAttribute('part', 'body');
+        body.textContent = n.body;
+        li.append(meta, body);
+        return li;
+      };
+      const load = () =>
+        call('guestbook.list', oldest).then((r) => {
+          for (const n of r.notes) list.append(noteEl(n));
+          if (r.notes.length) oldest = r.notes[r.notes.length - 1].id;
+          total = r.total;
+          $('.more').hidden = !r.more;
+          update();
+        }, showError);
+      $('.sign').onclick = () =>
+        call('guestbook.sign').then((n) => {
+          if (!n) return;
+          list.prepend(noteEl(n));
+          total++;
+          update();
+        }, showError);
+      $('.more').onclick = load;
+      load();
+    }
+  });
+
   // --- Messages from the browser ---
 
   addEventListener('message', (e) => {
@@ -234,8 +349,15 @@
       user = msg.user;
       renderUserElements();
       dispatchEvent(new CustomEvent('biggle:user', { detail: user && { ...user } }));
+    } else if (msg.type === 'find') {
+      // The browser's find bar (⌘F).
+      const result = typeof msg.text === 'string' ? finder.find(msg.text, msg.dir) : { count: 0, index: -1 };
+      post({ type: 'found', id: msg.id, ...result });
+    } else if (msg.type === 'find-clear') {
+      finder.clear();
     }
   });
+  const finder = createFinder(() => document.body);
 
   // --- Links, forms and pop-ups go through the browser ---
 
@@ -286,6 +408,20 @@
 
   // --- Browser shortcuts and back/forward still work while the page has focus ---
 
+  // By the same names the browser uses (src/lib/keys.ts). History is ⌘Y on a Mac, Ctrl+H elsewhere.
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const SHORTCUTS = new Set([
+    't', 'shift+t', 'w', 'l', 'r', '[', ']', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'd', 'shift+b', 'f', 'g', 'shift+g', '=', '-', '0', mac ? 'y' : 'h',
+  ]);
+  function shortcutName(e) {
+    let key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (key === '+') key = '=';
+    if (key === '_') key = '-';
+    if (key === '=' || key === '-') return key;
+    return e.shiftKey ? `shift+${key}` : key;
+  }
+
   const editing = (el) => el instanceof Element && el.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
 
   addEventListener(
@@ -303,9 +439,10 @@
         return;
       }
       if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-      if (!/^([twlr[\]1-9])$/i.test(e.key)) return;
+      const key = shortcutName(e);
+      if (!SHORTCUTS.has(key)) return;
       e.preventDefault();
-      post({ type: 'key', key: e.key });
+      post({ type: 'key', key });
     },
     true,
   );
@@ -369,6 +506,8 @@
       // A token this site's own server can check with the Bigglenet (GET /api/identity/verify)
       // to know who is signed in. null when nobody is.
       idToken: () => call('idToken'),
+      // This site's visit counts: { visits, visitors, today, week }.
+      visits: () => getVisits().then((c) => ({ ...c })),
       storage,
     }),
   });

@@ -1,15 +1,26 @@
 <script lang="ts">
   import { account } from './lib/account.svelte';
+  import { bookmarks } from './lib/bookmarks.svelte';
   import { browser } from './lib/browser.svelte';
+  import { find } from './lib/find.svelte';
+  import { shortcutName } from './lib/keys';
+  import { notices } from './lib/notify.svelte';
   import { desktop, initPlatform, isApp, ownWindowButtons } from './lib/platform';
   import { calls } from './lib/calls.svelte';
   import { chats } from './lib/chats.svelte';
+  import { signing } from './lib/signing.svelte';
   import { sites } from './lib/sites.svelte';
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
   import { startSettings } from './lib/startpage.svelte';
+  import { zoom } from './lib/zoom.svelte';
   import AdminPage from './components/AdminPage.svelte';
   import AdminPages from './components/AdminPages.svelte';
+  import BookmarksBar from './components/BookmarksBar.svelte';
+  import BookmarksPage from './components/BookmarksPage.svelte';
+  import FindBar from './components/FindBar.svelte';
+  import GuestbookDialog from './components/GuestbookDialog.svelte';
+  import HistoryPage from './components/HistoryPage.svelte';
   import RequestsPage from './components/RequestsPage.svelte';
   import SettingsPage from './components/SettingsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
@@ -51,6 +62,13 @@
   // You need a Biggle ID with a confirmed email (or Google) to use Bigglenet.
   const ready = $derived(!!account.user && !account.needsEmail);
 
+  // Unread messages and friend requests on the app's icon.
+  $effect(() => notices.badge(ready ? social.unread : 0));
+  // A notification clicked on a phone (public/sw.js): show that chat.
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    if (e.data?.type === 'open-chat' && typeof e.data.chatId === 'number') social.showChat(e.data.chatId);
+  });
+
   // Friends, live updates and the review queue follow the signed-in account.
   $effect(() => {
     if (!account.token) return;
@@ -82,7 +100,7 @@
       else browser.forward(tab);
       return;
     }
-    if ((e.metaKey || e.ctrlKey) && !e.altKey && browser.shortcut(e.key)) e.preventDefault();
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && browser.shortcut(shortcutName(e))) e.preventDefault();
   }
 
   // The mouse's back and forward buttons.
@@ -138,11 +156,21 @@
   <div class="app">
     <TabBar />
     <Toolbar />
+    {#if bookmarks.bar && bookmarks.list.length}
+      <div class="bookmarks"><BookmarksBar /></div>
+    {/if}
     <div class="progress" class:on={browser.active?.loading}></div>
+    {#if find.open}<FindBar />{/if}
     <div class="body">
       <main>
         {#each browser.tabs as tab (tab.id)}
-          <section class="view" class:active={tab.id === browser.activeId}>
+          <!-- The browser's own pages zoom here; sites zoom themselves (PageFrame, SiteView…). -->
+          <section
+            class="view"
+            class:active={tab.id === browser.activeId}
+            data-tab={tab.id}
+            style:zoom={tab.view.type === 'internal' || tab.view.type === 'error' ? zoom.of(tab.url) : null}
+          >
             {#if tab.view.type === 'internal'}
               {#if tab.view.page === 'admin' && tab.view.path === 'pages'}
                 <AdminPages {tab} />
@@ -154,6 +182,10 @@
                 <RequestsPage />
               {:else if tab.view.page === 'settings'}
                 <SettingsPage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'bookmarks'}
+                <BookmarksPage {tab} />
+              {:else if tab.view.page === 'history'}
+                <HistoryPage {tab} />
               {:else if tab.view.page === 'chat'}
                 <ChatApp {tab} path={tab.view.path} />
               {:else if tab.view.page === 'sites' && tab.view.path}
@@ -193,6 +225,9 @@
     <CallWindow />
   {/if}
   <CallToasts />
+  {#if signing.request}
+    <GuestbookDialog />
+  {/if}
 {/if}
 {#if (updates.ready && !updates.dismissed) || (ready && updates.justUpdated)}
   <UpdateBanner />
@@ -239,6 +274,13 @@
   }
   .view.active {
     display: block;
+  }
+
+  /* Phones have no room for the bookmarks bar: biggle://bookmarks has them all. */
+  @media (max-width: 699px) {
+    .bookmarks {
+      display: none;
+    }
   }
 
   .chat-sidebar {

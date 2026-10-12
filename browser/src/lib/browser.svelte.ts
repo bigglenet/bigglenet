@@ -1,10 +1,14 @@
 import { account } from './account.svelte';
 import { api } from './api';
+import { bookmarks } from './bookmarks.svelte';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
+import { find } from './find.svelte';
 import { answerCall } from './frame';
+import { pageHistory } from './history.svelte';
 import { load, type PageError } from './loader';
-import { closeWindow, isApp } from './platform';
+import { closeWindow, isApp, isMac } from './platform';
 import { startSettings } from './startpage.svelte';
+import { zoom } from './zoom.svelte';
 import { saveLocal } from './storage';
 import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START, withHash, type InternalPage } from './url';
 
@@ -40,6 +44,14 @@ const controllers = new Map<number, AbortController>();
 // The open tabs, so a reload (a refresh from a menu, F5) brings them back. sessionStorage lasts
 // as long as the window, so quitting and reopening still starts fresh.
 const SAVED_TABS = 'biggle:tabs';
+// Closed tabs ⌘⇧T (Ctrl+Shift+T) can bring back, newest last.
+const MAX_CLOSED = 25;
+
+/** A closed tab: where it was, and its back and forward list. */
+export type ClosedTab = { url: string; title: string; history: string[]; index: number; at: number; closedAt: number };
+
+// Sites already counted as visited today (once per site per day, see server/src/visitors.ts).
+const counted = new Set<string>();
 
 class Browser {
   tabs = $state<Tab[]>([]);
@@ -50,6 +62,8 @@ class Browser {
   addressFocus = $state(0);
   /** The mobile tab switcher is showing. */
   switcher = $state(false);
+  /** Recently closed tabs, newest last. */
+  closed = $state<ClosedTab[]>([]);
 
   get active(): Tab | undefined {
     return this.tabs.find((t) => t.id === this.activeId);
@@ -104,6 +118,12 @@ class Browser {
   closeTab(id: number) {
     const i = this.tabs.findIndex((t) => t.id === id);
     if (i === -1) return;
+    const tab = this.tabs[i];
+    if (tab.history.some((url) => url !== START)) {
+      const closed = { url: tab.url, title: tab.title, history: [...tab.history], index: tab.index, at: i, closedAt: Date.now() };
+      this.closed = [...this.closed, closed].slice(-MAX_CLOSED);
+    }
+    if (find.open && this.activeId === id) find.close();
     controllers.get(id)?.abort();
     controllers.delete(id);
     this.tabs.splice(i, 1);
@@ -114,6 +134,29 @@ class Browser {
       else this.newTab();
     }
     else if (this.activeId === id) this.activeId = this.tabs[Math.min(i, this.tabs.length - 1)].id;
+  }
+
+  /** Bring back a closed tab (the last one, unless another is given), with its back and forward list. */
+  reopenClosed(closed = this.closed.at(-1)) {
+    if (!closed) return;
+    this.closed = this.closed.filter((c) => c !== closed);
+    const after = this.tabs[Math.min(closed.at, this.tabs.length) - 1]?.id;
+    const tab = this.newTab(closed.url, { after });
+    if (after === undefined && this.tabs.length > 1) {
+      // It was the first tab: put it back first.
+      const at = this.tabs.findIndex((t) => t.id === tab.id);
+      const [moved] = this.tabs.splice(at, 1);
+      this.tabs.unshift(moved);
+    }
+    const reopened = this.tabs.find((t) => t.id === tab.id)!;
+    reopened.history = closed.history;
+    reopened.index = Math.min(closed.index, closed.history.length - 1);
+  }
+
+  /** A page's title arrived. */
+  titled(tab: Tab, title: string) {
+    tab.title = title;
+    if (!tab.preview) pageHistory.retitle(tab.url, title);
   }
 
   /** Handle whatever was typed into an address box: open an address, or search with Nox. */
@@ -138,6 +181,7 @@ class Browser {
     }
     tab.url = u.href;
     controllers.get(tab.id)?.abort();
+    find.pageChanged(tab.id);
 
     // chat.biggle is the built-in chat app.
     if (u.kind === 'internal' || u.name === 'chat') {
@@ -177,14 +221,27 @@ class Browser {
       }
       if (result.type === 'page') {
         tab.view = { type: 'page', site: siteKey(u), srcdoc: result.srcdoc };
+        this.visited(tab, siteKey(u), mode);
       } else if (result.type === 'web') {
         tab.view = { type: 'web', site: siteKey(u), url: result.url, window: result.window };
         if (result.title) tab.title = result.title;
+        this.visited(tab, siteKey(u), mode);
       } else {
         tab.view = { type: 'error', error: result.error };
         tab.loading = false;
       }
     });
+  }
+
+  /** A site's page opened: keep it in history, and count the visit (not for previews). */
+  private visited(tab: Tab, site: string, mode: Mode) {
+    if (tab.preview) return;
+    if (mode !== 'none') pageHistory.add(tab.url, tab.title);
+    const today = `${site}:${new Date().toDateString()}`;
+    if (!counted.has(today)) {
+      counted.add(today);
+      api('POST', `/api/sites/${encodeURIComponent(site)}/visit`).catch(() => counted.delete(today));
+    }
   }
 
   /** Open a site that's waiting for approval, as its owner or an admin. `site` is its key. */
@@ -235,26 +292,49 @@ class Browser {
     this.addressFocus++;
   }
 
-  /** Keyboard shortcuts, from the shell or forwarded by a page. Returns true if handled. */
+  /**
+   * Keyboard shortcuts (⌘ or Ctrl and a key, by name: see keys.ts), from the browser, forwarded by
+   * a page, or picked from the Mac's menu bar. Returns true if handled.
+   */
   shortcut(key: string): boolean {
     const tab = this.active;
-    const k = key.toLowerCase();
-    if (k === 't') {
+    if (key === 't') {
       this.newTab();
       this.focusAddress();
-    } else if (k === 'w') {
+    } else if (key === 'shift+t') {
+      this.reopenClosed();
+    } else if (key === 'w') {
       if (tab) this.closeTab(tab.id);
-    } else if (k === 'l') {
+    } else if (key === 'l') {
       this.focusAddress();
-    } else if (k === 'r') {
+    } else if (key === 'r') {
       if (tab) this.reload(tab);
-    } else if (k === '[') {
+    } else if (key === '[') {
       if (tab) this.back(tab);
-    } else if (k === ']') {
+    } else if (key === ']') {
       if (tab) this.forward(tab);
-    } else if (/^[1-9]$/.test(k)) {
-      const target = k === '9' ? this.tabs.at(-1) : this.tabs[Number(k) - 1];
+    } else if (/^[1-9]$/.test(key)) {
+      const target = key === '9' ? this.tabs.at(-1) : this.tabs[Number(key) - 1];
       if (target) this.activeId = target.id;
+    } else if (key === 'd') {
+      if (tab && bookmarks.canBookmark(tab.url)) bookmarks.ask++;
+    } else if (key === 'shift+b') {
+      bookmarks.showBar(!bookmarks.bar);
+    } else if (key === 'bookmarks') {
+      this.newTab('biggle://bookmarks', { after: tab?.id });
+    } else if (key === (isMac ? 'y' : 'h')) {
+      this.newTab('biggle://history', { after: tab?.id });
+    } else if (key === 'f') {
+      if (tab) find.show(tab.id);
+    } else if (key === 'g') {
+      if (find.open) find.next();
+      else if (tab) find.show(tab.id);
+    } else if (key === 'shift+g') {
+      if (find.open) find.prev();
+    } else if (key === '=' || key === '-' || key === '0') {
+      if (!tab || tab.url === START) return true;
+      if (key === '0') zoom.reset(tab.url);
+      else zoom.step(tab.url, key === '=' ? 1 : -1);
     } else {
       return false;
     }
@@ -267,7 +347,7 @@ class Browser {
       case 'meta': {
         const u = parse(tab.url);
         const fallback = u?.kind === 'site' ? siteHost(u.name, u.tld) : 'Biggle';
-        tab.title = typeof msg.title === 'string' && msg.title.trim() ? msg.title.trim().slice(0, 200) : fallback;
+        this.titled(tab, typeof msg.title === 'string' && msg.title.trim() ? msg.title.trim().slice(0, 200) : fallback);
         const icon = msg.icon;
         const allowed = (i: string) => i.startsWith(SITE_PREFIX) || i.startsWith(PREVIEW_PREFIX) || i.startsWith('data:image/');
         tab.icon = typeof icon === 'string' && allowed(icon) ? icon : null;
@@ -331,6 +411,8 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'requests') return 'Feature requests';
   if (page === 'chat') return 'Chat';
   if (page === 'settings') return 'Settings';
+  if (page === 'bookmarks') return 'Bookmarks';
+  if (page === 'history') return 'History';
   return path ? `Editing ${path}` : 'My sites';
 }
 

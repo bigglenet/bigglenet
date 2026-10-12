@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('bigglenet', {
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     onMaximizedChange: (callback) => on('window:maximized', callback),
+    isFocused: () => ipcRenderer.invoke('window:is-focused'),
+    focus: () => ipcRenderer.invoke('window:focus'),
   },
   links: {
     initial: () => ipcRenderer.invoke('links:initial'),
@@ -41,7 +43,11 @@ contextBridge.exposeInMainWorld('bigglenet', {
     openWindow: (site, url, title) => ipcRenderer.invoke('site-window:open', site, url, title),
     closeWindow: (site) => ipcRenderer.invoke('site-window:close', site),
     onWindowClosed: (callback) => on('site-window:closed', callback),
+    find: (site, text, options) => ipcRenderer.invoke('site-view:find', site, text, options),
+    stopFind: (site) => ipcRenderer.invoke('site-view:find-stop', site),
+    zoom: (site, factor) => ipcRenderer.invoke('site-view:zoom', site, factor),
   },
+  badge: (count, image) => ipcRenderer.invoke('app:badge', count, image),
   onShortcut: (callback) => on('shortcut', callback),
   info: () => ipcRenderer.invoke('app:info'),
   updates: {

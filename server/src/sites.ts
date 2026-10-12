@@ -5,6 +5,7 @@ import { forget } from './gateway';
 import { blobBytes, HttpError, json, NAME_RE, readJson, siteAddress, siteKey, splitAddress, str } from './http';
 import { notify } from './live';
 import { TEMPLATES, templateFiles, type Template } from './templates';
+import { today } from './visitors';
 
 const MAX_SITES = 3;
 export const MAX_FILE = 1_000_000;
@@ -15,7 +16,7 @@ const PREVIEW_TTL = 60 * 60;
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
   'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
-  'newtab', 'settings',
+  'newtab', 'settings', 'bookmarks', 'history',
 ]);
 
 /** The two address endings. Only admins and people they trust can use .b. */
@@ -100,13 +101,15 @@ export async function moveSite(env: Env, key: string, tld: Tld): Promise<string>
   if (await env.DB.prepare('SELECT 1 FROM names WHERE name = ?').bind(next).first()) {
     throw new HttpError(409, 'name_taken', `${siteAddress(next)} is taken.`);
   }
-  // New row, then the files, then the old row, so every file always belongs to a site.
+  // New row, then the files, visits and guestbook, then the old row, so they always belong to a site.
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO names (name, url, title, owner_id, status, review_note, created_at, updated_at, live, tld)
        SELECT ?, url, title, owner_id, status, review_note, created_at, unixepoch(), live, ? FROM names WHERE name = ?`,
     ).bind(next, tld, key),
     env.DB.prepare('UPDATE site_files SET site = ? WHERE site = ?').bind(next, key),
+    env.DB.prepare('UPDATE site_visits SET site = ? WHERE site = ?').bind(next, key),
+    env.DB.prepare('UPDATE guestbook SET site = ? WHERE site = ?').bind(next, key),
     env.DB.prepare('DELETE FROM names WHERE name = ?').bind(key),
   ]);
   forget(key);
@@ -147,10 +150,20 @@ async function touch(env: Env, name: string) {
 
 export async function mySites(req: Request, env: Env): Promise<Response> {
   const user = await requireUser(req, env);
-  const { results } = await env.DB.prepare('SELECT * FROM names WHERE owner_id = ? ORDER BY created_at DESC')
-    .bind(user.id)
-    .all<SiteRow>();
-  return json({ sites: results.map(publicSite), limit: user.is_admin ? null : MAX_SITES, short: canUseShort(user) });
+  // With how many visits each has had, in all and in the last 7 days.
+  const { results } = await env.DB.prepare(
+    `SELECT n.*,
+       (SELECT COUNT(*) FROM site_visits v WHERE v.site = n.name) AS visits,
+       (SELECT COUNT(*) FROM site_visits v WHERE v.site = n.name AND v.day > ?) AS week
+     FROM names n WHERE owner_id = ? ORDER BY created_at DESC`,
+  )
+    .bind(today() - 7, user.id)
+    .all<SiteRow & { visits: number; week: number }>();
+  return json({
+    sites: results.map((s) => ({ ...publicSite(s), visits: s.visits, week: s.week })),
+    limit: user.is_admin ? null : MAX_SITES,
+    short: canUseShort(user),
+  });
 }
 
 export async function checkAvailable(req: Request, env: Env, raw: string): Promise<Response> {

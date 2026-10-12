@@ -25,7 +25,7 @@
     onsaving,
   }: { name: string; site: EasySite; base: string; onsaving: (state: { saving: boolean; error: string; dirty: boolean }) => void } = $props();
 
-  const ADD: BlockType[] = ['heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter'];
+  const ADD: BlockType[] = ['heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter', 'visits', 'guestbook'];
   const AUTOSAVE_MS = 800;
 
   let savedJson = $state(JSON.stringify(site));
@@ -127,6 +127,8 @@
       // visitor sees and doesn't count your edits as visits.
       if (String(msg.method).startsWith('storage.')) {
         reply({ type: 'result', id: msg.id, value: msg.method === 'storage.keys' ? [] : undefined });
+      } else if (msg.method === 'guestbook.sign' || msg.method === 'guestbook.delete') {
+        reply({ type: 'result', id: msg.id, error: 'This is a preview. Use the guestbook on your site itself.' });
       } else {
         answerCall(name, msg, reply);
       }
@@ -204,6 +206,10 @@
             <p class="hint">Says hi to each visitor by their Biggle name.</p>
           {:else if b.type === 'counter'}
             <p class="hint">Shows each visitor how many times they've come by.</p>
+          {:else if b.type === 'visits'}
+            <p class="hint">Shows how many visits your site has had from everyone (each person counts once a day).</p>
+          {:else if b.type === 'guestbook'}
+            <p class="hint">Visitors can leave you a note. You can take down any note on your site.</p>
           {:else}
             <p class="hint">A line between sections.</p>
           {/if}

@@ -3,7 +3,8 @@ import { app, Menu } from 'electron';
 
 /**
  * macOS needs a menu bar for ⌘C, ⌘V, ⌘Q and the like. It leaves out Reload (⌘R) and Close (⌘W):
- * the Biggle browser uses those for its tabs. Windows and Linux get none, as before.
+ * the Biggle browser uses those for its tabs. Windows and Linux get none, as before: the
+ * browser's own shortcuts work there without one.
  */
 export function setupMenu(getMain) {
   if (process.platform !== 'darwin') {
@@ -16,6 +17,18 @@ export function setupMenu(getMain) {
     main?.webContents.send('updates:check-requested');
     main?.focus();
   };
+  // Menu items for the browser's own shortcuts. The browser handles the keys itself (also while a
+  // site has the keyboard, see sites.js), so the menu only shows them.
+  const command = (label, name, accelerator) => ({
+    label,
+    accelerator,
+    registerAccelerator: false,
+    click: () => {
+      const main = getMain();
+      main?.webContents.focus();
+      main?.webContents.send('shortcut', name);
+    },
+  });
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
@@ -34,7 +47,32 @@ export function setupMenu(getMain) {
         ],
       },
       { role: 'editMenu' },
-      { label: 'View', submenu: [{ role: 'togglefullscreen' }] },
+      {
+        label: 'View',
+        submenu: [
+          command('Find…', 'f', 'Cmd+F'),
+          command('Find Next', 'g', 'Cmd+G'),
+          command('Find Previous', 'shift+g', 'Shift+Cmd+G'),
+          { type: 'separator' },
+          command('Actual Size', '0', 'Cmd+0'),
+          command('Zoom In', '=', 'Cmd+Plus'),
+          command('Zoom Out', '-', 'Cmd+-'),
+          { type: 'separator' },
+          { role: 'togglefullscreen' },
+        ],
+      },
+      {
+        label: 'History',
+        submenu: [command('Show All History', 'y', 'Cmd+Y'), command('Reopen Closed Tab', 'shift+t', 'Shift+Cmd+T')],
+      },
+      {
+        label: 'Bookmarks',
+        submenu: [
+          command('Bookmark This Page…', 'd', 'Cmd+D'),
+          command('Show All Bookmarks', 'bookmarks'),
+          command('Show or Hide the Bookmarks Bar', 'shift+b', 'Shift+Cmd+B'),
+        ],
+      },
       { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }] },
     ]),
   );

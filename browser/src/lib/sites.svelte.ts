@@ -11,6 +11,9 @@ export type MySite = {
   note: string | null;
   createdAt: number;
   updatedAt: number;
+  /** Visits (one per person per day): in all, and in the last 7 days. */
+  visits?: number;
+  week?: number;
 };
 
 class Sites {

@@ -36,19 +36,23 @@
     search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
     expand: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
     shrink: 'M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7',
+    down: 'M6 9l6 6 6-6',
+    star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5z',
+    clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+    bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   };
   export type IconName = keyof typeof PATHS;
 </script>
 
 <script lang="ts">
-  let { name, size = 18 }: { name: IconName; size?: number } = $props();
+  let { name, size = 18, filled = false }: { name: IconName; size?: number; filled?: boolean } = $props();
 </script>
 
 <svg
   width={size}
   height={size}
   viewBox="0 0 24 24"
-  fill="none"
+  fill={filled ? 'currentColor' : 'none'}
   stroke="currentColor"
   stroke-width="2"
   stroke-linecap="round"

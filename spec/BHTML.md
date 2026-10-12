@@ -50,6 +50,8 @@ These only do something in Biggle. In a normal browser they show their fallback 
 | `<biggle-me>guest</biggle-me>` | Replaced with the visitor's Biggle username, or `guest` |
 | `<biggle-signed-in>…</biggle-signed-in>` | Content shown only to signed-in visitors |
 | `<biggle-signed-out>…</biggle-signed-out>` | Content shown only to signed-out visitors |
+| `<biggle-visits></biggle-visits>` | How many visits the site has had (each person counts once a day). `kind="visitors"` counts different people, `kind="today"` and `kind="week"` the last day and 7 days |
+| `<biggle-guestbook></biggle-guestbook>` | A guestbook: visitors leave notes, newest first. Signing opens a box in the browser itself, so a page can't sign it for anyone. The note's writer, the site's owner and admins can take a note down. `heading="…"` changes its title. It uses the page's `--accent` colour, and its parts can be styled with `::part(note)`, `::part(author)`, `::part(date)`, `::part(body)`, `::part(button)` and `::part(title)` |
 
 ## The `biggle` JavaScript API
 
@@ -64,6 +66,7 @@ await biggle.sites()     // [{ name: "hello", title: "Hello, Bigglenet" }, …] 
 biggle.go("other.bhtml") // navigate (relative, biggle:// or https://)
 await biggle.copy("text") // copy to the clipboard (call it from a click)
 await biggle.idToken()   // proof of who's signed in, for your own server (see below), or null
+await biggle.visits()    // { visits: 120, visitors: 31, today: 4, week: 22 } for this site
 
 // Per-site storage, saved by the browser.
 await biggle.storage.set("visits", 3)  // any JSON value

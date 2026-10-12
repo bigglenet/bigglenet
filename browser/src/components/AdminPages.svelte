@@ -26,6 +26,7 @@
     owner: string | null;
     files: number;
     size: number;
+    visits?: number;
     created_at: number;
   };
 
@@ -244,6 +245,7 @@
                       Made in the editor by {site.owner ?? 'a deleted account'} · {site.files} file{site.files === 1 ? '' : 's'} · {kb(site.size)}
                     {/if}
                     · since {date(site.created_at)}
+                    {#if site.visits}· {site.visits.toLocaleString()} {site.visits === 1 ? 'visit' : 'visits'}{/if}
                   </span>
                   {#if site.note && site.status === 'rejected'}<span class="small note">“{site.note}”</span>{/if}
                 </div>

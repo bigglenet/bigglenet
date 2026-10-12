@@ -14,6 +14,7 @@
 //   /api/chats*                      chats, group chats and calls (chat.biggle)
 //   /api/messages/*                  one-to-one messages, the old way
 //   /api/requests*                   feature requests and votes
+//   /api/sites/:key/visit(s), /guestbook   visit counts and guestbooks (visitors.ts)
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
@@ -28,6 +29,7 @@ import { receive } from './inbox';
 import { connect } from './live';
 import * as sites from './sites';
 import * as social from './social';
+import * as visitors from './visitors';
 
 export { Live } from './live';
 
@@ -77,6 +79,11 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.readFile],
   ['PUT', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.writeFile],
   ['DELETE', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.deleteFile],
+  ['POST', /^\/api\/sites\/([^/]+)\/visit$/, visitors.visit],
+  ['GET', /^\/api\/sites\/([^/]+)\/visits$/, visitors.visits],
+  ['GET', /^\/api\/sites\/([^/]+)\/guestbook$/, visitors.guestbook],
+  ['POST', /^\/api\/sites\/([^/]+)\/guestbook$/, visitors.sign],
+  ['DELETE', /^\/api\/guestbook\/(\d+)$/, visitors.unsign],
 
   ['POST', /^\/api\/import\/fetch$/, fetchForImport],
 

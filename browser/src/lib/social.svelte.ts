@@ -4,6 +4,7 @@ import { api } from './api';
 import { calls } from './calls.svelte';
 import { chats, type ChatMessage } from './chats.svelte';
 import { SERVER } from './config';
+import { notices } from './notify.svelte';
 import { sites } from './sites.svelte';
 
 export type Friend = { username: string; nickname: string | null; unread: number; lastAt: number | null; online: boolean };
@@ -113,13 +114,16 @@ class Social {
   private onEvent(ev: LiveEvent) {
     switch (ev.type) {
       case 'chat-message':
-        return chats.onMessage(ev.message);
+        chats.onMessage(ev.message);
+        return this.notifyMessage(ev.message);
       case 'chats':
         return chats.refresh();
       case 'chat-read':
         return chats.onRead(ev.chatId);
       case 'call':
-        return calls.onCall(ev.chatId, ev.members, ev.ring);
+        calls.onCall(ev.chatId, ev.members, ev.ring);
+        if (ev.ring) notices.call(this.nameOf(ev.ring.from), ev.ring.video, ev.chatId, () => {});
+        return;
       case 'call-declined':
         return calls.onDeclined(ev.chatId, ev.username);
       case 'signal':
@@ -135,6 +139,15 @@ class Social {
       case 'site':
         return sites.onEvent(ev.type);
     }
+  }
+
+  /** A notification for a message from someone else, when you're not looking at Bigglenet. */
+  private notifyMessage(m: ChatMessage) {
+    if (m.kind !== 'text' || !m.from || m.from === account.user?.username) return;
+    const chat = chats.get(m.chatId);
+    const from = this.nameOf(m.from);
+    const title = chat?.kind === 'group' ? `${from} in ${chats.title(chat)}` : from;
+    notices.message(title, m.body, m.chatId, () => this.showChat(m.chatId));
   }
 
   async refreshFriends() {

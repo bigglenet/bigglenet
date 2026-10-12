@@ -11,7 +11,9 @@ export type Block =
   | { id: string; type: 'button'; label: string; url: string }
   | { id: string; type: 'divider' }
   | { id: string; type: 'greeting' }
-  | { id: string; type: 'counter' };
+  | { id: string; type: 'counter' }
+  | { id: string; type: 'visits' }
+  | { id: string; type: 'guestbook' };
 
 export type BlockType = Block['type'];
 
@@ -49,6 +51,8 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
   divider: 'Divider',
   greeting: 'Greeting',
   counter: 'Visit counter',
+  visits: 'Total visits',
+  guestbook: 'Guestbook',
 };
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -114,6 +118,10 @@ function block(b: Block): string {
       return '<p class="greeting">Hi, <biggle-me>there</biggle-me>! Thanks for stopping by.</p>';
     case 'counter':
       return `<p class="counter">You've been here <strong data-visits>1</strong> <span data-times>time</span>.</p>`;
+    case 'visits':
+      return '<p class="counter">Visits so far: <strong><biggle-visits></biggle-visits></strong></p>';
+    case 'guestbook':
+      return '<biggle-guestbook></biggle-guestbook>';
   }
 }
 

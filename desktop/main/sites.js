@@ -15,10 +15,27 @@ const PARTITION = 'persist:sites';
 // What sites may use. No camera, microphone, location or notifications.
 const ALLOWED = new Set(['fullscreen', 'pointerLock', 'keyboardLock', 'clipboard-sanitized-write']);
 
-// Bigglenet's own shortcuts still work while a site has the keyboard.
-const SHORTCUT = /^([twlr[\]]|[1-9])$/;
-
 const isMac = process.platform === 'darwin';
+
+// Bigglenet's own shortcuts still work while a site has the keyboard, by the same names the
+// browser uses (browser/src/lib/keys.ts): new tab, reopen a closed one, bookmark, find, zoom,
+// history (⌘Y on a Mac, Ctrl+H elsewhere)…
+const SHORTCUTS = new Set([
+  't', 'shift+t', 'w', 'l', 'r', '[', ']', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  'd', 'shift+b', 'f', 'g', 'shift+g', '=', '-', '0', isMac ? 'y' : 'h',
+]);
+// These act on the site itself, so the keyboard stays with it.
+const IN_PLACE = new Set(['g', 'shift+g', '=', '-', '0']);
+const ZOOMS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+
+/** Same as shortcutName() in browser/src/lib/keys.ts. */
+function shortcutName(input) {
+  let key = input.key.length === 1 ? input.key.toLowerCase() : input.key;
+  if (key === '+') key = '=';
+  if (key === '_') key = '-';
+  if (key === '=' || key === '-') return key;
+  return input.shift ? `shift+${key}` : key;
+}
 
 export function setupSites(getMain) {
   const sites = session.fromPartition(PARTITION);
@@ -43,16 +60,22 @@ export function setupSites(getMain) {
     contents.on('before-input-event', (event, input) => {
       if (input.type !== 'keyDown') return;
       const mod = isMac ? input.meta && !input.control : input.control && !input.meta;
-      const key = input.key.length === 1 ? input.key.toLowerCase() : input.key;
-      if (inTab && ((mod && !input.alt && SHORTCUT.test(key)) || key === 'F5')) {
+      const key = input.key === 'F5' ? 'r' : mod && !input.alt ? shortcutName(input) : null;
+      if (inTab && key && (SHORTCUTS.has(key) || input.key === 'F5')) {
         // In a tab, they work the Biggle browser, like they do everywhere else in it.
         event.preventDefault();
-        getMain()?.webContents.focus();
-        getMain()?.webContents.send('shortcut', key === 'F5' ? 'r' : key);
-      } else if (!inTab && mod && key === 'w') {
-        // In its own window, ⌘W / Ctrl+W closes that window.
+        if (!IN_PLACE.has(key)) getMain()?.webContents.focus();
+        getMain()?.webContents.send('shortcut', key);
+      } else if (!inTab && key === 'w') {
+        // In its own window, ⌘W / Ctrl+W closes that window…
         event.preventDefault();
         BrowserWindow.fromWebContents(contents)?.close();
+      } else if (!inTab && (key === '=' || key === '-' || key === '0')) {
+        // …and ⌘+ / ⌘− / ⌘0 zoom it.
+        event.preventDefault();
+        const i = ZOOMS.findIndex((z) => z >= contents.getZoomFactor() - 0.001);
+        const next = key === '0' ? 1 : ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, (i === -1 ? ZOOMS.length - 1 : i) + (key === '=' ? 1 : -1)))];
+        contents.setZoomFactor(next);
       }
     });
   }
@@ -66,6 +89,8 @@ export function setupSites(getMain) {
       view = new WebContentsView({ webPreferences: { partition: PARTITION, sandbox: true, contextIsolation: true } });
       views.set(site, view);
       wire(view.webContents, { inTab: true });
+      // The zoom the person picked for this site (Chromium resets it when the page changes).
+      view.webContents.on('did-navigate', () => view.webContents.setZoomFactor(zooms.get(site) ?? 1));
       // The tab shows the page's title, like any other tab.
       view.webContents.on('page-title-updated', (_e, title) => main.webContents.send('site-view:title', site, title));
       main.contentView.addChildView(view);
@@ -82,10 +107,41 @@ export function setupSites(getMain) {
 
   ipcMain.handle('site-view:hide', (_event, site) => views.get(site)?.setVisible(false));
 
+  const zooms = new Map();
+  ipcMain.handle('site-view:zoom', (_event, site, factor) => {
+    const z = Number(factor);
+    if (!(z >= 0.25 && z <= 5)) return;
+    zooms.set(site, z);
+    views.get(site)?.webContents.setZoomFactor(z);
+  });
+
+  // Find in page: Chromium's own, for sites in their tabs. Resolves with how many matches there
+  // are and which one is showing (from 0), or null when the site isn't open.
+  ipcMain.handle('site-view:find', (_event, site, text, { forward = true, first = true } = {}) => {
+    const contents = views.get(site)?.webContents;
+    if (!contents || typeof text !== 'string' || !text) return null;
+    return new Promise((resolve) => {
+      let id = 0;
+      const timer = setTimeout(() => finish(null), 3000);
+      function finish(result) {
+        clearTimeout(timer);
+        contents.off('found-in-page', onFound);
+        resolve(result);
+      }
+      function onFound(_e, result) {
+        if (result.requestId === id && result.finalUpdate) finish({ count: result.matches, index: result.activeMatchOrdinal - 1 });
+      }
+      contents.on('found-in-page', onFound);
+      id = contents.findInPage(text, { forward, findNext: first });
+    });
+  });
+  ipcMain.handle('site-view:find-stop', (_event, site) => views.get(site)?.webContents.stopFindInPage('clearSelection'));
+
   function closeView(site) {
     const view = views.get(site);
     if (!view) return;
     views.delete(site);
+    zooms.delete(site);
     getMain()?.contentView.removeChildView(view);
     view.webContents.close();
   }
