@@ -27,7 +27,7 @@
   {#each friends as f (f.username)}
     {@const on = picked.includes(f.username)}
     <button class="person" class:on role="checkbox" aria-checked={on} onclick={() => toggle(f.username)}>
-      <Avatar name={f.nickname || f.username} size={34} online={f.online} />
+      <Avatar name={f.nickname || f.username} user={f.username} size={34} online={f.online} />
       <span class="names">
         <strong>{f.nickname || f.username}</strong>
         {#if f.nickname}<span>@{f.username}</span>{/if}

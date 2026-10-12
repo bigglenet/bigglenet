@@ -62,7 +62,7 @@
     {#if chat.kind === 'group'}
       <span class="gavatar" style:--size="72px"><Icon name="users" size={30} /></span>
     {:else}
-      <Avatar name={title} size={72} online={friend?.online ?? false} />
+      <Avatar name={title} user={other} size={72} online={friend?.online ?? false} />
     {/if}
     <strong>{title}</strong>
     <span class="muted">
@@ -116,7 +116,7 @@
     {#each members as u (u)}
       {@const f = social.friends.find((x) => x.username === u)}
       <div class="person">
-        <Avatar name={social.nameOf(u)} size={34} online={f ? f.online : undefined} />
+        <Avatar name={social.nameOf(u)} user={u} size={34} online={f ? f.online : undefined} />
         <span class="names">
           <strong>{u === me ? 'You' : social.nameOf(u)}</strong>
           {#if u !== me && social.nameOf(u) !== u}<span>@{u}</span>{/if}

@@ -3,7 +3,15 @@
 import { mailMode, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 
-export type User = { id: number; username: string; is_admin: number; trusted: number; email: string | null; email_verified: number };
+export type User = {
+  id: number;
+  username: string;
+  is_admin: number;
+  trusted: number;
+  email: string | null;
+  email_verified: number;
+  avatar_v: number | null;
+};
 
 const ITERATIONS = 100_000;
 const SESSION_TTL = 90 * 86400;
@@ -43,9 +51,11 @@ export const publicUser = (u: User) => ({
   trusted: !!u.trusted,
   email: u.email,
   emailVerified: !!u.email_verified,
+  /** Changes with each new profile picture; null when there's none. */
+  avatar: u.avatar_v ?? null,
 });
 
-const USER_COLUMNS = 'u.id, u.username, u.is_admin, u.trusted, u.email, u.email_verified';
+const USER_COLUMNS = 'u.id, u.username, u.is_admin, u.trusted, u.email, u.email_verified, u.avatar_v';
 
 export async function createSession(env: Env, userId: number): Promise<string> {
   const token = base64url(crypto.getRandomValues(new Uint8Array(32)));

@@ -12,6 +12,8 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Profile pictures, and pictures, files and voice messages sent in chats.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "bigglenet-files" }],
   "durable_objects": {
     "bindings": [{ "name": "LIVE", "class_name": "Live" }]
   },
@@ -32,7 +34,7 @@
   "assets": {
     "directory": "../browser/dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/site/*", "/preview/*"]
+    "run_worker_first": ["/api/*", "/site/*", "/preview/*", "/files/*"]
   },
   "routes": [{ "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }],
   "workers_dev": false

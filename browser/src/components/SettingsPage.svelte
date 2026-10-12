@@ -6,7 +6,9 @@
   import { browser, type Tab } from '../lib/browser.svelte';
   import { bookmarks } from '../lib/bookmarks.svelte';
   import { CHANGELOG } from '../lib/changelog';
+  import { i18n, t, type LangChoice } from '../lib/i18n.svelte';
   import { notices } from '../lib/notify.svelte';
+  import { people } from '../lib/people.svelte';
   import { desktop, isMac } from '../lib/platform';
   import { startSettings as settings } from '../lib/startpage.svelte';
   import { updates } from '../lib/updates.svelte';
@@ -116,6 +118,39 @@
         <button class="ghost" onclick={() => browser.go(tab, 'biggle://history')}><Icon name="clock" size={15} /> History</button>
       </div>
       <p class="muted small">Bookmarks and history stay on this device.</p>
+    </section>
+
+    <section id="language">
+      <h2>{t('Language')}</h2>
+      <select class="select" value={i18n.choice} onchange={(e) => i18n.set(e.currentTarget.value as LangChoice)} aria-label={t('Language')}>
+        <option value="system">{t('Same as this device')}</option>
+        <option value="en">English</option>
+        <option value="tr">Türkçe</option>
+      </select>
+    </section>
+
+    <section id="privacy">
+      <h2>{t('Privacy')}</h2>
+      <label class="choice">
+        <input type="checkbox" checked={people.shareActivity} onchange={(e) => people.update({ shareActivity: e.currentTarget.checked }).catch(() => {})} />
+        <span>
+          <strong>{t('Let friends see what I’m up to')}</strong><br />
+          <span class="muted">{t('Like “Playing GTA V”: the site you’re on in Bigglenet. Private tabs are never shared.')}</span>
+        </span>
+      </label>
+      <h3>{t('Blocked people')}</h3>
+      {#if people.blocked.length}
+        <ul class="blocked">
+          {#each people.blocked as name (name)}
+            <li>
+              <span>{name}</span>
+              <button class="ghost" onclick={() => people.unblock(name).catch(() => {})}>{t('Unblock')}</button>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="muted small">{t('Nobody. Block someone from their profile.')}</p>
+      {/if}
     </section>
 
     <section id="notifications">
@@ -417,6 +452,36 @@
     padding-left: 20px;
     font-size: 14px;
     line-height: 1.5;
+  }
+  .select {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+  }
+  h3 {
+    margin: 14px 0 8px;
+    font-size: 14px;
+  }
+  .blocked {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .blocked li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .blocked li:first-child {
+    border-top: 0;
   }
   .pill {
     padding: 1px 8px;

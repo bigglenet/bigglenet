@@ -1,4 +1,5 @@
 import { SERVER } from './config';
+import { i18n } from './i18n.svelte';
 
 export class ApiError extends Error {
   constructor(
@@ -31,6 +32,8 @@ export async function api<T = Record<string, never>>(method: string, path: strin
       headers: {
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // The server answers in this language where it can.
+        'Accept-Language': i18n.lang,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -53,7 +56,7 @@ export async function apiFetch(method: string, path: string, body?: BodyInit, ty
       method,
       credentials: 'omit',
       cache: 'no-store',
-      headers: { ...(type ? { 'Content-Type': type } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { ...(type ? { 'Content-Type': type } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Accept-Language': i18n.lang },
       body,
     });
   } catch {

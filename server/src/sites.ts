@@ -4,6 +4,7 @@ import { requireAdmin, requireUser, type User } from './auth';
 import { forget } from './gateway';
 import { blobBytes, HttpError, json, NAME_RE, readJson, siteAddress, siteKey, splitAddress, str } from './http';
 import { notify } from './live';
+import { addNotification } from './notifications';
 import { TEMPLATES, templateFiles, type Template } from './templates';
 import { today } from './visitors';
 
@@ -16,7 +17,7 @@ const PREVIEW_TTL = 60 * 60;
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
   'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
-  'newtab', 'settings', 'bookmarks', 'history',
+  'newtab', 'settings', 'bookmarks', 'history', 'u',
 ]);
 
 /** The two address endings. Only admins and people they trust can use .b. */
@@ -91,6 +92,12 @@ async function getSite(env: Env, key: string): Promise<SiteRow> {
 }
 
 /**
+ * Every table that keeps things by site key (the `site` column). A site moving to its other
+ * ending takes them all with it, so add new ones here.
+ */
+const SITE_TABLES = ['site_files', 'site_visits', 'guestbook', 'achievements'];
+
+/**
  * Move a site to its other ending (hello.biggle ↔ hello.b), files and all. The other address
  * must be free.
  */
@@ -107,9 +114,7 @@ export async function moveSite(env: Env, key: string, tld: Tld): Promise<string>
       `INSERT INTO names (name, url, title, owner_id, status, review_note, created_at, updated_at, live, tld)
        SELECT ?, url, title, owner_id, status, review_note, created_at, unixepoch(), live, ? FROM names WHERE name = ?`,
     ).bind(next, tld, key),
-    env.DB.prepare('UPDATE site_files SET site = ? WHERE site = ?').bind(next, key),
-    env.DB.prepare('UPDATE site_visits SET site = ? WHERE site = ?').bind(next, key),
-    env.DB.prepare('UPDATE guestbook SET site = ? WHERE site = ?').bind(next, key),
+    ...SITE_TABLES.map((table) => env.DB.prepare(`UPDATE ${table} SET site = ? WHERE site = ?`).bind(next, key)),
     env.DB.prepare('DELETE FROM names WHERE name = ?').bind(key),
   ]);
   forget(key);
@@ -377,7 +382,10 @@ async function review(req: Request, env: Env, name: string, status: 'live' | 're
   const site = await getSite(env, name);
   await env.DB.prepare('UPDATE names SET status = ?, review_note = ? WHERE name = ?').bind(status, note, site.name).run();
   forget(site.name);
-  if (site.owner_id) await notify(env, site.owner_id, { type: 'site', name: site.name, status });
+  if (site.owner_id) {
+    await notify(env, site.owner_id, { type: 'site', name: site.name, status });
+    await addNotification(env, site.owner_id, status === 'live' ? 'site-approved' : 'site-rejected', { site: site.name, note });
+  }
   await notifyAdmins(env);
   return json({ site: publicSite(await getSite(env, site.name)) });
 }

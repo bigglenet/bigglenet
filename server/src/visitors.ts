@@ -2,6 +2,8 @@
 // Pages show them with <biggle-visits> and <biggle-guestbook>; owners see the counts in My sites.
 import { requireUser, type User } from './auth';
 import { HttpError, json, readJson, siteAddress, str } from './http';
+import { addNotification } from './notifications';
+import { blockedBetween, blockedIds } from './people';
 
 const GUESTBOOK_PAGE = 30;
 const MAX_NOTE = 500;
@@ -77,8 +79,12 @@ export async function guestbook(req: Request, env: Env, key: string): Promise<Re
     .bind(site.name, before, GUESTBOOK_PAGE + 1)
     .all<Note>();
   const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM guestbook WHERE site = ?').bind(site.name).first<{ n: number }>();
+  const blocked = await blockedIds(env, me.id);
   return json({
-    notes: results.slice(0, GUESTBOOK_PAGE).map((n) => shown(n, site, me)),
+    notes: results
+      .slice(0, GUESTBOOK_PAGE)
+      .filter((n) => !blocked.has(n.user_id))
+      .map((n) => shown(n, site, me)),
     more: results.length > GUESTBOOK_PAGE,
     total: total?.n ?? 0,
   });
@@ -94,10 +100,16 @@ export async function sign(req: Request, env: Env, key: string): Promise<Respons
   const body = str((await readJson(req)).body).trim();
   if (!body) throw new HttpError(400, 'empty', 'Write something first.');
   if (body.length > MAX_NOTE) throw new HttpError(400, 'too_long', `Keep it under ${MAX_NOTE} characters.`);
+  if (site.owner_id && (await blockedBetween(env, site.owner_id, me.id))) {
+    throw new HttpError(403, 'blocked', 'You can’t sign this guestbook.');
+  }
   const row = await env.DB.prepare('INSERT INTO guestbook (site, user_id, body) VALUES (?, ?, ?) RETURNING id, created_at')
     .bind(site.name, me.id, body)
     .first<{ id: number; created_at: number }>();
   const note: Note = { id: row!.id, user_id: me.id, author: me.username, body, created_at: row!.created_at };
+  if (site.owner_id && site.owner_id !== me.id) {
+    await addNotification(env, site.owner_id, 'guestbook', { site: site.name, author: me.username, body: body.slice(0, 140) });
+  }
   return json({ note: shown(note, site, me) }, 201);
 }
 

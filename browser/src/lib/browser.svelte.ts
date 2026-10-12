@@ -413,6 +413,7 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'settings') return 'Settings';
   if (page === 'bookmarks') return 'Bookmarks';
   if (page === 'history') return 'History';
+  if (page === 'profile') return path || 'Profile';
   return path ? `Editing ${path}` : 'My sites';
 }
 

@@ -2,6 +2,9 @@
   // Friends: add people, answer requests, and give friends nicknames only you see.
   import { errorText } from '../../lib/api';
   import { social } from '../../lib/social.svelte';
+  import { browser } from '../../lib/browser.svelte';
+  import { t } from '../../lib/i18n.svelte';
+  import { people } from '../../lib/people.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
 
@@ -18,6 +21,11 @@
   const friends = $derived(
     [...social.friends].sort((a, b) => Number(b.online) - Number(a.online) || (a.nickname || a.username).localeCompare(b.nickname || b.username)),
   );
+
+  function openProfile(username: string) {
+    const tab = browser.active;
+    if (tab) browser.go(tab, `biggle://u/${username}`);
+  }
 
   async function act(fn: () => Promise<unknown>) {
     error = '';
@@ -75,7 +83,7 @@
     <p class="label">Requests</p>
     {#each social.incoming as u (u)}
       <div class="person">
-        <Avatar name={u} size={36} />
+        <Avatar name={u} user={u} size={36} />
         <span class="names"><strong>{u}</strong><span>wants to be friends</span></span>
         <button class="btn small primary" onclick={() => act(() => social.accept(u))}>Accept</button>
         <button class="btn small" onclick={() => act(() => social.remove(u))}>Decline</button>
@@ -87,7 +95,7 @@
     <p class="label">Sent</p>
     {#each social.outgoing as u (u)}
       <div class="person">
-        <Avatar name={u} size={36} />
+        <Avatar name={u} user={u} size={36} />
         <span class="names"><strong>{u}</strong><span>Waiting for them to accept</span></span>
         <button class="btn small" onclick={() => act(() => social.remove(u))}>Cancel</button>
       </div>
@@ -98,7 +106,7 @@
   {#each friends as f (f.username)}
     {#if renaming === f.username}
       <form class="person rename" onsubmit={saveNickname}>
-        <Avatar name={nickname.trim() || f.username} size={36} />
+        <Avatar name={nickname.trim() || f.username} user={f.username} size={36} />
         <!-- svelte-ignore a11y_autofocus -->
         <input class="field" bind:value={nickname} maxlength="30" placeholder={f.username} aria-label="Nickname for {f.username}" autofocus />
         <button class="btn small primary">Save</button>
@@ -106,18 +114,21 @@
       </form>
     {:else if removing === f.username}
       <div class="person">
-        <Avatar name={f.nickname || f.username} size={36} />
+        <Avatar name={f.nickname || f.username} user={f.username} size={36} />
         <span class="names"><strong>Unfriend {f.nickname || f.username}?</strong><span>You won't be able to message each other.</span></span>
         <button class="btn small danger" onclick={() => act(async () => { await social.remove(f.username); removing = null; })}>Unfriend</button>
         <button class="btn small" onclick={() => (removing = null)}>Keep</button>
       </div>
     {:else}
+      {@const line = people.statusLine(f.username)}
       <div class="person friend">
-        <Avatar name={f.nickname || f.username} size={36} online={f.online} />
-        <span class="names">
-          <strong>{f.nickname || f.username}</strong>
-          <span>{f.nickname ? `@${f.username} · ` : ''}{f.online ? 'Online' : 'Offline'}</span>
-        </span>
+        <button class="profile" title={t('See {name}’s profile', { name: f.username })} onclick={() => openProfile(f.username)}>
+          <Avatar name={f.nickname || f.username} user={f.username} size={36} online={f.online} />
+          <span class="names">
+            <strong>{f.nickname || f.username}</strong>
+            <span>{f.nickname ? `@${f.username} · ` : ''}{line || (f.online ? t('Online') : t('Offline'))}</span>
+          </span>
+        </button>
         <button class="icon" aria-label="Message {f.username}" title="Message" onclick={() => onmessage(f.username)}><Icon name="chat" size={16} /></button>
         <button class="icon" aria-label="Nickname for {f.username}" title="Nickname" onclick={() => rename(f.username)}><Icon name="edit" size={16} /></button>
         <button class="icon" aria-label="Unfriend {f.username}" title="Unfriend" onclick={() => (removing = f.username)}><Icon name="trash" size={16} /></button>
@@ -151,6 +162,19 @@
   }
   .friend:hover {
     background: var(--hover);
+  }
+  .profile {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: inherit;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
   }
   .rename .field {
     flex: 1;

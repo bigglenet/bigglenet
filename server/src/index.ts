@@ -15,14 +15,20 @@
 //   /api/messages/*                  one-to-one messages, the old way
 //   /api/requests*                   feature requests and votes
 //   /api/sites/:key/visit(s), /guestbook   visit counts and guestbooks (visitors.ts)
+//   /api/users/*, /api/me/*, /api/blocks*  profiles, pictures, statuses, blocking (people.ts)
+//   /api/notifications*              the notification centre
+//   /files/:key                      private files, through signed links (files.ts)
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
 import * as chat from './chat';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
+import * as notifications from './notifications';
+import * as people from './people';
 import * as requests from './requests';
 import * as google from './google';
+import { serveFile } from './files';
 import { fail, HttpError, preflight } from './http';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
@@ -114,6 +120,19 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/messages\/([^/]+)$/, social.sendMessage],
   ['POST', /^\/api\/messages\/([^/]+)\/read$/, social.markRead],
 
+  ['GET', /^\/api\/users\/([^/]+)$/, people.profile],
+  ['PATCH', /^\/api\/me\/profile$/, people.updateProfile],
+  ['PUT', /^\/api\/me\/activity$/, people.setActivity],
+  ['PUT', /^\/api\/me\/avatar$/, people.setAvatar],
+  ['DELETE', /^\/api\/me\/avatar$/, people.removeAvatar],
+  ['GET', /^\/api\/avatars\/([^/]+)$/, people.avatar],
+  ['GET', /^\/api\/blocks$/, people.listBlocks],
+  ['POST', /^\/api\/blocks$/, people.block],
+  ['DELETE', /^\/api\/blocks\/([^/]+)$/, people.unblock],
+
+  ['GET', /^\/api\/notifications$/, notifications.list],
+  ['POST', /^\/api\/notifications\/read$/, notifications.markRead],
+
   ['GET', /^\/api\/live$/, connect],
 ];
 
@@ -121,6 +140,16 @@ export default {
   async fetch(req, env): Promise<Response> {
     if (req.method === 'OPTIONS') return preflight();
     const { pathname, search } = new URL(req.url);
+
+    const file = pathname.match(/^\/files\/(.+)$/);
+    if (file && req.method === 'GET') {
+      try {
+        return await serveFile(req, env, file[1]);
+      } catch (e) {
+        if (e instanceof HttpError) return fail(e.status, e.code, e.message);
+        throw e;
+      }
+    }
 
     const site = pathname.match(/^\/(site|preview)\/([^/]+)(\/.*)?$/);
     if (site) {

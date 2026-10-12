@@ -17,7 +17,13 @@ export type LiveEvent =
   | { type: 'read'; username: string }
   | { type: 'presence'; username: string; online: boolean }
   | { type: 'review' }
-  | { type: 'site'; name: string; status: string };
+  | { type: 'site'; name: string; status: string }
+  | { type: 'notification'; notification: unknown }
+  | { type: 'notifications-read'; ids: number[] | null }
+  /** A friend's status or what they're up to changed (people.ts). */
+  | { type: 'status'; username: string; status: unknown; activity: unknown }
+  | { type: 'blocks' }
+  | { type: 'profile'; username: string; avatar: number | null };
 
 type Attachment = { userId: number; username: string };
 

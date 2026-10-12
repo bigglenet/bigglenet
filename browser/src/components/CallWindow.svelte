@@ -36,12 +36,12 @@
   }
 </script>
 
-{#snippet tile(name: string, stream: MediaStream | null, video: boolean, opts: { mine?: boolean; muted?: boolean; speaking?: boolean; note?: string })}
+{#snippet tile(name: string, stream: MediaStream | null, video: boolean, opts: { user?: string; mine?: boolean; muted?: boolean; speaking?: boolean; note?: string })}
   <div class="tile" class:speaking={opts.speaking} class:has-video={video}>
     {#if video && stream}
       <video use:srcObject={stream} autoplay playsinline muted class:mirror={opts.mine}></video>
     {:else}
-      <Avatar {name} size={calls.expanded ? 84 : 48} />
+      <Avatar {name} user={opts.user} size={calls.expanded ? 84 : 48} />
     {/if}
     <span class="tag">
       {#if opts.muted}<Icon name="micOff" size={12} />{/if}
@@ -65,12 +65,13 @@
   <div class="tiles" class:many={calls.remotes.length > 1} class:solo={calls.remotes.length === 0}>
     {#each calls.remotes as r (r.username)}
       {@render tile(social.nameOf(r.username), r.stream, hasVideo(r), {
+        user: r.username,
         muted: !r.audio,
         speaking: r.speaking,
         note: r.state === 'connecting' ? 'Connecting…' : r.state === 'lost' ? 'Reconnecting…' : '',
       })}
     {/each}
-    {@render tile(me, calls.preview, calls.cameraOn, { mine: true, muted: !calls.micOn, speaking: calls.speaking })}
+    {@render tile(me, calls.preview, calls.cameraOn, { user: account.user?.username, mine: true, muted: !calls.micOn, speaking: calls.speaking })}
   </div>
 
   <!-- What everyone says. Pictures are muted, so the sound comes from here. -->

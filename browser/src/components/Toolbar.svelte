@@ -6,6 +6,7 @@
   import AccountButton from './AccountButton.svelte';
   import BookmarkButton from './BookmarkButton.svelte';
   import Icon from './Icon.svelte';
+  import NotificationBell from './NotificationBell.svelte';
 
   const tab = $derived(browser.active);
   const zoomed = $derived(tab ? zoom.of(tab.url) : 1);
@@ -151,6 +152,7 @@
         <span class="count">{social.unread > 9 ? '9+' : social.unread}</span>
       {/if}
     </button>
+    <NotificationBell />
     <AccountButton />
   </div>
 </div>

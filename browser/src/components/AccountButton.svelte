@@ -5,6 +5,7 @@
   import { sites } from '../lib/sites.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import { t } from '../lib/i18n.svelte';
 
   let open = $state(false);
   let root = $state<HTMLElement>();
@@ -50,18 +51,19 @@
       aria-expanded={open}
       onclick={() => (open = !open)}
     >
-      <Avatar name={account.user.username} size={28} />
+      <Avatar name={account.user.username} user={account.user.username} size={28} />
       {#if sites.reviews}<span class="ping" aria-label="{sites.reviews} sites waiting for approval"></span>{/if}
     </button>
     {#if open}
       <div class="menu" role="menu">
         <div class="who">
-          <Avatar name={account.user.username} size={36} />
+          <Avatar name={account.user.username} user={account.user.username} size={36} />
           <div>
             <strong>{account.user.username}</strong>
             <span>{account.user.admin ? 'Admin' : 'Biggle ID'}</span>
           </div>
         </div>
+        <button role="menuitem" onclick={() => openPage(`biggle://u/${account.user!.username}`)}><Icon name="users" size={16} /> {t('My profile')}</button>
         <button role="menuitem" onclick={() => openPage('biggle://sites')}><Icon name="globe" size={16} /> My sites</button>
         {#if account.user.admin}
           <button role="menuitem" onclick={() => openPage('biggle://admin')}>

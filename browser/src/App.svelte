@@ -5,6 +5,7 @@
   import { find } from './lib/find.svelte';
   import { shortcutName } from './lib/keys';
   import { notices } from './lib/notify.svelte';
+  import { people } from './lib/people.svelte';
   import { desktop, initPlatform, isApp, ownWindowButtons } from './lib/platform';
   import { calls } from './lib/calls.svelte';
   import { chats } from './lib/chats.svelte';
@@ -13,6 +14,7 @@
   import { social } from './lib/social.svelte';
   import { updates } from './lib/updates.svelte';
   import { startSettings } from './lib/startpage.svelte';
+  import { parse, siteHost } from './lib/url';
   import { zoom } from './lib/zoom.svelte';
   import AdminPage from './components/AdminPage.svelte';
   import AdminPages from './components/AdminPages.svelte';
@@ -21,6 +23,7 @@
   import FindBar from './components/FindBar.svelte';
   import GuestbookDialog from './components/GuestbookDialog.svelte';
   import HistoryPage from './components/HistoryPage.svelte';
+  import ProfilePage from './components/ProfilePage.svelte';
   import RequestsPage from './components/RequestsPage.svelte';
   import SettingsPage from './components/SettingsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
@@ -67,6 +70,24 @@
   // A notification clicked on a phone (public/sw.js): show that chat.
   navigator.serviceWorker?.addEventListener('message', (e) => {
     if (e.data?.type === 'open-chat' && typeof e.data.chatId === 'number') social.showChat(e.data.chatId);
+  });
+
+  // What I'm up to, for friends, if I share it: the site in the tab I'm looking at. Said again
+  // every few minutes so it doesn't go stale.
+  $effect(() => {
+    if (!ready || !people.shareActivity) return;
+    const tab = browser.active;
+    const u = tab && parse(tab.url);
+    const host = u?.kind === 'site' ? siteHost(u.name, u.tld) : null;
+    const showing = tab && !tab.preview && (tab.view.type === 'page' || tab.view.type === 'web');
+    const place = host && showing ? (tab.title && tab.title !== host ? `${tab.title} (${host})` : host) : null;
+    const timer = setTimeout(() => people.reportActivity(place), 3000);
+    return () => clearTimeout(timer);
+  });
+  $effect(() => {
+    if (!ready || !people.shareActivity) return;
+    const timer = setInterval(() => people.keepActivity(), 5 * 60_000);
+    return () => clearInterval(timer);
   });
 
   // Friends, live updates and the review queue follow the signed-in account.
@@ -186,6 +207,8 @@
                 <BookmarksPage {tab} />
               {:else if tab.view.page === 'history'}
                 <HistoryPage {tab} />
+              {:else if tab.view.page === 'profile'}
+                <ProfilePage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'chat'}
                 <ChatApp {tab} path={tab.view.path} />
               {:else if tab.view.page === 'sites' && tab.view.path}

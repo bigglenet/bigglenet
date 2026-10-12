@@ -15,6 +15,7 @@
 import { requireUser, type User } from './auth';
 import { HttpError, json, readJson, str } from './http';
 import { notify, type LiveEvent } from './live';
+import { blockedIds } from './people';
 
 const PAGE = 50;
 const MAX_MESSAGE = 2000;
@@ -24,7 +25,7 @@ const MAX_NAME = 60;
 const CALL_STALE_MS = 45_000;
 
 type Chat = { id: number; kind: 'direct' | 'group'; name: string | null; call_started: number | null };
-type MessageRow = { id: number; chat_id: number; sender: string | null; kind: 'text' | 'event'; body: string; created_at: number };
+type MessageRow = { id: number; chat_id: number; sender_id: number | null; sender: string | null; kind: 'text' | 'event'; body: string; created_at: number };
 
 const publicMessage = (m: MessageRow) => ({ id: m.id, chatId: m.chat_id, from: m.sender, kind: m.kind, body: m.body, at: m.created_at });
 
@@ -245,13 +246,21 @@ export async function listMessages(req: Request, env: Env, rawId: string): Promi
   const chat = await myChat(env, me, rawId);
   const before = Number(new URL(req.url).searchParams.get('before')) || Number.MAX_SAFE_INTEGER;
   const { results } = await env.DB.prepare(
-    `SELECT m.id, m.chat_id, u.username AS sender, m.kind, m.body, m.created_at
+    `SELECT m.id, m.chat_id, m.sender_id, u.username AS sender, m.kind, m.body, m.created_at
      FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
      WHERE m.chat_id = ? AND m.id < ? ORDER BY m.id DESC LIMIT ?`,
   )
     .bind(chat.id, before, PAGE + 1)
     .all<MessageRow>();
-  return json({ messages: results.slice(0, PAGE).reverse().map(publicMessage), more: results.length > PAGE });
+  // Messages from people I've blocked (in groups) are hidden.
+  const blocked = await blockedIds(env, me.id);
+  return json({
+    messages: results
+      .slice(0, PAGE)
+      .reverse()
+      .map((m) => (m.sender_id && blocked.has(m.sender_id) ? { ...publicMessage(m), body: '', blocked: true } : publicMessage(m))),
+    more: results.length > PAGE,
+  });
 }
 
 export async function sendMessage(req: Request, env: Env, rawId: string): Promise<Response> {

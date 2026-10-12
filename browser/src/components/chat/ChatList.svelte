@@ -47,7 +47,7 @@
       {#if c.kind === 'group'}
         <span class="gavatar" style:--size="42px"><Icon name="users" size={18} /></span>
       {:else}
-        <Avatar name={chats.title(c)} size={42} online={social.isOnline(chats.other(c)) ?? false} />
+        <Avatar name={chats.title(c)} user={c.kind === 'direct' ? chats.other(c) : null} size={42} online={social.isOnline(chats.other(c)) ?? false} />
       {/if}
       <span class="middle">
         <span class="top">
@@ -67,7 +67,7 @@
 
   {#each newFriends as f (f.username)}
     <button class="chat" onclick={() => onfriend(f.username)}>
-      <Avatar name={f.nickname || f.username} size={42} online={f.online} />
+      <Avatar name={f.nickname || f.username} user={f.username} size={42} online={f.online} />
       <span class="middle">
         <span class="top"><strong>{f.nickname || f.username}</strong></span>
         <span class="bottom"><span class="preview">Start a chat</span></span>

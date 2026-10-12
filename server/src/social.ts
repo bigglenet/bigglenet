@@ -4,6 +4,18 @@ import { requireUser, type User } from './auth';
 import { directChat, postMessage } from './chat';
 import { HttpError, json, readJson, str } from './http';
 import { isOnline, notify } from './live';
+import { addNotification } from './notifications';
+import { activityOf, blockedBetween, statusOf } from './people';
+
+type PersonParts = {
+  avatar_v: number | null;
+  status_text: string | null;
+  status_emoji: string | null;
+  status_until: number | null;
+  share_activity: number;
+  activity: string | null;
+  activity_at: number | null;
+};
 
 const PAGE = 50;
 const MAX_MESSAGE = 2000;
@@ -47,7 +59,8 @@ export async function listFriends(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
   // Unread and last message come from the one-to-one chat with each friend.
   const { results } = await env.DB.prepare(
-    `SELECT u.id, u.username, f.status, f.nickname, c.last_at,
+    `SELECT u.id, u.username, f.status, f.nickname, c.last_at, u.avatar_v, u.status_text, u.status_emoji, u.status_until,
+       u.share_activity, u.activity, u.activity_at,
        (SELECT COUNT(*) FROM chat_messages x JOIN chat_members m ON m.chat_id = x.chat_id AND m.user_id = f.user_id
           WHERE x.chat_id = c.id AND x.id > m.read_up_to AND x.sender_id = f.friend_id) AS unread
      FROM friendships f JOIN users u ON u.id = f.friend_id
@@ -56,7 +69,16 @@ export async function listFriends(req: Request, env: Env): Promise<Response> {
      ORDER BY c.last_at DESC, u.username`,
   )
     .bind(me.id)
-    .all<{ id: number; username: string; status: Status; nickname: string | null; unread: number | null; last_at: number | null }>();
+    .all<
+      {
+        id: number;
+        username: string;
+        status: Status;
+        nickname: string | null;
+        unread: number | null;
+        last_at: number | null;
+      } & PersonParts
+    >();
 
   const friends = await Promise.all(
     results
@@ -67,6 +89,9 @@ export async function listFriends(req: Request, env: Env): Promise<Response> {
         unread: r.unread ?? 0,
         lastAt: r.last_at,
         online: await isOnline(env, r.id).catch(() => false),
+        avatar: r.avatar_v,
+        status: statusOf(r),
+        activity: activityOf(r),
       })),
   );
   return json({
@@ -84,11 +109,14 @@ export async function addFriend(req: Request, env: Env): Promise<Response> {
   }
   const other = await findUser(env, str((await readJson(req)).username));
   if (other.id === me.id) throw new HttpError(400, 'self', "You can't add yourself.");
+  if (await blockedBetween(env, me.id, other.id)) throw new HttpError(403, 'blocked', `You can't add ${other.username}.`);
   const status = await statusWith(env, me, other);
   if (status === 'incoming') {
     await setStatus(env, me.id, other.id, 'friends', 'friends');
+    await addNotification(env, other.id, 'friend-accepted', { username: me.username });
   } else if (!status) {
     await setStatus(env, me.id, other.id, 'outgoing', 'incoming');
+    await addNotification(env, other.id, 'friend-request', { username: me.username });
   }
   await friendsChanged(env, me.id, other.id);
   return json({ status: status === 'incoming' ? 'friends' : (status ?? 'outgoing') });
@@ -101,6 +129,7 @@ export async function acceptFriend(req: Request, env: Env, username: string): Pr
     throw new HttpError(400, 'no_request', `${other.username} hasn't sent you a friend request.`);
   }
   await setStatus(env, me.id, other.id, 'friends', 'friends');
+  await addNotification(env, other.id, 'friend-accepted', { username: me.username });
   await friendsChanged(env, me.id, other.id);
   return json({ status: 'friends' });
 }

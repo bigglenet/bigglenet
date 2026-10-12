@@ -19,7 +19,7 @@
 
 {#if ring}
   <div class="ring" role="alertdialog" aria-label="{caller} is calling">
-    <Avatar name={caller} size={44} />
+    <Avatar name={caller} user={ring?.from} size={44} />
     <div class="who">
       <strong>{caller}</strong>
       <span>{ring.video ? 'Video call' : 'Voice call'}{where ? ` · ${where}` : ''}</span>

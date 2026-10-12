@@ -5,9 +5,20 @@ import { calls } from './calls.svelte';
 import { chats, type ChatMessage } from './chats.svelte';
 import { SERVER } from './config';
 import { notices } from './notify.svelte';
+import { notifications, type Notification } from './notifications.svelte';
+import { people, type Activity, type Status } from './people.svelte';
 import { sites } from './sites.svelte';
 
-export type Friend = { username: string; nickname: string | null; unread: number; lastAt: number | null; online: boolean };
+export type Friend = {
+  username: string;
+  nickname: string | null;
+  unread: number;
+  lastAt: number | null;
+  online: boolean;
+  avatar?: number | null;
+  status?: Status | null;
+  activity?: Activity | null;
+};
 
 type LiveEvent =
   | { type: 'chat-message'; message: ChatMessage }
@@ -20,6 +31,11 @@ type LiveEvent =
   | { type: 'presence'; username: string; online: boolean }
   | { type: 'review' }
   | { type: 'site'; name: string; status: string }
+  | { type: 'notification'; notification: Notification }
+  | { type: 'notifications-read'; ids: number[] | null }
+  | { type: 'status'; username: string; status: Status | null; activity: Activity | null }
+  | { type: 'blocks' }
+  | { type: 'profile'; username: string; avatar: number | null }
   // Sent for apps from before group chats; chat-message covers it here.
   | { type: 'message' }
   | { type: 'read' };
@@ -64,6 +80,8 @@ class Social {
   start() {
     this.refreshFriends();
     chats.refresh();
+    people.start();
+    notifications.refresh();
     this.connect();
   }
 
@@ -80,6 +98,8 @@ class Social {
     this.friendsLoaded = false;
     calls.leave();
     chats.reset();
+    people.reset();
+    notifications.reset();
   }
 
   private connect() {
@@ -94,6 +114,7 @@ class Social {
       this.refreshFriends();
       chats.refresh();
       chats.reloadOpen();
+      notifications.refresh();
       this.pingTimer = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send('ping'), PING_MS);
     };
     ws.onmessage = (e) => {
@@ -138,12 +159,22 @@ class Social {
       case 'review':
       case 'site':
         return sites.onEvent(ev.type);
+      case 'notification':
+        return notifications.onNew(ev.notification);
+      case 'notifications-read':
+        return notifications.onRead(ev.ids);
+      case 'status':
+        return people.learn(ev.username, { status: ev.status, activity: ev.activity });
+      case 'blocks':
+        return people.refreshBlocks();
+      case 'profile':
+        return people.learn(ev.username, { avatar: ev.avatar });
     }
   }
 
   /** A notification for a message from someone else, when you're not looking at Bigglenet. */
   private notifyMessage(m: ChatMessage) {
-    if (m.kind !== 'text' || !m.from || m.from === account.user?.username) return;
+    if (m.kind !== 'text' || !m.from || m.from === account.user?.username || people.isBlocked(m.from)) return;
     const chat = chats.get(m.chatId);
     const from = this.nameOf(m.from);
     const title = chat?.kind === 'group' ? `${from} in ${chats.title(chat)}` : from;
@@ -155,6 +186,7 @@ class Social {
     try {
       const r = await api<{ friends: Friend[]; incoming: string[]; outgoing: string[] }>('GET', '/api/friends');
       this.friends = r.friends;
+      for (const f of r.friends) people.learn(f.username, f);
       this.incoming = r.incoming;
       this.outgoing = r.outgoing;
       this.friendsLoaded = true;

@@ -152,7 +152,7 @@
     {#if chat.kind === 'group'}
       <span class="gavatar" style:--size="36px"><Icon name="users" size={16} /></span>
     {:else}
-      <Avatar name={title} size={36} online={friend?.online ?? false} />
+      <Avatar name={title} user={other} size={36} online={friend?.online ?? false} />
     {/if}
     <span class="names">
       <strong>{title}</strong>
@@ -198,7 +198,7 @@
     {:else}
       <div class="msg" class:mine={r.mine} class:first={r.first} class:last={r.last}>
         {#if chat.kind === 'group' && !r.mine}
-          <span class="side">{#if r.last}<Avatar name={social.nameOf(r.m.from)} size={28} />{/if}</span>
+          <span class="side">{#if r.last}<Avatar name={social.nameOf(r.m.from)} user={r.m.from} size={28} />{/if}</span>
         {/if}
         <div class="stack">
           {#if chat.kind === 'group' && !r.mine && r.first}<span class="sender">{social.nameOf(r.m.from)}</span>{/if}
@@ -221,7 +221,7 @@
           <span class="gavatar" style:--size="64px"><Icon name="users" size={28} /></span>
           <p>This is the start of <strong>{title}</strong>.</p>
         {:else}
-          <Avatar name={title} size={64} />
+          <Avatar name={title} user={other} size={64} />
           <p>Say hi to <strong>{title}</strong>.</p>
         {/if}
       </div>
