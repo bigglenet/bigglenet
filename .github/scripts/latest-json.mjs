@@ -32,8 +32,11 @@ for (const [name, asset] of assets) {
   if (!kind || !sig) continue;
   const signature = gh('-H', 'Accept: application/octet-stream', `repos/${repo}/releases/assets/${sig.id}`).trim();
   // The plain download link: the API link (asset.url) only gives the file to requests that ask
-  // for application/octet-stream, which the desktop app's updater (0.4.0 and 0.4.1) didn't.
-  for (const platform of kind[1]) platforms[platform] = { signature, url: asset.browser_download_url };
+  // for application/octet-stream, which the desktop app's updater (0.4.0 and 0.4.1) didn't. Built
+  // from the tag, because the release is still a draft here and its browser_download_url points at
+  // an "untagged-…" address that stops working once it's published.
+  const url = `https://github.com/${repo}/releases/download/${encodeURIComponent(release.tag_name)}/${encodeURIComponent(name)}`;
+  for (const platform of kind[1]) platforms[platform] = { signature, url };
 }
 
 const missing = ['darwin-aarch64', 'darwin-x86_64', 'linux-x86_64', 'windows-x86_64'].filter((p) => !platforms[p]);
