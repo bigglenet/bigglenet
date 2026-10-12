@@ -12,6 +12,9 @@
     "dev": "electron .",
     "dist": "node scripts/dist.mjs"
   },
+  "dependencies": {
+    "@ghostery/adblocker-electron": "2.20.1"
+  },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.1",
     "electron": "44.7.0",

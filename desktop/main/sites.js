@@ -6,6 +6,7 @@
 //
 // The Biggle browser (the web app) says where each view goes; see SiteView.svelte.
 import { BrowserWindow, ipcMain, session, WebContentsView } from 'electron';
+import { setupAdblock } from './adblock.js';
 import { attachContextMenu } from './menus.js';
 
 // All sites share one storage area, kept apart from the browser's own.
@@ -21,6 +22,8 @@ const isMac = process.platform === 'darwin';
 
 export function setupSites(getMain) {
   const sites = session.fromPartition(PARTITION);
+  // No ads or trackers (uBlock Origin's lists, see adblock.js).
+  setupAdblock(sites);
   sites.setPermissionRequestHandler((_contents, permission, callback) => callback(ALLOWED.has(permission)));
   sites.setPermissionCheckHandler((_contents, permission) => ALLOWED.has(permission));
 
