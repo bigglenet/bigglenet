@@ -34,7 +34,9 @@ for (const [name, asset] of assets) {
   for (const platform of kind[1]) platforms[platform] = { signature, url: asset.url };
 }
 
-const missing = ['darwin-aarch64', 'darwin-x86_64', 'linux-x86_64', 'windows-x86_64'].filter((p) => !platforms[p]);
+// Linux isn't released while the Electron AppImage is being tested: Linux installs find no update
+// for them here, and stay on the version they have.
+const missing = ['darwin-aarch64', 'darwin-x86_64', 'windows-x86_64'].filter((p) => !platforms[p]);
 if (missing.length) throw new Error(`No signed update for ${missing.join(', ')}.`);
 
 const version = release.tag_name.replace(/^v/, '');

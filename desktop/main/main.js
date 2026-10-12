@@ -3,7 +3,7 @@
 // as on the web; sites straight from the internet get real Chromium pages over their tab
 // (sites.js).
 import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, session, shell } from 'electron';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setupLinks } from './links.js';
@@ -26,6 +26,17 @@ const appFiles = app.isPackaged ? join(process.resourcesPath, 'app') : join(here
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true, codeCache: true } },
 ]);
+
+// Ubuntu 24.04 and later stop AppImages from setting up Chromium's sandbox (AppArmor restricts
+// the user namespaces it needs), and Electron won't start at all. Only then, start without it,
+// as other Electron apps do there. Installed .deb and .rpm packages keep the sandbox.
+if (process.platform === 'linux' && process.env.APPIMAGE) {
+  try {
+    if (readFileSync('/proc/sys/kernel/apparmor_restrict_unprivileged_userns', 'utf8').trim() === '1') {
+      app.commandLine.appendSwitch('no-sandbox');
+    }
+  } catch {}
+}
 
 let main = null;
 const getMain = () => (main && !main.isDestroyed() ? main : null);
@@ -88,7 +99,7 @@ function start() {
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#161616' : '#e7e4dd',
     // The tabs are the title bar: next to the window buttons on macOS, with the browser's own
     // buttons on Windows and Linux.
-    ...(isMac ? { titleBarStyle: 'hidden', trafficLightPosition: { x: 18, y: 13 } } : { frame: false }),
+    ...(isMac ? { titleBarStyle: 'hidden', trafficLightPosition: { x: 18, y: 18 } } : { frame: false }),
     ...(process.platform === 'linux' ? { icon: join(here, '../build/icon.png') } : {}),
     webPreferences: {
       preload: join(here, '../preload/preload.cjs'),

@@ -5,7 +5,7 @@ The Biggle browser for your computer. Pick the file for your system from **Asset
 | Mac with Apple silicon (M1 and newer) | `Bigglenet_…_aarch64.dmg` |
 | Mac with Intel | `Bigglenet_…_x64.dmg` |
 | Windows | `Bigglenet_…_x64-setup.exe` |
-| Linux | `.AppImage`, `.deb` or `.rpm` |
+| Linux | Not in this release yet: get [Bigglenet 0.3.3](https://github.com/bigglenet/bigglenet/releases/tag/v0.3.3) for now. It'll update itself when Linux is back. |
 
 On a phone, open **https://bigglenet.ethembeldagli.dev** and add it to your home screen.
 
