@@ -1,12 +1,12 @@
 // Menus: the menu bar on macOS, and the right-click menu in text fields.
-import { app, Menu } from 'electron';
+import { app, clipboard, Menu, shell } from 'electron';
 
 /**
  * macOS needs a menu bar for ⌘C, ⌘V, ⌘Q and the like. It leaves out Reload (⌘R) and Close (⌘W):
  * the Biggle browser uses those for its tabs. Windows and Linux get none, as before: the
  * browser's own shortcuts work there without one.
  */
-export function setupMenu(getMain) {
+export function setupMenu(getMain, newWindow) {
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
     return;
@@ -46,6 +46,19 @@ export function setupMenu(getMain) {
           { role: 'quit' },
         ],
       },
+      {
+        label: 'File',
+        submenu: [
+          command('New Tab', 't', 'Cmd+T'),
+          { label: 'New Window', accelerator: 'Cmd+N', click: () => newWindow(null) },
+          command('New Private Tab', 'shift+n', 'Shift+Cmd+N'),
+          { type: 'separator' },
+          command('Print…', 'p', 'Cmd+P'),
+          command('Take a Screenshot', 'shift+s', 'Shift+Cmd+S'),
+          { type: 'separator' },
+          command('Close Tab', 'w', 'Cmd+W'),
+        ],
+      },
       { role: 'editMenu' },
       {
         label: 'View',
@@ -57,6 +70,12 @@ export function setupMenu(getMain) {
           command('Actual Size', '0', 'Cmd+0'),
           command('Zoom In', '=', 'Cmd+Plus'),
           command('Zoom Out', '-', 'Cmd+-'),
+          { type: 'separator' },
+          command('Command Palette…', 'k', 'Cmd+K'),
+          command('Search Tabs…', 'shift+a', 'Shift+Cmd+A'),
+          command('Reader Mode', 'shift+r', 'Shift+Cmd+R'),
+          command('Game Mode', 'shift+f', 'Shift+Cmd+F'),
+          command('Downloads', 'shift+j', 'Shift+Cmd+J'),
           { type: 'separator' },
           { role: 'togglefullscreen' },
         ],
@@ -79,14 +98,34 @@ export function setupMenu(getMain) {
   app.setAboutPanelOptions({ applicationName: 'Bigglenet', copyright: 'Copyright (c) 2026 bigglenet' });
 }
 
-/** Cut, copy and paste on right-click in text fields, and Copy on selected text. */
-export function attachContextMenu(contents) {
+/**
+ * Right-click: cut, copy and paste in text fields, Copy on selected text. In sites straight from
+ * the internet (`site`), also links and pictures: copy, download, or open in your web browser.
+ */
+export function attachContextMenu(contents, { site = false } = {}) {
   contents.on('context-menu', (_event, params) => {
-    const items = params.isEditable
-      ? [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]
-      : params.selectionText.trim()
-        ? [{ role: 'copy' }]
-        : [];
+    const items = [];
+    if (params.isEditable) {
+      items.push({ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' });
+    } else if (params.selectionText.trim()) {
+      items.push({ role: 'copy' });
+    }
+    if (site && /^https?:/i.test(params.linkURL)) {
+      if (items.length) items.push({ type: 'separator' });
+      items.push(
+        { label: 'Open Link in Your Browser', click: () => shell.openExternal(params.linkURL) },
+        { label: 'Copy Link Address', click: () => clipboard.writeText(params.linkURL) },
+        { label: 'Download Linked File', click: () => contents.downloadURL(params.linkURL) },
+      );
+    }
+    if (site && params.mediaType === 'image' && /^(https?|data):/i.test(params.srcURL)) {
+      if (items.length) items.push({ type: 'separator' });
+      items.push(
+        { label: 'Copy Image', click: () => contents.copyImageAt(params.x, params.y) },
+        { label: 'Copy Image Address', click: () => clipboard.writeText(params.srcURL) },
+        { label: 'Save Image', click: () => contents.downloadURL(params.srcURL) },
+      );
+    }
     if (items.length) Menu.buildFromTemplate(items).popup();
   });
 }

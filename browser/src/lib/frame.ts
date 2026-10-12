@@ -15,13 +15,13 @@ const clicked = () => !('userActivation' in navigator) || navigator.userActivati
 
 type Reply = (msg: Record<string, unknown>) => void;
 
-export function answerCall(site: string, msg: Record<string, unknown>, reply: Reply) {
+export function answerCall(site: string, msg: Record<string, unknown>, reply: Reply, opts: { private?: boolean } = {}) {
   const args = Array.isArray(msg.args) ? msg.args : [];
   const method = String(msg.method);
   const done = (result: Record<string, unknown>) => reply({ type: 'result', id: msg.id, ...result });
 
   if (method.startsWith('storage.')) {
-    done(storageOp(site, method.slice('storage.'.length), args[0], args[1]));
+    done(storageOp(site, method.slice('storage.'.length), args[0], args[1], opts.private));
   } else if (method === 'copy') {
     // A click in the page also activates the browser around it, so we're allowed to copy.
     navigator.clipboard.writeText(String(args[0] ?? '')).then(

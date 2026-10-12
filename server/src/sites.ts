@@ -17,7 +17,7 @@ const PREVIEW_TTL = 60 * 60;
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
   'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
-  'newtab', 'settings', 'bookmarks', 'history', 'u',
+  'newtab', 'settings', 'bookmarks', 'history', 'downloads', 'u',
 ]);
 
 /** The two address endings. Only admins and people they trust can use .b. */
@@ -397,4 +397,14 @@ export async function approveSite(req: Request, env: Env, name: string): Promise
 export async function rejectSite(req: Request, env: Env, name: string): Promise<Response> {
   const note = str((await readJson(req)).note).trim().slice(0, 300) || null;
   return review(req, env, name, 'rejected', note);
+}
+
+/** GET /api/sites/:key/manifest: a live site's files, for saving it for offline. */
+export async function manifest(req: Request, env: Env, name: string): Promise<Response> {
+  await requireUser(req, env);
+  const site = await getSite(env, name);
+  if (site.status !== 'live') throw new HttpError(404, 'no_such_site', `${siteAddress(site.name)} doesn't exist.`);
+  if (site.url) throw new HttpError(400, 'external', `${siteAddress(site.name)} is hosted somewhere else, so it can't be saved for offline.`);
+  const { results } = await env.DB.prepare('SELECT path, type, size FROM site_files WHERE site = ? ORDER BY path').bind(site.name).all<{ path: string; type: string; size: number }>();
+  return json({ files: results });
 }

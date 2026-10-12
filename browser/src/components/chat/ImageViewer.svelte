@@ -4,7 +4,7 @@
   import type { Attachment } from '../../lib/chats.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { overlays } from '../../lib/overlays.svelte';
-  import { openExternal } from '../../lib/platform';
+  import { downloads } from '../../lib/downloads.svelte';
   import Icon from '../Icon.svelte';
 
   let { a, onclose }: { a: Attachment; onclose: () => void } = $props();
@@ -23,7 +23,7 @@
   <img src={url} alt={a.name} />
   <div class="bar">
     <span>{a.name}</span>
-    <button onclick={() => openExternal(`${url}&name=${encodeURIComponent(a.name)}`)} title={t('Download')}><Icon name="download" size={17} /></button>
+    <button onclick={() => downloads.get(`${url}&name=${encodeURIComponent(a.name)}`)} title={t('Download')}><Icon name="download" size={17} /></button>
     <button onclick={onclose} title={t('Close')}><Icon name="close" size={17} /></button>
   </div>
 </div>

@@ -6,7 +6,7 @@ export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
  * Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. Chat is built
  * in too, but lives at biggle://chat.biggle.
  */
-export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests' | 'settings' | 'bookmarks' | 'history' | 'profile' | 'chat';
+export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests' | 'settings' | 'bookmarks' | 'history' | 'downloads' | 'profile' | 'chat';
 /** The address each built-in page answers to. The new tab page is biggle://newtab (or biggle://start). */
 const INTERNAL_HOSTS: Record<string, InternalPage> = {
   newtab: 'start',
@@ -18,6 +18,7 @@ const INTERNAL_HOSTS: Record<string, InternalPage> = {
   settings: 'settings',
   bookmarks: 'bookmarks',
   history: 'history',
+  downloads: 'downloads',
   // Profiles: biggle://u/<username>.
   u: 'profile',
 };

@@ -1,12 +1,27 @@
 <script lang="ts">
+  import { pictureInPicture, printPage, saveForOffline, setGameMode, toggleReader } from '../lib/actions.svelte';
+  import { bookmarks } from '../lib/bookmarks.svelte';
   import { browser } from '../lib/browser.svelte';
+  import { menu, type MenuItem } from '../lib/contextmenu.svelte';
+  import { loadDirectory } from '../lib/directory';
+  import { downloads } from '../lib/downloads.svelte';
+  import { pageHistory } from '../lib/history.svelte';
+  import { t } from '../lib/i18n.svelte';
+  import { offline } from '../lib/offline.svelte';
+  import { overlays } from '../lib/overlays.svelte';
+  import { perf } from '../lib/perf.svelte';
+  import { isApp } from '../lib/platform';
+  import { siteSettings } from '../lib/sitesettings.svelte';
   import { social } from '../lib/social.svelte';
-  import { parse, siteHost, START } from '../lib/url';
+  import { suggest, type Suggestion } from '../lib/suggest';
+  import { parse, siteHost, siteKey, START } from '../lib/url';
   import { zoom } from '../lib/zoom.svelte';
   import AccountButton from './AccountButton.svelte';
   import BookmarkButton from './BookmarkButton.svelte';
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
+  import SiteInfo from './SiteInfo.svelte';
+  import { shot } from './ScreenshotTool.svelte';
 
   const tab = $derived(browser.active);
   const zoomed = $derived(tab ? zoom.of(tab.url) : 1);
@@ -18,6 +33,7 @@
   let input = $state<HTMLInputElement>();
   let editing = $state(false);
   let value = $state('');
+  let infoOpen = $state(false);
 
   // The address to show: the one the tab is at or loading (as soon as you go somewhere, even
   // while the old page is still on screen), and nothing on the start page.
@@ -36,19 +52,92 @@
     }
   });
 
+  // --- Suggestions while typing ---
+
+  let sites = $state<{ name: string; tld?: string; title?: string | null }[]>([]);
+  let typed = $state(false);
+  let selected = $state(-1);
+  const suggestions = $derived(
+    editing && typed
+      ? suggest(value, { tabs: browser.tabs, activeId: browser.activeId, bookmarks: bookmarks.list, visits: tab?.private ? [] : pageHistory.visits, sites })
+      : [],
+  );
+  $effect(() => {
+    if (suggestions.length) return overlays.hold();
+  });
+  $effect(() => {
+    if (editing) loadDirectory().then((d) => (sites = d), () => {});
+  });
+
+  function choose(sg: Suggestion) {
+    if (!tab) return;
+    typed = false;
+    input?.blur();
+    if (sg.tabId !== undefined) browser.activate(sg.tabId);
+    else if (sg.href) browser.go(tab, sg.href);
+  }
+
   function submit(e: SubmitEvent) {
     e.preventDefault();
     if (!tab || !value.trim()) return;
+    const sg = selected >= 0 ? suggestions[selected] : null;
+    if (sg) return choose(sg);
+    typed = false;
     browser.open(tab, value);
     input?.blur();
   }
 
   function onkeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
+      if (suggestions.length) {
+        typed = false;
+        return;
+      }
       editing = false;
       value = shownUrl();
       input?.blur();
+    } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && suggestions.length) {
+      e.preventDefault();
+      const n = suggestions.length;
+      selected = e.key === 'ArrowDown' ? (selected + 1) % n : selected <= 0 ? n - 1 : selected - 1;
     }
+  }
+
+  // --- The page menu (⋯) ---
+
+  function pageMenu(e: MouseEvent) {
+    if (!tab) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const t0 = tab;
+    const items: MenuItem[] = [];
+    const isPage = t0.view.type === 'page' || t0.view.type === 'web';
+    if (isPage) {
+      items.push(
+        { label: t0.reader ? t('Leave reader mode') : t('Reader mode'), icon: 'book', action: () => toggleReader(t0) },
+        { label: t('Picture-in-picture'), icon: 'pip', action: () => pictureInPicture(t0) },
+      );
+    }
+    items.push({ label: t('Print…'), icon: 'printer', action: () => printPage(t0) });
+    if (isApp) items.push({ label: t('Take a screenshot'), icon: 'camera', action: () => shot.start() });
+    items.push({ label: t('Find in page'), icon: 'search', action: () => browser.shortcut('f') }, { separator: true });
+    if (site) {
+      const key = siteKey(site);
+      items.push(
+        { label: siteSettings.dark(key) ? t('Turn off dark mode here') : t('Dark mode for this site'), icon: 'moon', action: () => siteSettings.setDark(key, !siteSettings.dark(key)) },
+        offline.has(key)
+          ? { label: t('Remove the offline copy'), icon: 'wifi', action: () => offline.remove(key) }
+          : { label: t('Save for offline'), icon: 'wifi', action: () => saveForOffline(t0) },
+      );
+    }
+    items.push(
+      { label: t('Zoom in'), icon: 'plus', action: () => zoom.step(t0.url, 1) },
+      { label: t('Zoom out'), icon: 'close', action: () => zoom.step(t0.url, -1) },
+      { separator: true },
+      { label: t0.muted ? t('Unmute this tab') : t('Mute this tab'), icon: t0.muted ? 'volume' : 'mute', action: () => browser.mute(t0) },
+      { label: browser.gameMode ? t('Leave game mode') : t('Game mode'), icon: 'gamepad', action: () => setGameMode(!browser.gameMode) },
+      { label: perf.on ? t('Hide the performance overlay') : t('Performance overlay (FPS)'), icon: 'gauge', action: () => perf.toggle() },
+    );
+    menu.show(r.right - 230, r.bottom + 6, items);
   }
 </script>
 
@@ -88,22 +177,30 @@
     {/if}
   </div>
 
-  <form class="address" class:editing onsubmit={submit}>
-    <span class="badge" title="Ads and trackers are blocked on every Biggle site">
-      <Icon name="shield" size={15} />
-    </span>
+  <form class="address" class:editing class:private={tab?.private} onsubmit={submit}>
+    <button type="button" class="badge" title={t('About this site')} aria-expanded={infoOpen} onclick={() => (infoOpen = !infoOpen)}>
+      <Icon name={tab?.private ? 'incognito' : 'shield'} size={15} />
+    </button>
+    {#if infoOpen && tab}<SiteInfo {tab} onclose={() => (infoOpen = false)} />{/if}
     <div class="field">
       <input
         bind:this={input}
         bind:value
         onfocus={() => {
           editing = true;
+          typed = false;
+          selected = -1;
           input?.select();
         }}
-        onblur={() => (editing = false)}
+        onblur={() => setTimeout(() => ((editing = false), (typed = false)), 150)}
+        oninput={() => ((typed = true), (selected = -1))}
         {onkeydown}
-        placeholder="Search or type a .biggle address"
-        aria-label="Address"
+        placeholder={tab?.private ? t('Private tab: search or type an address') : t('Search or type a .biggle address')}
+        role="combobox"
+        aria-expanded={suggestions.length > 0}
+        aria-controls="address-suggestions"
+        aria-autocomplete="list"
+        aria-label={t('Address')}
         spellcheck="false"
         autocomplete="off"
         autocapitalize="off"
@@ -127,7 +224,26 @@
         onclick={() => tab && zoom.reset(tab.url)}>{Math.round(zoomed * 100)}%</button
       >
     {/if}
+    {#if tab?.private && !editing}<span class="private-pill">{t('Private')}</span>{/if}
     <BookmarkButton />
+    {#if tab && tab.url !== START}
+      <button type="button" class="more" aria-label={t('More for this page')} title={t('More for this page')} onclick={pageMenu}>
+        <Icon name="more" size={18} />
+      </button>
+    {/if}
+    {#if suggestions.length}
+      <ul class="suggestions" id="address-suggestions" role="listbox">
+        {#each suggestions as sg, i (sg.id)}
+          <li role="option" aria-selected={i === selected}>
+            <button type="button" class:selected={i === selected} onpointerdown={(e) => e.preventDefault()} onclick={() => choose(sg)}>
+              <Icon name={sg.icon} size={15} />
+              <span class="label">{sg.label}</span>
+              {#if sg.detail}<span class="detail">{sg.detail}</span>{/if}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </form>
 
   <div class="side">
@@ -152,6 +268,12 @@
         <span class="count">{social.unread > 9 ? '9+' : social.unread}</span>
       {/if}
     </button>
+    {#if downloads.active.length}
+      <button class="friends" title={t('Downloads')} aria-label={t('Downloads')} onclick={() => browser.newTab('biggle://downloads', { after: tab?.id })}>
+        <Icon name="download" />
+        <span class="ring" style:--done="{Math.round((downloads.active.reduce((n, d) => n + d.received, 0) / Math.max(1, downloads.active.reduce((n, d) => n + d.total, 0))) * 100)}%"></span>
+      </button>
+    {/if}
     <NotificationBell />
     <AccountButton />
   </div>
@@ -282,8 +404,102 @@
     place-items: center;
     width: 34px;
     height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 17px 0 0 17px;
+    background: none;
     color: var(--accent);
     flex: none;
+  }
+  .badge:hover {
+    color: var(--text);
+  }
+  .address {
+    position: relative;
+  }
+  .address.private .badge {
+    color: var(--private);
+  }
+  .private-pill {
+    flex: none;
+    margin-right: 6px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: var(--private);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .more {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    margin-right: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--muted);
+  }
+  .more:hover {
+    background: var(--hover);
+    color: var(--text);
+  }
+  .suggestions {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 45;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    box-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.45);
+  }
+  .suggestions button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+  }
+  .suggestions button.selected,
+  .suggestions button:hover {
+    background: var(--hover);
+  }
+  .suggestions .label {
+    flex: none;
+    max-width: 55%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .suggestions .detail {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12.5px;
+  }
+  .ring {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) var(--done), transparent 0);
+    mask: radial-gradient(circle, transparent 12px, #000 12.5px);
   }
 
   .field {

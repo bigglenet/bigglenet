@@ -12,6 +12,8 @@ const supported = typeof Notification !== 'undefined';
 class Notices {
   /** Show notifications (Settings). */
   enabled = $state(load());
+  /** Game mode: no notifications for now. */
+  quiet = false;
   /** Whether this browser lets Bigglenet show them. The desktop app always does. */
   permission = $state<Permission>(desktop ? 'granted' : supported ? Notification.permission : 'unsupported');
 
@@ -45,7 +47,7 @@ class Notices {
   }
 
   private async show(title: string, body: string, tag: string, data: Record<string, unknown>, onclick: () => void, always = false) {
-    if (!always && (!this.enabled || (await looking()))) return;
+    if (!always && (!this.enabled || this.quiet || (await looking()))) return;
     if (this.permission !== 'granted') return;
     try {
       const n = new Notification(title, { body: body.slice(0, 200), tag, ...(desktop ? {} : { icon: '/favicon.png' }) });

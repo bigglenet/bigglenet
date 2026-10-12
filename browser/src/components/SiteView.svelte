@@ -10,22 +10,20 @@
   import { untrack } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { provideFinder } from '../lib/find.svelte';
+  import { t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
-  import {
-    closeSiteWindow,
-    desktop,
-    onSiteViewTitle,
-    onSiteWindowClosed,
-    openExternal,
-    openSiteWindow,
-    siteViewClose,
-    siteViewHide,
-    siteViewShow,
-  } from '../lib/platform';
+  import { provideControl } from '../lib/pagecontrol';
+  import { perf } from '../lib/perf.svelte';
+  import { closeSiteWindow, desktop, onSiteViewTitle, onSiteWindowClosed, openExternal, openSiteWindow, siteViewClose, siteViewHide, siteViewShow } from '../lib/platform';
+  import { cleanReader } from '../lib/reader';
+  import { siteSettings } from '../lib/sitesettings.svelte';
   import { zoom } from '../lib/zoom.svelte';
   import Icon from './Icon.svelte';
 
   let { tab, view }: { tab: Tab; view: { site: string; url: string; window: boolean } } = $props();
+
+  // The desktop app knows this page by its tab's id.
+  const id = $derived(String(tab.id));
 
   /** In the tab, or popped out into a window of its own. */
   let mode = $state<'tab' | 'window'>('tab');
@@ -34,8 +32,12 @@
   let slot = $state<HTMLElement>();
   /** The web view exists (it's made the first time it's shown). */
   let made = false;
+  let ready = $state(false);
+  /** A site asking to use the camera, location…: { requestId, origin, what }. */
+  let asking = $state<{ requestId: number; origin: string; what: string } | null>(null);
+  let remember = $state(true);
 
-  const showing = $derived(mode === 'tab' && browser.activeId === tab.id && overlays.count === 0);
+  const showing = $derived(mode === 'tab' && browser.isVisible(tab.id) && overlays.count === 0 && !tab.reader);
 
   const host = $derived.by(() => {
     try {
@@ -49,24 +51,32 @@
 
   // A new load (a new `view`): start in the tab. Leaving the page closes its web view and window.
   $effect(() => {
-    const site = view.site;
+    void view;
+    const viewId = id;
     let stops: (() => void)[] = [];
     let gone = false;
-    const keep = (p: Promise<() => void>) => p.then((stop) => (gone ? stop() : stops.push(stop)));
+    const keep = (p: Promise<() => void> | (() => void) | undefined) =>
+      Promise.resolve(p).then((stop) => stop && (gone ? stop() : stops.push(stop)));
     untrack(() => {
       mode = 'tab';
       error = '';
       made = false;
       ready = false;
+      asking = null;
       browser.frameLoaded(tab);
-      keep(onSiteViewTitle((s, title) => s === site && title.trim() && browser.titled(tab, title.trim().slice(0, 200))));
-      keep(onSiteWindowClosed((s) => s === site && (windowOpen = false)));
+      keep(onSiteViewTitle((v, title) => v === viewId && title.trim() && browser.titled(tab, title.trim().slice(0, 200))));
+      keep(onSiteWindowClosed((v) => v === viewId && (windowOpen = false)));
+      keep(desktop?.sites.onAudio((v, audible) => v === viewId && (tab.audible = audible)));
+      keep(desktop?.sites.onHover((v, url) => v === viewId && browser.activeId === tab.id && (browser.hoverUrl = url)));
+      keep(desktop?.sites.onZoomRequest((v, by) => v === viewId && zoom.step(tab.url, by)));
+      keep(desktop?.sites.onPermission((v, requestId, origin, what) => v === viewId && (asking = { requestId, origin, what })));
+      keep(desktop?.sites.onFocus((v) => v === viewId && browser.activeId !== tab.id && browser.activate(tab.id)));
     });
     return () => {
       gone = true;
       stops.forEach((stop) => stop());
-      siteViewClose(site).catch(() => {});
-      closeSiteWindow(site).catch(() => {});
+      siteViewClose(viewId).catch(() => {});
+      closeSiteWindow(viewId).catch(() => {});
     };
   });
 
@@ -78,7 +88,7 @@
     frame = requestAnimationFrame(async () => {
       if (!slot || !untrack(() => showing)) return;
       try {
-        await siteViewShow(view.site, view.url, slot.getBoundingClientRect());
+        await siteViewShow(id, view.url, slot.getBoundingClientRect(), { private: tab.private });
         made = true;
         ready = true;
       } catch (e) {
@@ -91,7 +101,7 @@
   $effect(() => {
     void view;
     if (showing && slot) place();
-    else if (made) siteViewHide(untrack(() => view.site)).catch(() => {});
+    else if (made) siteViewHide(untrack(() => id)).catch(() => {});
   });
   $effect(() => {
     if (!slot) return;
@@ -104,32 +114,76 @@
     };
   });
 
-  // Its zoom (⌘+ / ⌘−), once the web view is there.
-  let ready = $state(false);
+  // Zoom, sound and dark mode, once the web view is there.
   $effect(() => {
     const z = zoom.of(tab.url);
-    if (ready) desktop?.sites.zoom(untrack(() => view.site), z).catch(() => {});
+    if (ready) desktop?.sites.zoom(untrack(() => id), z).catch(() => {});
+  });
+  $effect(() => {
+    const muted = tab.muted;
+    if (ready) desktop?.sites.mute(untrack(() => id), muted).catch(() => {});
+  });
+  $effect(() => {
+    const dark = siteSettings.dark(view.site);
+    if (ready) desktop?.sites.dark(untrack(() => id), dark).catch(() => {});
+  });
+
+  // The performance overlay: frames per second from the page, memory and processor from the app.
+  $effect(() => {
+    if (!perf.on || !ready || !browser.isVisible(tab.id)) return;
+    const viewId = id;
+    desktop?.sites.run(viewId, 'fps');
+    const timer = setInterval(async () => {
+      const [frames, use] = await Promise.all([desktop?.sites.run(viewId, 'fps'), desktop?.sites.metrics(viewId)]);
+      const f = frames as { fps: number; memory: number | null } | null;
+      if (f) perf.fps = f.fps;
+      if (use) {
+        perf.cpu = use.cpu;
+        perf.memory = use.memory;
+      }
+    }, 1000);
+    return () => clearInterval(timer);
   });
 
   // Find in page: Chromium's own. Not while it's in a window of its own.
   $effect(() => {
-    const site = view.site;
+    const viewId = id;
     return provideFinder(tab.id, {
       find: async (text, dir) => {
         if (mode !== 'tab' || !desktop) return null;
-        return desktop.sites.find(site, text, { forward: dir !== 'prev', first: dir === 'first' });
+        return desktop.sites.find(viewId, text, { forward: dir !== 'prev', first: dir === 'first' });
       },
-      clear: () => void desktop?.sites.stopFind(site).catch(() => {}),
+      clear: () => void desktop?.sites.stopFind(viewId).catch(() => {}),
     });
   });
+
+  $effect(() => {
+    const viewId = id;
+    return provideControl(tab.id, {
+      print: () => void desktop?.sites.run(viewId, 'print'),
+      reader: async () => cleanReader(await desktop?.sites.run(viewId, 'reader')),
+      pip: async () => (await desktop?.sites.run(viewId, 'pip')) === true,
+      capture: async (width) => (ready ? (desktop?.sites.capture(viewId, width) ?? null) : null),
+      metrics: async () => (desktop ? desktop.sites.metrics(viewId) : null),
+    });
+  });
+
+  function answer(allow: boolean) {
+    const a = asking;
+    asking = null;
+    if (a) desktop?.sites.answerPermission(a.requestId, allow, remember);
+  }
+
+  const askingWhat = (what: string) =>
+    ({ camera: t('use your camera'), microphone: t('use your microphone'), geolocation: t('know your location'), notifications: t('show notifications'), midi: t('use MIDI devices'), midiSysex: t('use MIDI devices') })[what] ?? what;
 
   async function popOut() {
     mode = 'window';
     made = false;
     ready = false;
-    await siteViewClose(view.site).catch(() => {});
+    await siteViewClose(id).catch(() => {});
     try {
-      await openSiteWindow(view.site, view.url, tab.title);
+      await openSiteWindow(id, view.url, tab.title, { private: tab.private });
       windowOpen = true;
     } catch (e) {
       error = message(e);
@@ -137,7 +191,7 @@
   }
 
   async function putBack() {
-    await closeSiteWindow(view.site).catch(() => {});
+    await closeSiteWindow(id).catch(() => {});
     windowOpen = false;
     error = '';
     mode = 'tab';
@@ -145,18 +199,27 @@
 </script>
 
 <div class="site">
+  {#if asking}
+    <div class="ask" role="alertdialog" aria-label={t('Permission')}>
+      <Icon name="lock" size={15} />
+      <span class="what">{t('{site} wants to {what}.', { site: new URL(asking.origin).host, what: askingWhat(asking.what) })}</span>
+      <label class="remember"><input type="checkbox" bind:checked={remember} /> {t('Remember')}</label>
+      <button class="primary" onclick={() => answer(true)}>{t('Allow')}</button>
+      <button onclick={() => answer(false)}>{t('Block')}</button>
+    </div>
+  {/if}
   {#if view.window || mode === 'window'}
-  <div class="bar">
-    <Icon name="globe" size={14} />
-    <span class="host">{host}</span>
-    <span class="note">runs as its own page</span>
-    {#if mode === 'tab'}
-      <button onclick={popOut} title="Open it in a window of its own"><Icon name="external" size={14} /> Own window</button>
-    {:else}
-      <button onclick={putBack} title="Show it in this tab again"><Icon name="tabs" size={14} /> Back in the tab</button>
-    {/if}
-    <button onclick={() => openExternal(view.url)} title="Open it in your computer's web browser">Open in your browser</button>
-  </div>
+    <div class="bar">
+      <Icon name="globe" size={14} />
+      <span class="host">{host}</span>
+      <span class="note">{t('runs as its own page')}</span>
+      {#if mode === 'tab'}
+        <button onclick={popOut} title={t('Open it in a window of its own')}><Icon name="external" size={14} /> {t('Own window')}</button>
+      {:else}
+        <button onclick={putBack} title={t('Show it in this tab again')}><Icon name="tabs" size={14} /> {t('Back in the tab')}</button>
+      {/if}
+      <button onclick={() => openExternal(view.url)} title={t('Open it in your computer’s web browser')}>{t('Open in your browser')}</button>
+    </div>
   {/if}
 
   {#if mode === 'tab'}
@@ -165,15 +228,16 @@
     <div class="card">
       <h1>{tab.title}</h1>
       <p class="muted">
-        {windowOpen ? 'Running in its own window,' : 'It was in its own window,'} straight from {host}. Closing this tab closes it.
+        {windowOpen ? t('Running in its own window, straight from {host}.', { host }) : t('It was in its own window, straight from {host}.', { host })}
+        {t('Closing this tab closes it.')}
       </p>
       <div class="actions">
         {#if windowOpen}
-          <button class="primary" onclick={() => openSiteWindow(view.site, view.url, tab.title)}>Show its window</button>
+          <button class="primary" onclick={() => openSiteWindow(id, view.url, tab.title, { private: tab.private })}>{t('Show its window')}</button>
         {:else}
-          <button class="primary" onclick={popOut}>Open it again</button>
+          <button class="primary" onclick={popOut}>{t('Open it again')}</button>
         {/if}
-        <button class="ghost" onclick={putBack}>Back in the tab</button>
+        <button class="ghost" onclick={putBack}>{t('Back in the tab')}</button>
       </div>
     </div>
   {/if}
@@ -187,13 +251,32 @@
     height: 100%;
     background: var(--surface);
   }
-  .bar {
+  .bar,
+  .ask {
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 32px;
+    min-height: 32px;
     padding: 0 8px 0 12px;
     border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .ask {
+    flex-wrap: wrap;
+    padding: 6px 8px 6px 12px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13.5px;
+  }
+  .ask .what {
+    flex: 1;
+    min-width: 0;
+  }
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     color: var(--muted);
     font-size: 12.5px;
   }
@@ -208,7 +291,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .bar button {
+  .bar button,
+  .ask button {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -222,6 +306,16 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+  }
+  .ask button {
+    height: 28px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .ask button.primary {
+    border: 0;
+    background: var(--accent);
+    color: var(--on-accent);
   }
   .slot {
     flex: 1;

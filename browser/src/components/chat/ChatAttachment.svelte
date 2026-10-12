@@ -4,7 +4,7 @@
   import type { Attachment } from '../../lib/chats.svelte';
   import { duration } from '../../lib/chatformat';
   import { t } from '../../lib/i18n.svelte';
-  import { openExternal } from '../../lib/platform';
+  import { downloads } from '../../lib/downloads.svelte';
   import Icon from '../Icon.svelte';
 
   let { a, mine, onopen }: { a: Attachment; mine: boolean; onopen: (a: Attachment) => void } = $props();
@@ -80,7 +80,7 @@
     ></audio>
   </div>
 {:else}
-  <button class="file" class:mine onclick={() => openExternal(url)} title={t('Download {name}', { name: a.name })}>
+  <button class="file" class:mine onclick={() => downloads.get(url)} title={t('Download {name}', { name: a.name })}>
     <span class="icon"><Icon name="file" size={18} /></span>
     <span class="text">
       <strong>{a.name}</strong>

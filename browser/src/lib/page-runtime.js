@@ -1,6 +1,6 @@
 // Runs inside every BHTML page, before the page's own scripts.
-// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local, app } right before this,
-// and puts createFinder() (find-core.js) in scope for find in page.
+// The browser sets window.__BIGGLE_INIT__ = { url, site, base, server, search, hash, user, local, app, dark } right before
+// this, and puts createFinder() (find-core.js) and readerExtract() (reader-core.js) in scope.
 (() => {
   'use strict';
 
@@ -333,6 +333,114 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
     }
   });
 
+  // --- Sound: tell the browser when the page makes some (the speaker on its tab), and mute it ---
+
+  let muted = false;
+  const contexts = new Set();
+  const media = () => [...document.querySelectorAll('audio, video')];
+  let audible = false;
+  const checkAudio = () => {
+    const now = media().some((m) => !m.paused && !m.muted && m.volume > 0) || [...contexts].some((c) => c.state === 'running' && c.__biggleSound);
+    if (now !== audible) post({ type: 'audio', audible: (audible = now) });
+  };
+  addEventListener('play', checkAudio, true);
+  addEventListener('pause', checkAudio, true);
+  addEventListener('ended', checkAudio, true);
+  addEventListener('volumechange', checkAudio, true);
+  addEventListener(
+    'play',
+    (e) => {
+      if (muted && e.target instanceof HTMLMediaElement) e.target.muted = true;
+    },
+    true,
+  );
+  for (const name of ['AudioContext', 'webkitAudioContext']) {
+    const Real = window[name];
+    if (!Real) continue;
+    window[name] = class extends Real {
+      constructor(...args) {
+        super(...args);
+        contexts.add(this);
+        this.addEventListener('statechange', checkAudio);
+        if (muted) this.suspend().catch(() => {});
+      }
+      createBufferSource(...args) {
+        this.__biggleSound = true;
+        setTimeout(checkAudio);
+        return super.createBufferSource(...args);
+      }
+      createOscillator(...args) {
+        this.__biggleSound = true;
+        setTimeout(checkAudio);
+        return super.createOscillator(...args);
+      }
+    };
+  }
+  function setMuted(on) {
+    muted = on;
+    for (const m of media()) m.muted = on;
+    for (const c of contexts) (on ? c.suspend() : c.resume()).catch(() => {});
+    checkAudio();
+  }
+
+  // --- Dark mode, for pages that don't have one ---
+
+  let darkStyle = null;
+  function setDark(on) {
+    if (on && !darkStyle) {
+      darkStyle = document.createElement('style');
+      darkStyle.textContent =
+        'html{filter:invert(1) hue-rotate(180deg)!important;background:#fff!important}' +
+        'img,video,picture,canvas,iframe,svg image,[style*="background-image"]{filter:invert(1) hue-rotate(180deg)!important}';
+      document.documentElement.append(darkStyle);
+    } else if (!on && darkStyle) {
+      darkStyle.remove();
+      darkStyle = null;
+    }
+  }
+  if (init.dark) setDark(true);
+
+  // --- The performance overlay: frames per second, and memory used ---
+
+  let fpsTimer = 0;
+  function setFps(on) {
+    clearInterval(fpsTimer);
+    if (!on) return;
+    let frames = 0;
+    let at = performance.now();
+    const count = () => {
+      frames++;
+      if (fpsTimer) requestAnimationFrame(count);
+    };
+    fpsTimer = setInterval(() => {
+      const now = performance.now();
+      post({ type: 'fps', fps: (frames * 1000) / (now - at), memory: performance.memory ? performance.memory.usedJSHeapSize : null });
+      frames = 0;
+      at = now;
+    }, 1000);
+    requestAnimationFrame(count);
+  }
+
+  /** The browser's toolbar buttons for this page. */
+  function command(msg) {
+    if (msg.action === 'mute') setMuted(!!msg.on);
+    else if (msg.action === 'dark') setDark(!!msg.on);
+    else if (msg.action === 'fps') setFps(!!msg.on);
+    else if (msg.action === 'print') print();
+    else if (msg.action === 'reader') post({ type: 'reader', id: msg.id, result: readerExtract() });
+    else if (msg.action === 'pip') {
+      const v = media()
+        .filter((m) => m instanceof HTMLVideoElement && m.readyState > 0)
+        .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0];
+      const done = (ok) => post({ type: 'pip', id: msg.id, ok });
+      if (!v || !document.pictureInPictureEnabled) return done(false);
+      (document.pictureInPictureElement === v ? document.exitPictureInPicture() : v.requestPictureInPicture()).then(
+        () => done(true),
+        () => done(false),
+      );
+    }
+  }
+
   // --- Messages from the browser ---
 
   addEventListener('message', (e) => {
@@ -355,6 +463,8 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       post({ type: 'found', id: msg.id, ...result });
     } else if (msg.type === 'find-clear') {
       finder.clear();
+    } else if (msg.type === 'command') {
+      command(msg);
     }
   });
   const finder = createFinder(() => document.body);
@@ -412,7 +522,8 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const SHORTCUTS = new Set([
     't', 'shift+t', 'w', 'l', 'r', '[', ']', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'd', 'shift+b', 'f', 'g', 'shift+g', '=', '-', '0', mac ? 'y' : 'h',
+    'd', 'shift+b', 'f', 'g', 'shift+g', '=', '-', '0', mac ? 'y' : 'h', mac ? 'shift+j' : 'j',
+    'k', 'shift+a', 'shift+n', 'p', 'shift+s', 'shift+r', 'shift+f',
   ]);
   function shortcutName(e) {
     let key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -447,13 +558,84 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
     true,
   );
 
-  // In the desktop app, no right-click menu of the webview's own (its Refresh would reload the
-  // whole browser) unless the page shows its own or it's a text field.
-  if (init.app) {
-    addEventListener('contextmenu', (e) => {
-      if (!e.defaultPrevented && !editing(e.target)) e.preventDefault();
-    });
-  }
+  // Right-click on a link, a picture or selected text: the browser's own menu (open in a new
+  // tab, copy…). In the desktop app there's no other menu (the webview's own would offer to
+  // reload the whole browser), except in text fields.
+  addEventListener('contextmenu', (e) => {
+    if (e.defaultPrevented || editing(e.target)) return;
+    const path = e.composedPath();
+    const a = path.find((n) => n instanceof Element && n.localName === 'a' && n.hasAttribute('href'));
+    const img = path.find((n) => n instanceof HTMLImageElement);
+    const selection = String(getSelection() || '').trim();
+    let link = null;
+    if (a) {
+      try {
+        const abs = new URL(inSite(a.getAttribute('href')), document.baseURI).href;
+        link = /^biggle:\/\//i.test(abs) ? abs : toBiggle(abs) || (/^(https?|mailto):/i.test(abs) ? abs : null);
+      } catch {}
+    }
+    if (link || img || selection) {
+      e.preventDefault();
+      post({ type: 'context', x: e.clientX, y: e.clientY, link, text: a ? a.textContent.trim().slice(0, 200) : '', image: img ? img.currentSrc || img.src : null, selection: selection.slice(0, 500) });
+    } else if (init.app) {
+      e.preventDefault();
+    }
+  });
+
+  // Where a link goes, while the mouse is over it (shown at the bottom of the browser).
+  let hovered = '';
+  addEventListener('mouseover', (e) => {
+    const a = e.composedPath().find((n) => n instanceof Element && n.localName === 'a' && n.hasAttribute('href'));
+    let url = '';
+    if (a) {
+      try {
+        const abs = new URL(inSite(a.getAttribute('href')), document.baseURI).href;
+        url = toBiggle(abs) || abs;
+      } catch {}
+    }
+    if (url !== hovered) post({ type: 'hover', url: (hovered = url) });
+  });
+
+  // Ctrl or ⌘ and the wheel, or a pinch on a trackpad: zoom, the browser's way.
+  addEventListener(
+    'wheel',
+    (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      if (Math.abs(e.deltaY) < 4) return;
+      post({ type: 'zoom', by: e.deltaY < 0 ? 1 : -1 });
+    },
+    { passive: false },
+  );
+
+  // Phones: swipe in from the left edge to go back, from the right to go forward, and pull down
+  // at the top to reload.
+  let touch = null;
+  addEventListener(
+    'touchstart',
+    (e) => {
+      const t = e.touches[0];
+      touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, top: scrollY <= 0 } : null;
+    },
+    { passive: true },
+  );
+  addEventListener(
+    'touchend',
+    (e) => {
+      const t = e.changedTouches[0];
+      if (!touch || !t) return;
+      const dx = t.clientX - touch.x;
+      const dy = t.clientY - touch.y;
+      if (Math.abs(dx) > 90 && Math.abs(dy) < 60) {
+        if (dx > 0 && touch.x < 24) post({ type: 'nav', dir: 'back' });
+        else if (dx < 0 && touch.x > innerWidth - 24) post({ type: 'nav', dir: 'forward' });
+      } else if (touch.top && dy > 120 && Math.abs(dx) < 60 && scrollY <= 0) {
+        post({ type: 'nav', dir: 'reload' });
+      }
+      touch = null;
+    },
+    { passive: true },
+  );
 
   // Mouse back/forward buttons.
   addEventListener('mouseup', (e) => {

@@ -38,8 +38,15 @@ if (process.platform === 'linux' && process.env.APPIMAGE) {
   } catch {}
 }
 
-let main = null;
-const getMain = () => (main && !main.isDestroyed() ? main : null);
+// Browser windows. Usually one; dragging a tab out of the tab bar makes another. getMain() is
+// the one used last (where links from other apps and the menu's commands go).
+const windows = new Set();
+let lastUsed = null;
+const getMain = () => {
+  if (lastUsed && !lastUsed.isDestroyed()) return lastUsed;
+  return [...windows].find((w) => !w.isDestroyed()) ?? null;
+};
+const windowOf = (event) => BrowserWindow.fromWebContents(event.sender);
 
 if (!setupLinks(getMain)) {
   // Bigglenet is already open; the link (if any) went to it.
@@ -117,23 +124,39 @@ function start() {
     },
   );
 
-  setupMenu(getMain);
-  const closeSites = setupSites(getMain);
+  setupMenu(getMain, (open) => createWindow(open));
+  closeSites = setupSites();
 
-  ipcMain.handle('window:minimize', () => getMain()?.minimize());
-  ipcMain.handle('window:toggle-maximize', () => {
-    const win = getMain();
+  ipcMain.handle('window:minimize', (event) => windowOf(event)?.minimize());
+  ipcMain.handle('window:toggle-maximize', (event) => {
+    const win = windowOf(event);
     if (win) win.isMaximized() ? win.unmaximize() : win.maximize();
   });
-  ipcMain.handle('window:close', () => getMain()?.close());
-  ipcMain.handle('window:is-maximized', () => !!getMain()?.isMaximized());
-  ipcMain.handle('window:is-focused', () => !!getMain()?.isFocused());
-  ipcMain.handle('window:focus', () => {
-    const win = getMain();
+  ipcMain.handle('window:close', (event) => windowOf(event)?.close());
+  ipcMain.handle('window:is-maximized', (event) => !!windowOf(event)?.isMaximized());
+  // Bigglenet is the app in use: one of its windows (or a site popped out of one) has focus.
+  ipcMain.handle('window:is-focused', () => !!BrowserWindow.getFocusedWindow());
+  ipcMain.handle('window:focus', (event) => {
+    const win = windowOf(event);
     if (!win) return;
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
+  });
+  ipcMain.handle('window:fullscreen', (event, on) => windowOf(event)?.setFullScreen(!!on));
+  /** A new browser window, opening an address (a tab dragged out of the tab bar). */
+  ipcMain.handle('window:new', (event, open, opts = {}) => {
+    const from = windowOf(event);
+    const at = from && opts.x !== undefined ? { x: Math.round(opts.x), y: Math.round(opts.y) } : null;
+    createWindow(typeof open === 'string' && /^biggle:/i.test(open) ? open : null, { ...at, private: !!opts.private });
+  });
+  /** A picture of part of the window (screenshots, tab previews). CSS pixels. */
+  ipcMain.handle('window:capture', async (event, rect, width) => {
+    const win = windowOf(event);
+    if (!win) return null;
+    const r = rect && { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) };
+    const image = await win.webContents.capturePage(r);
+    return (width ? image.resize({ width: Math.round(width) }) : image).toDataURL();
   });
   // Unread messages on the app's icon: a number on the Dock (and Linux launchers that show one),
   // a red dot with the number over the taskbar button on Windows.
@@ -141,7 +164,7 @@ function start() {
     const n = Math.max(0, Math.floor(Number(count) || 0));
     if (isWindows) {
       const icon = n && typeof image === 'string' && image.startsWith('data:image/png') ? nativeImage.createFromDataURL(image) : null;
-      getMain()?.setOverlayIcon(icon, n ? `${n} unread` : '');
+      for (const win of windows) if (!win.isDestroyed()) win.setOverlayIcon(icon, n ? `${n} unread` : '');
     } else {
       app.setBadgeCount(n);
     }
@@ -150,9 +173,20 @@ function start() {
     if (typeof url === 'string' && /^(https?|mailto|tel):/i.test(url)) return shell.openExternal(url);
   });
 
-  main = new BrowserWindow({
+  createWindow(null);
+}
+
+let closeSites = () => {};
+
+/** A browser window. `open`: a biggle:// address for its first tab. */
+function createWindow(open, opts = {}) {
+  const query = new URLSearchParams();
+  if (open) query.set('open', open);
+  if (opts.private) query.set('private', '1');
+  const main = new BrowserWindow({
     width: 1280,
     height: 820,
+    ...(opts.x !== undefined ? { x: opts.x, y: opts.y } : {}),
     minWidth: 420,
     minHeight: 400,
     title: 'Bigglenet',
@@ -170,12 +204,19 @@ function start() {
       devTools: !app.isPackaged,
     },
   });
+  windows.add(main);
+  lastUsed = main;
+  const contentsId = main.webContents.id;
   main.once('ready-to-show', () => main.show());
+  main.on('focus', () => (lastUsed = main));
   main.on('maximize', () => main.webContents.send('window:maximized', true));
   main.on('unmaximize', () => main.webContents.send('window:maximized', false));
+  main.on('enter-full-screen', () => main.webContents.send('window:fullscreen', true));
+  main.on('leave-full-screen', () => main.webContents.send('window:fullscreen', false));
   main.on('closed', () => {
-    closeSites();
-    main = null;
+    closeSites(contentsId);
+    windows.delete(main);
+    if (lastUsed === main) lastUsed = null;
   });
   attachContextMenu(main.webContents);
 
@@ -190,7 +231,9 @@ function start() {
     return { action: 'deny' };
   });
 
-  main.loadURL(useDevServer ? DEV_URL : APP_URL);
+  const base = useDevServer ? DEV_URL : APP_URL;
+  main.loadURL(query.size ? `${base}?${query}` : base);
+  return main;
 }
 
 // Closing the window quits, on every system (as before).

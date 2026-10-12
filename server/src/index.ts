@@ -86,6 +86,7 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.readFile],
   ['PUT', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.writeFile],
   ['DELETE', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.deleteFile],
+  ['GET', /^\/api\/sites\/([^/]+)\/manifest$/, sites.manifest],
   ['POST', /^\/api\/sites\/([^/]+)\/visit$/, visitors.visit],
   ['GET', /^\/api\/sites\/([^/]+)\/visits$/, visitors.visits],
   ['GET', /^\/api\/sites\/([^/]+)\/guestbook$/, visitors.guestbook],

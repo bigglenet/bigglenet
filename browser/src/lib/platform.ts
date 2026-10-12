@@ -17,25 +17,48 @@ type Desktop = {
     isFocused(): Promise<boolean>;
     /** Bring Bigglenet's window to the front. */
     focus(): Promise<void>;
+    fullscreen(on: boolean): Promise<void>;
+    onFullscreenChange(callback: (on: boolean) => void): Stop;
+    newWindow(open: string | null, opts?: { x?: number; y?: number; private?: boolean }): Promise<void>;
+    capture(rect: Rect | null, width?: number): Promise<string | null>;
   };
   links: { initial(): Promise<string[]>; onOpen(callback: (url: string) => void): Stop };
   sites: {
-    show(site: string, url: string, rect: Rect): Promise<void>;
-    hide(site: string): Promise<void>;
-    close(site: string): Promise<void>;
-    onTitle(callback: (site: string, title: string) => void): Stop;
-    openWindow(site: string, url: string, title: string): Promise<void>;
-    closeWindow(site: string): Promise<void>;
-    onWindowClosed(callback: (site: string) => void): Stop;
-    find(site: string, text: string, options: { forward: boolean; first: boolean }): Promise<{ count: number; index: number } | null>;
-    stopFind(site: string): Promise<void>;
-    zoom(site: string, factor: number): Promise<void>;
+    show(id: string, url: string, rect: Rect, opts?: { private?: boolean }): Promise<void>;
+    hide(id: string): Promise<void>;
+    close(id: string): Promise<void>;
+    onTitle(callback: (id: string, title: string) => void): Stop;
+    onAudio(callback: (id: string, audible: boolean) => void): Stop;
+    onHover(callback: (id: string, url: string) => void): Stop;
+    onZoomRequest(callback: (id: string, by: 1 | -1) => void): Stop;
+    onPermission(callback: (id: string, requestId: number, origin: string, what: string) => void): Stop;
+    onFocus(callback: (id: string) => void): Stop;
+    answerPermission(requestId: number, allow: boolean, remember: boolean): Promise<void>;
+    permissions(): Promise<Record<string, Record<string, boolean>>>;
+    forgetPermissions(origin: string): Promise<void>;
+    clearData(url: string): Promise<void>;
+    openWindow(id: string, url: string, title: string, opts?: { private?: boolean }): Promise<void>;
+    closeWindow(id: string): Promise<void>;
+    onWindowClosed(callback: (id: string) => void): Stop;
+    find(id: string, text: string, options: { forward: boolean; first: boolean }): Promise<{ count: number; index: number } | null>;
+    stopFind(id: string): Promise<void>;
+    zoom(id: string, factor: number): Promise<void>;
+    mute(id: string, muted: boolean): Promise<void>;
+    dark(id: string, on: boolean): Promise<void>;
+    capture(id: string, width?: number): Promise<string | null>;
+    run(id: string, action: 'reader' | 'pip' | 'print' | 'fps'): Promise<unknown>;
+    metrics(id: string): Promise<{ cpu: number; memory: number } | null>;
   };
-  /** The unread count on the app's icon. `image`: the same as a picture, for Windows' taskbar. */
-  badge(count: number, image: string | null): Promise<void>;
-  screen: {
-    onChoose(callback: (id: number, sources: ScreenSource[]) => void): Stop;
-    chosen(id: number, sourceId: string | null): Promise<void>;
+  downloads: {
+    list(): Promise<Download[]>;
+    start(url: string): Promise<void>;
+    open(id: number): Promise<void>;
+    show(id: number): Promise<void>;
+    cancel(id: number): Promise<void>;
+    pause(id: number): Promise<void>;
+    resume(id: number): Promise<void>;
+    forget(id?: number): Promise<Download[]>;
+    onUpdate(callback: (d: Download) => void): Stop;
   };
   onShortcut(callback: (key: string) => void): Stop;
   info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
@@ -45,6 +68,23 @@ type Desktop = {
     install(): Promise<void>;
     onCheckRequested(callback: () => void): Stop;
   };
+  /** The unread count on the app's icon. `image`: the same as a picture, for Windows' taskbar. */
+  badge(count: number, image: string | null): Promise<void>;
+  screen: {
+    onChoose(callback: (id: number, sources: ScreenSource[]) => void): Stop;
+    chosen(id: number, sourceId: string | null): Promise<void>;
+  };
+};
+
+export type Download = {
+  id: number;
+  name: string;
+  url: string;
+  path: string;
+  received: number;
+  total: number;
+  state: 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted';
+  at: number;
 };
 
 /** The desktop app, when running inside it. */
@@ -68,35 +108,35 @@ export async function openExternal(url: string) {
 // Sites straight from the internet get a real Chromium page of their own in the desktop app,
 // laid over their tab ("site view"), or popped out into a window. See desktop/main/sites.js.
 
-/** Show a site view over the tab's page area, at these bounds (CSS pixels). */
-export async function siteViewShow(site: string, url: string, rect: DOMRect) {
-  await desktop?.sites.show(site, url, { x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+/** Show a site view over the tab's page area, at these bounds (CSS pixels). `id`: the tab's. */
+export async function siteViewShow(id: string, url: string, rect: DOMRect, opts?: { private?: boolean }) {
+  await desktop?.sites.show(id, url, { x: rect.left, y: rect.top, width: rect.width, height: rect.height }, opts);
 }
 
-export async function siteViewHide(site: string) {
-  await desktop?.sites.hide(site);
+export async function siteViewHide(id: string) {
+  await desktop?.sites.hide(id);
 }
 
-export async function siteViewClose(site: string) {
-  await desktop?.sites.close(site);
+export async function siteViewClose(id: string) {
+  await desktop?.sites.close(id);
 }
 
-/** Called with a site's key and its page's title when the title changes. */
-export async function onSiteViewTitle(handler: (site: string, title: string) => void): Promise<Stop> {
+/** Called with a tab's id and its site's title when the title changes. */
+export async function onSiteViewTitle(handler: (id: string, title: string) => void): Promise<Stop> {
   return desktop?.sites.onTitle(handler) ?? (() => {});
 }
 
 /** Open a site in a window of its own. If it's open already, it comes to the front. */
-export async function openSiteWindow(site: string, url: string, title: string) {
-  await desktop?.sites.openWindow(site, url, title);
+export async function openSiteWindow(id: string, url: string, title: string, opts?: { private?: boolean }) {
+  await desktop?.sites.openWindow(id, url, title, opts);
 }
 
-export async function closeSiteWindow(site: string) {
-  await desktop?.sites.closeWindow(site);
+export async function closeSiteWindow(id: string) {
+  await desktop?.sites.closeWindow(id);
 }
 
-/** Called with a site's key when its own window closes. Returns a function that stops listening. */
-export async function onSiteWindowClosed(handler: (site: string) => void): Promise<Stop> {
+/** Called with a tab's id when its site's own window closes. Returns a function that stops listening. */
+export async function onSiteWindowClosed(handler: (id: string) => void): Promise<Stop> {
   return desktop?.sites.onWindowClosed(handler) ?? (() => {});
 }
 

@@ -1,7 +1,10 @@
 import findCore from './find-core.js?raw';
 import runtime from './page-runtime.js?raw';
+import readerCore from './reader-core.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { isApp } from './platform';
+import { offlineCopy } from './offline.svelte';
+import { siteSettings } from './sitesettings.svelte';
 import { readLocal } from './storage';
 import { fromGateway, parse, siteBase, siteHost, siteKey, toGateway, withHash, type SiteUrl } from './url';
 
@@ -37,7 +40,7 @@ const HEADER_RE = /^﻿?\s*<!bhtml\s+(\d+)\s*>/i;
 
 export async function load(
   u: SiteUrl,
-  opts: { signal: AbortSignal; fresh?: boolean; user: BiggleUser | null; preview?: string },
+  opts: { signal: AbortSignal; fresh?: boolean; user: BiggleUser | null; preview?: string; private?: boolean },
 ): Promise<LoadResult> {
   const base = opts.preview;
   let res: Response;
@@ -50,7 +53,10 @@ export async function load(
     });
   } catch {
     if (opts.signal.aborted) return { type: 'aborted' };
-    return { type: 'error', href: u.href, error: { code: 'server_unreachable' } };
+    // No connection: the copy saved for offline, if there is one.
+    const saved = await offlineCopy(toGateway(u, base));
+    if (!saved) return { type: 'error', href: u.href, error: { code: 'server_unreachable' } };
+    res = saved;
   }
 
   // The gateway may have redirected (e.g. "/blog" → "/blog/"), so the page's address can change.
@@ -85,7 +91,7 @@ export async function load(
     const header = HEADER_RE.exec(text);
     if (header) {
       if (header[1] !== '1') return fail({ code: 'bhtml_version', detail: header[1] });
-      return { type: 'page', href: final.href, srcdoc: page(final, text.slice(header[0].length), opts.user, base) };
+      return { type: 'page', href: final.href, srcdoc: page(final, text.slice(header[0].length), opts.user, base, opts.private) };
     }
     if (type === 'text/plain' || type === 'application/json' || final.path.endsWith('.txt')) {
       return { type: 'page', href: final.href, srcdoc: textViewer(final, text, base) };
@@ -119,8 +125,10 @@ const BASE_CSS =
   '::highlight(biggle-find){background:#ffe86b;color:#111}' +
   '::highlight(biggle-find-current){background:#ff9a3d;color:#111}';
 
-// The page runtime, with find in page (find-core.js) in scope but out of the page's way.
-const PAGE_SCRIPT = `(function(){${findCore.replace(/^export function/m, 'function')}\n${runtime}})();`;
+// The page runtime, with find in page (find-core.js) and reader mode (reader-core.js) in scope
+// but out of the page's way.
+const plain = (source: string) => source.replace(/^export function/m, 'function');
+const PAGE_SCRIPT = `(function(){${plain(findCore)}\n${plain(readerCore)}\n${runtime}})();`;
 
 const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const html = (s: string) => attr(s).replace(/>/g, '&gt;');
@@ -129,7 +137,7 @@ function head(u: SiteUrl, base?: string): string {
   return `<!DOCTYPE html><meta http-equiv="Content-Security-Policy" content="${attr(CSP)}"><base href="${attr(toGateway(u, base))}">`;
 }
 
-function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string): string {
+function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, priv = false): string {
   const init = {
     url: u.href,
     site: siteKey(u),
@@ -139,8 +147,9 @@ function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string):
     search: u.search,
     hash: u.hash,
     user,
-    local: readLocal(siteKey(u)),
+    local: readLocal(siteKey(u), priv),
     app: isApp,
+    dark: siteSettings.dark(siteKey(u)),
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');
   return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${PAGE_SCRIPT}</script>${body}`;

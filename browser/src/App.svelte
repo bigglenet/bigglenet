@@ -16,7 +16,21 @@
   import { startSettings } from './lib/startpage.svelte';
   import { parse, siteHost } from './lib/url';
   import { zoom } from './lib/zoom.svelte';
+  import { printPage, setGameMode, toggleReader } from './lib/actions.svelte';
+  import { controlFor } from './lib/pagecontrol';
+  import { couch } from './lib/couch.svelte';
+  import { downloads } from './lib/downloads.svelte';
+  import { perf } from './lib/perf.svelte';
+  import { t } from './lib/i18n.svelte';
+  import './lib/theme.svelte';
   import AdminPage from './components/AdminPage.svelte';
+  import CommandPalette, { palette } from './components/CommandPalette.svelte';
+  import ContextMenu from './components/ContextMenu.svelte';
+  import { menu } from './lib/contextmenu.svelte';
+  import DownloadsPage from './components/DownloadsPage.svelte';
+  import PerfOverlay from './components/PerfOverlay.svelte';
+  import ReaderView from './components/ReaderView.svelte';
+  import ScreenshotTool, { shot } from './components/ScreenshotTool.svelte';
   import AdminPages from './components/AdminPages.svelte';
   import BookmarksBar from './components/BookmarksBar.svelte';
   import BookmarksPage from './components/BookmarksPage.svelte';
@@ -46,12 +60,123 @@
   import Toolbar from './components/Toolbar.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
   import WindowControls from './components/WindowControls.svelte';
+  import Icon from './components/Icon.svelte';
 
-  // ?open=biggle://… opens that address in the first tab.
-  const opening = new URLSearchParams(location.search).get('open');
-  if (!browser.restoreTabs()) browser.newTab(opening ?? startSettings.newTabAddress);
-  else if (opening) browser.newTab(opening);
+  // ?open=biggle://… opens that address in the first tab; ?private=1 makes the window private.
+  const params = new URLSearchParams(location.search);
+  const opening = params.get('open');
+  browser.privateWindow = params.get('private') === '1';
+  // Handled now: a reload shouldn't open it again.
+  if (opening) params.delete('open');
+  history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
+  if (browser.restoreTabs()) {
+    // A reload: the same tabs as before.
+    if (opening) browser.newTab(opening);
+  } else if (opening || browser.privateWindow) {
+    // A tab dragged out into a window of its own, or a new window.
+    browser.newTab(opening ?? startSettings.newTabAddress);
+  } else if (!browser.restoreOnStartup() || !browser.tabs.length) {
+    // Starting up: the tabs from last time (if that's the setting), or pinned tabs and a new one.
+    browser.newTab(startSettings.newTabAddress);
+  }
   $effect(() => browser.saveTabs());
+
+  // Shortcuts and commands handled here and in the components they belong to.
+  Object.assign(browser.commands, {
+    k: () => (palette.open = palette.open ? null : 'all'),
+    'shift+a': () => (palette.open = palette.open ? null : 'tabs'),
+    p: () => browser.active && printPage(browser.active),
+    'shift+s': () => isApp && shot.start(),
+    'shift+r': () => browser.active && toggleReader(browser.active),
+    'shift+f': () => setGameMode(!browser.gameMode),
+  });
+  couch.init();
+  // For poking at the browser from the dev tools while developing.
+  if (import.meta.env.DEV) Object.assign(window, { __biggle: { browser, menu, palette } });
+  $effect(() => {
+    if (couch.palette) palette.open = 'all';
+  });
+  downloads.start();
+
+  // Leaving full screen (Esc, or the window's button) ends game mode too.
+  desktop?.window.onFullscreenChange((on) => !on && setGameMode(false));
+  if (!desktop) document.addEventListener('fullscreenchange', () => !document.fullscreenElement && setGameMode(false));
+
+  // Tabs in the background for a while go to sleep, to save memory (Settings → Tabs).
+  $effect(() => {
+    const timer = setInterval(() => browser.sleepIdle(), 60_000);
+    return () => clearInterval(timer);
+  });
+
+  // Small pictures of tabs, for the previews you get by hovering over them (desktop app).
+  $effect(() => {
+    if (!desktop || !ready) return;
+    const timer = setInterval(async () => {
+      const tab = browser.active;
+      if (!tab || document.visibilityState !== 'visible') return;
+      const section = document.querySelector<HTMLElement>(`[data-tab="${tab.id}"]`);
+      const control = controlFor(tab.id);
+      let picture: string | null = null;
+      if (tab.view.type === 'web' && control?.capture) picture = await control.capture(280);
+      else if (section) {
+        const r = section.getBoundingClientRect();
+        picture = await desktop!.window.capture({ x: r.x, y: r.y, width: r.width, height: r.height }, 280).catch(() => null);
+      }
+      if (picture) tab.thumbnail = picture;
+    }, 15_000);
+    return () => clearInterval(timer);
+  });
+
+  // Side by side: drag the line between them.
+  let mainEl = $state<HTMLElement>();
+  function dragDivider(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      if (!browser.split || !mainEl) return;
+      const r = mainEl.getBoundingClientRect();
+      browser.split.ratio = Math.min(0.8, Math.max(0.2, (ev.clientX - r.left) / r.width));
+    };
+    const up = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  }
+  // Clicking into one side makes it the active tab.
+  function onfocusin(e: FocusEvent) {
+    if (!browser.split) return;
+    const section = (e.target as Element).closest?.('[data-tab]');
+    const id = Number(section?.getAttribute('data-tab'));
+    if (id && id !== browser.activeId && browser.inSplit(id)) browser.activate(id);
+  }
+  // A click into a page (an iframe) moves focus there without telling the page around it.
+  addEventListener('blur', () =>
+    setTimeout(() => {
+      const el = document.activeElement;
+      if (el instanceof HTMLIFrameElement && browser.split) {
+        const id = Number(el.closest('[data-tab]')?.getAttribute('data-tab'));
+        if (id && id !== browser.activeId && browser.inSplit(id)) browser.activate(id);
+      }
+    }),
+  );
+
+  // Phones: swipe in from the left edge for back, from the right for forward (pages handle it
+  // themselves, see page-runtime.js).
+  let touch: { x: number; y: number } | null = null;
+  function ontouchstart(e: TouchEvent) {
+    const t0 = e.touches[0];
+    touch = e.touches.length === 1 && (t0.clientX < 24 || t0.clientX > innerWidth - 24) ? { x: t0.clientX, y: t0.clientY } : null;
+  }
+  function ontouchend(e: TouchEvent) {
+    const t0 = e.changedTouches[0];
+    const tab = browser.active;
+    if (!touch || !t0 || !tab) return;
+    const dx = t0.clientX - touch.x;
+    if (Math.abs(dx) > 90 && Math.abs(t0.clientY - touch.y) < 60) dx > 0 ? browser.back(tab) : browser.forward(tab);
+    touch = null;
+  }
   initPlatform(
     (href) => browser.openFromOutside(href),
     (key) => browser.shortcut(key),
@@ -80,7 +205,7 @@
     const tab = browser.active;
     const u = tab && parse(tab.url);
     const host = u?.kind === 'site' ? siteHost(u.name, u.tld) : null;
-    const showing = tab && !tab.preview && (tab.view.type === 'page' || tab.view.type === 'web');
+    const showing = tab && !tab.preview && !tab.private && (tab.view.type === 'page' || tab.view.type === 'web');
     const place = host && showing ? (tab.title && tab.title !== host ? `${tab.title} (${host})` : host) : null;
     const timer = setTimeout(() => people.reportActivity(place), 3000);
     return () => clearTimeout(timer);
@@ -162,7 +287,7 @@
   }
 </script>
 
-<svelte:window {onkeydown} {onmouseup} {onmousedown} {oncontextmenu} {onpopstate} />
+<svelte:window {onkeydown} {onmouseup} {onmousedown} {oncontextmenu} {onpopstate} onmouseleave={() => (browser.hoverUrl = '')} />
 <svelte:head>
   <title>{ready ? (browser.active?.title ?? 'Bigglenet') : 'Bigglenet'}</title>
 </svelte:head>
@@ -175,21 +300,33 @@
   {/if}
   <AuthScreen />
 {:else}
-  <div class="app">
-    <TabBar />
-    <Toolbar />
-    {#if bookmarks.bar && bookmarks.list.length}
-      <div class="bookmarks"><BookmarksBar /></div>
+  <div class="app" class:game={browser.gameMode}>
+    {#if !browser.gameMode}
+      <TabBar />
+      <Toolbar />
+      {#if bookmarks.bar && bookmarks.list.length}
+        <div class="bookmarks"><BookmarksBar /></div>
+      {/if}
     {/if}
     <div class="progress" class:on={browser.active?.loading}></div>
     {#if find.open}<FindBar />{/if}
     <div class="body">
-      <main>
+      <main
+        bind:this={mainEl}
+        class:split={!!browser.split && browser.inSplit(browser.activeId)}
+        style:--ratio={browser.split?.ratio ?? 0.5}
+        {onfocusin}
+        {ontouchstart}
+        {ontouchend}
+      >
         {#each browser.tabs as tab (tab.id)}
           <!-- The browser's own pages zoom here; sites zoom themselves (PageFrame, SiteView…). -->
           <section
             class="view"
-            class:active={tab.id === browser.activeId}
+            class:active={browser.isVisible(tab.id)}
+            class:left={browser.split?.left === tab.id}
+            class:right={browser.split?.right === tab.id}
+            class:current={tab.id === browser.activeId}
             data-tab={tab.id}
             style:zoom={tab.view.type === 'internal' || tab.view.type === 'error' ? zoom.of(tab.url) : null}
           >
@@ -208,6 +345,8 @@
                 <BookmarksPage {tab} />
               {:else if tab.view.page === 'history'}
                 <HistoryPage {tab} />
+              {:else if tab.view.page === 'downloads'}
+                <DownloadsPage />
               {:else if tab.view.page === 'profile'}
                 <ProfilePage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'chat'}
@@ -227,17 +366,36 @@
               <SiteWindow {tab} view={tab.view} />
             {:else if tab.view.type === 'web'}
               <WebFrame {tab} view={tab.view} />
-            {:else}
+            {:else if tab.view.type === 'error'}
               <ErrorPage {tab} error={tab.view.error} />
+            {:else}
+              <div class="asleep"><p>{t('This tab was asleep to save memory.')}</p></div>
             {/if}
+            {#if tab.reader}<ReaderView {tab} />{/if}
           </section>
         {/each}
+        {#if browser.split && browser.inSplit(browser.activeId)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="divider" onpointerdown={dragDivider} title={t('Drag to resize')}></div>
+        {/if}
+        {#if browser.hoverUrl}<div class="status">{browser.hoverUrl.replace(/^biggle:\/\//, '')}</div>{/if}
       </main>
-      {#if social.open}
+      {#if social.open && !browser.gameMode}
         <div class="chat-sidebar"><ChatApp sidebar /></div>
       {/if}
     </div>
+    {#if browser.gameMode}
+      <!-- Game mode: move to the very top to see how to leave. -->
+      <div class="game-edge">
+        <button onclick={() => setGameMode(false)}><Icon name="close" size={13} /> {t('Leave game mode')}</button>
+      </div>
+    {/if}
   </div>
+  {#if browser.toast}<div class="toast" role="status">{browser.toast}</div>{/if}
+  {#if perf.on}<PerfOverlay />{/if}
+  <ContextMenu />
+  <CommandPalette />
+  {#if isApp}<ScreenshotTool />{/if}
 
   {#if browser.switcher}
     <TabSwitcher />
@@ -299,6 +457,104 @@
   }
   .view.active {
     display: block;
+  }
+  /* Side by side: two tabs, with a line between them you can drag. */
+  main.split .view.left {
+    right: calc((1 - var(--ratio)) * 100% + 2px);
+  }
+  main.split .view.right {
+    left: calc(var(--ratio) * 100% + 2px);
+  }
+  main.split .view.active:not(.current) {
+    opacity: 0.97;
+  }
+  .divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--ratio) * 100% - 3px);
+    z-index: 3;
+    width: 6px;
+    background: var(--border);
+    cursor: col-resize;
+  }
+  .divider:hover {
+    background: var(--accent);
+  }
+  .asleep {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: var(--muted);
+  }
+  /* Where the link under the mouse goes. */
+  .status {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    z-index: 6;
+    max-width: 60%;
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--muted);
+    font-size: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 95;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 32px);
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: #222;
+    color: #f6f4f0;
+    font-size: 13.5px;
+    box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.5);
+  }
+  /* Game mode: just the page. The top few pixels show how to leave. */
+  .app.game main {
+    padding-top: 3px;
+    background: #000;
+  }
+  .game-edge {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: 3px;
+    display: flex;
+    justify-content: center;
+  }
+  .game-edge button {
+    transform: translateY(-110%);
+    height: 30px;
+    margin-top: 3px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 0 0 10px 10px;
+    background: rgb(0 0 0 / 0.8);
+    color: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    transition: transform 0.15s;
+  }
+  .game-edge:hover {
+    height: 40px;
+  }
+  .game-edge:hover button {
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   /* Phones have no room for the bookmarks bar: biggle://bookmarks has them all. */

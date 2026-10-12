@@ -22,8 +22,9 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Dark: the computer's setting, unless Settings → Appearance says otherwise. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance='light']) {
     --chrome: #161616;
     --toolbar: #222222;
     --surface: #1c1c1c;
@@ -41,6 +42,28 @@
     --danger: #f2756a;
     --online: #5ccf8a;
   }
+}
+:root[data-appearance='light'] {
+  color-scheme: light;
+}
+:root[data-appearance='dark'] {
+  color-scheme: dark;
+  --chrome: #161616;
+  --toolbar: #222222;
+  --surface: #1c1c1c;
+  --card: #262626;
+  --field: #2f2f2f;
+  --field-hover: #363636;
+  --hover: rgb(246 244 240 / 0.08);
+  --text: #f6f4f0;
+  --muted: #a5a29b;
+  --faint: #4d4b47;
+  --border: #333333;
+  --accent: #f6f4f0;
+  --accent-soft: rgb(246 244 240 / 0.12);
+  --on-accent: #222222;
+  --danger: #f2756a;
+  --online: #5ccf8a;
 }
 
 * {
@@ -104,4 +127,32 @@ button:disabled {
 ::highlight(biggle-find-current) {
   background: #ff9a3d;
   color: #111;
+}
+
+/* Tab group colours (the tab bar, its menus). */
+.group-grey { --group: #8a8780; }
+.group-blue { --group: #3b82f6; }
+.group-red { --group: #e5484d; }
+.group-yellow { --group: #e0a100; }
+.group-green { --group: #2f9e6b; }
+.group-pink { --group: #e64998; }
+.group-purple { --group: #8b6cf0; }
+.group-cyan { --group: #14a9b8; }
+.group-orange { --group: #f97316; }
+
+/* Private tabs: a purple tint, so it's clear. */
+:root { --private: #7c5cd6; }
+
+/* Printing a built-in page prints just that page, not the browser around it. */
+@media print {
+  body * { visibility: hidden; }
+  .view.active, .view.active * { visibility: visible; }
+  .view.active { position: absolute; inset: 0; overflow: visible; }
+}
+
+/* Couch mode: big, clear focus for a controller. */
+html.couch :focus {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 6px var(--accent-soft) !important;
 }

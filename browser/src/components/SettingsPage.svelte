@@ -9,6 +9,9 @@
   import { i18n, t, type LangChoice } from '../lib/i18n.svelte';
   import { notices } from '../lib/notify.svelte';
   import { people } from '../lib/people.svelte';
+  import { couch } from '../lib/couch.svelte';
+  import { theme, THEMES, type Appearance } from '../lib/theme.svelte';
+  import SiteSettingsList from './SiteSettingsList.svelte';
   import { desktop, isMac } from '../lib/platform';
   import { startSettings as settings } from '../lib/startpage.svelte';
   import { updates } from '../lib/updates.svelte';
@@ -16,10 +19,11 @@
 
   let { tab, path = '' }: { tab: Tab; path?: string } = $props();
 
-  // Open at the part the address names.
+  // Open at the part the address names (biggle://settings/sites/<site> opens at that site).
   let page = $state<HTMLElement>();
+  const section = $derived(path.split('/')[0]);
   $effect(() => {
-    const id = path;
+    const id = section;
     if (id) tick().then(() => page?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: 'start' }));
   });
 
@@ -118,6 +122,57 @@
         <button class="ghost" onclick={() => browser.go(tab, 'biggle://history')}><Icon name="clock" size={15} /> History</button>
       </div>
       <p class="muted small">Bookmarks and history stay on this device.</p>
+    </section>
+
+    <section id="appearance">
+      <h2>{t('Appearance')}</h2>
+      <div class="segmented" role="radiogroup" aria-label={t('Light or dark')}>
+        {#each [['system', t('Same as this device')], ['light', t('Light')], ['dark', t('Dark')]] as [value, label] (value)}
+          <button role="radio" aria-checked={theme.appearance === value} class:on={theme.appearance === value} onclick={() => theme.set({ appearance: value as Appearance })}>{label}</button>
+        {/each}
+      </div>
+      <div class="themes" role="radiogroup" aria-label={t('Colour')}>
+        {#each THEMES as th (th.id)}
+          <button role="radio" aria-checked={theme.theme === th.id} class:on={theme.theme === th.id} onclick={() => theme.set({ theme: th.id })} title={t(th.name)}>
+            <span class="dot" style:background={th.light ?? 'var(--text)'}></span>
+            {t(th.name)}
+          </button>
+        {/each}
+      </div>
+    </section>
+
+    <section id="tabs">
+      <h2>{t('Tabs')}</h2>
+      <label class="choice">
+        <input type="radio" name="startup" checked={browser.startup === 'newtab'} onchange={() => browser.setStartup('newtab')} />
+        <span><strong>{t('Start with a new tab')}</strong><br /><span class="muted">{t('Pinned tabs always come back.')}</span></span>
+      </label>
+      <label class="choice">
+        <input type="radio" name="startup" checked={browser.startup === 'restore'} onchange={() => browser.setStartup('restore')} />
+        <span><strong>{t('Continue where you left off')}</strong><br /><span class="muted">{t('Your tabs from last time open again. Private tabs never do.')}</span></span>
+      </label>
+      <label class="row-label">
+        <span>{t('Put tabs to sleep after')}</span>
+        <select class="select" value={String(browser.sleepAfter)} onchange={(e) => browser.setSleepAfter(Number(e.currentTarget.value))}>
+          <option value="10">{t('10 minutes')}</option>
+          <option value="30">{t('30 minutes')}</option>
+          <option value="60">{t('1 hour')}</option>
+          <option value="0">{t('Never')}</option>
+        </select>
+      </label>
+      <p class="muted small">{t('Sleeping tabs use no memory, which helps big games run. They wake up when you open them.')}</p>
+      <label class="choice">
+        <input type="checkbox" checked={couch.enabled} onchange={(e) => couch.setEnabled(e.currentTarget.checked)} />
+        <span>
+          <strong>{t('Get around with a game controller')}</strong><br />
+          <span class="muted">{t('The D-pad moves, A presses, B goes back, LB and RB switch tabs. On a game, press Home to use it for Bigglenet.')}</span>
+        </span>
+      </label>
+    </section>
+
+    <section id="sites">
+      <h2>{t('Sites')}</h2>
+      <SiteSettingsList focus={path.split('/')[1] ?? ''} />
     </section>
 
     <section id="language">
@@ -452,6 +507,62 @@
     padding-left: 20px;
     font-size: 14px;
     line-height: 1.5;
+  }
+  .segmented {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--hover);
+  }
+  .segmented button {
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--text);
+    font-size: 13.5px;
+  }
+  .segmented button.on {
+    background: var(--card);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  }
+  .themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .themes button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .themes button.on {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .themes .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .row-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 8px 0 4px;
+    font-size: 14.5px;
   }
   .select {
     height: 36px;

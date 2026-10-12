@@ -6,7 +6,7 @@ import { find } from './find.svelte';
 import { answerCall } from './frame';
 import { pageHistory } from './history.svelte';
 import { load, type PageError } from './loader';
-import { closeWindow, isApp, isMac } from './platform';
+import { closeWindow, desktop, isApp, isMac } from './platform';
 import { startSettings } from './startpage.svelte';
 import { zoom } from './zoom.svelte';
 import { saveLocal } from './storage';
@@ -20,7 +20,9 @@ export type View =
    * its own, for games that need cross-origin isolation.
    */
   | { type: 'web'; site: string; url: string; window: boolean }
-  | { type: 'error'; error: PageError };
+  | { type: 'error'; error: PageError }
+  /** Put to sleep to save memory: it loads again when you come back to it. */
+  | { type: 'asleep' };
 
 export type Tab = {
   id: number;
@@ -34,27 +36,69 @@ export type Tab = {
   loadId: number;
   /** Showing a site that's waiting for approval, through a signed preview link. */
   preview: { site: string; base: string } | null;
+  /** Small, first in the tab bar, can't be closed by accident, and comes back every time. */
+  pinned: boolean;
+  groupId: number | null;
+  /** Its sound is off. */
+  muted: boolean;
+  /** It's making a sound. */
+  audible: boolean;
+  /** Keeps no history, and its sites' data goes when it closes. */
+  private: boolean;
+  /** When it was last the tab on screen (for putting tabs to sleep). */
+  lastActive: number;
+  /** A small picture of it, for the preview when you hover over the tab (desktop app). */
+  thumbnail: string | null;
+  /** Reader mode: the page's text, simplified. */
+  reader: { title: string; html: string } | null;
 };
+
+export type TabGroup = { id: number; name: string; color: GroupColor; collapsed: boolean };
+export const GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'] as const;
+export type GroupColor = (typeof GROUP_COLORS)[number];
 
 type Mode = 'push' | 'replace' | 'none';
 type PageMessage = Record<string, unknown> & { type?: unknown };
 
 let nextId = 1;
+let nextGroup = 1;
 const controllers = new Map<number, AbortController>();
 // The open tabs, so a reload (a refresh from a menu, F5) brings them back. sessionStorage lasts
-// as long as the window, so quitting and reopening still starts fresh.
+// as long as the window.
 const SAVED_TABS = 'biggle:tabs';
+// The tabs from last time, to bring back after quitting (Settings → On startup), and pinned tabs,
+// which always come back.
+const LAST_SESSION = 'biggle:last-session';
+const PINNED = 'biggle:pinned';
+const STARTUP = 'biggle:startup';
+const SLEEP_AFTER = 'biggle:sleep-after';
 // Closed tabs ⌘⇧T (Ctrl+Shift+T) can bring back, newest last.
 const MAX_CLOSED = 25;
 
 /** A closed tab: where it was, and its back and forward list. */
 export type ClosedTab = { url: string; title: string; history: string[]; index: number; at: number; closedAt: number };
+type SavedTab = { url: string; title?: string; pinned?: boolean; group?: number | null };
+type SavedSession = { tabs: SavedTab[]; groups: TabGroup[]; active: number; at: number };
 
 // Sites already counted as visited today (once per site per day, see server/src/visitors.ts).
 const counted = new Set<string>();
 
+function readJson<T>(storage: Storage, key: string): T | null {
+  try {
+    return JSON.parse(storage.getItem(key) ?? 'null') as T | null;
+  } catch {
+    return null;
+  }
+}
+function writeJson(storage: Storage, key: string, value: unknown) {
+  try {
+    storage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
 class Browser {
   tabs = $state<Tab[]>([]);
+  groups = $state<TabGroup[]>([]);
   activeId = $state(0);
   /** A normal-web link waiting for the user to confirm opening it. */
   external = $state<string | null>(null);
@@ -64,14 +108,42 @@ class Browser {
   switcher = $state(false);
   /** Recently closed tabs, newest last. */
   closed = $state<ClosedTab[]>([]);
+  /** Two tabs side by side: the active one is one of them. */
+  split = $state<{ left: number; right: number; ratio: number } | null>(null);
+  /** Game mode: nothing but the page, full screen, no notifications. */
+  gameMode = $state(false);
+  /** Where the link under the mouse goes (shown at the bottom). */
+  hoverUrl = $state('');
+  /** This whole window is private (opened as a private window). */
+  privateWindow = $state(false);
+  /** A short note at the bottom: "Pinned tabs stay open…" */
+  toast = $state('');
+  /** What happens when Bigglenet starts: a new tab, or the tabs from last time. */
+  startup = $state<'newtab' | 'restore'>(localStorage.getItem(STARTUP) === 'restore' ? 'restore' : 'newtab');
+  /** Minutes in the background before a tab sleeps; 0 never. */
+  sleepAfter = $state(Number(localStorage.getItem(SLEEP_AFTER) ?? 30) || 0);
 
   get active(): Tab | undefined {
     return this.tabs.find((t) => t.id === this.activeId);
   }
 
+  /** The tab on screen, or one of two side by side. */
+  isVisible(id: number): boolean {
+    return id === this.activeId || (!!this.split && (this.split.left === id || this.split.right === id) && this.inSplit(this.activeId));
+  }
+
+  inSplit(id: number): boolean {
+    return !!this.split && (this.split.left === id || this.split.right === id);
+  }
+
+  groupOf(tab: Tab): TabGroup | undefined {
+    return tab.groupId === null ? undefined : this.groups.find((g) => g.id === tab.groupId);
+  }
+
   /** Open a tab: at `href`, or at whatever new tabs open (the start page unless changed). */
-  newTab(href = startSettings.newTabAddress, opts: { activate?: boolean; after?: number } = {}): Tab {
+  newTab(href = startSettings.newTabAddress, opts: { activate?: boolean; after?: number; private?: boolean; pinned?: boolean; groupId?: number | null } = {}): Tab {
     const id = nextId++;
+    const after = opts.after === undefined ? undefined : this.tabs.find((t) => t.id === opts.after);
     const raw: Tab = {
       id,
       url: href,
@@ -83,43 +155,140 @@ class Browser {
       view: { type: 'internal', page: 'start', path: '' },
       loadId: 0,
       preview: null,
+      pinned: !!opts.pinned,
+      // A tab opened from a grouped tab joins its group.
+      groupId: opts.groupId !== undefined ? opts.groupId : (after?.groupId ?? null),
+      muted: false,
+      audible: false,
+      private: opts.private ?? (after?.private || this.privateWindow),
+      lastActive: Date.now(),
+      thumbnail: null,
+      reader: null,
     };
-    const at = opts.after === undefined ? -1 : this.tabs.findIndex((t) => t.id === opts.after);
-    if (at === -1) this.tabs.push(raw);
-    else this.tabs.splice(at + 1, 0, raw);
-    if (opts.activate !== false) this.activeId = id;
+    const at = after ? this.tabs.indexOf(after) : -1;
+    if (raw.pinned) this.tabs.splice(this.tabs.filter((t) => t.pinned).length, 0, raw);
+    else if (at === -1) this.tabs.push(raw);
+    else this.tabs.splice(Math.max(at + 1, this.tabs.filter((t) => t.pinned).length), 0, raw);
+    if (opts.activate !== false) this.activate(id);
     const tab = this.tabs.find((t) => t.id === id)!;
     this.go(tab, href);
     return tab;
   }
 
+  activate(id: number) {
+    const tab = this.tabs.find((t) => t.id === id);
+    if (!tab) return;
+    const before = this.active;
+    if (before) before.lastActive = Date.now();
+    this.activeId = id;
+    this.hoverUrl = '';
+    tab.lastActive = Date.now();
+    // Choosing a tab in a closed group opens the group.
+    const group = this.groupOf(tab);
+    if (group?.collapsed) group.collapsed = false;
+    if (tab.view.type === 'asleep') this.wake(tab);
+  }
+
+  // --- Saving and restoring tabs ---
+
   /** Reopen the tabs from before a reload. Returns whether there were any. */
   restoreTabs(): boolean {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(SAVED_TABS) ?? 'null') as { urls?: unknown; active?: unknown } | null;
-      const urls = Array.isArray(saved?.urls) ? saved.urls.filter((u): u is string => typeof u === 'string') : [];
-      if (!urls.length) return false;
-      const active = typeof saved?.active === 'number' && urls[saved.active] ? saved.active : 0;
-      urls.forEach((url, i) => this.newTab(url, { activate: i === active }));
-      return true;
-    } catch {
-      return false;
+    const saved = readJson<{ urls?: unknown; active?: unknown; tabs?: SavedTab[]; groups?: TabGroup[] }>(sessionStorage, SAVED_TABS);
+    if (!saved) return false;
+    const tabs: SavedTab[] = Array.isArray(saved.tabs)
+      ? saved.tabs.filter((t) => typeof t?.url === 'string')
+      : Array.isArray(saved.urls)
+        ? saved.urls.filter((u): u is string => typeof u === 'string').map((url) => ({ url }))
+        : [];
+    if (!tabs.length) return false;
+    this.restore({ tabs, groups: saved.groups ?? [], active: typeof saved.active === 'number' ? saved.active : 0, at: Date.now() });
+    return true;
+  }
+
+  private restore(session: SavedSession) {
+    // Group ids are made fresh, so they never clash with ones made here.
+    const ids = new Map<number, number>();
+    for (const g of session.groups ?? []) {
+      const id = nextGroup++;
+      ids.set(g.id, id);
+      this.groups.push({ ...g, id, collapsed: !!g.collapsed });
     }
+    const active = session.tabs[session.active] ? session.active : 0;
+    session.tabs.forEach((t, i) => {
+      const tab = this.newTab(t.url, { activate: i === active, pinned: !!t.pinned, groupId: t.group ? (ids.get(t.group) ?? null) : null });
+      // Background tabs wait until they're looked at.
+      if (i !== active && t.title) {
+        this.sleep(tab);
+        tab.title = t.title;
+      }
+    });
+  }
+
+  /** At startup: the tabs from last time (if that's the setting) or the pinned ones. */
+  restoreOnStartup(): boolean {
+    const last = readJson<SavedSession>(localStorage, LAST_SESSION);
+    if (this.startup === 'restore' && last?.tabs?.length) {
+      this.restore(last);
+      return true;
+    }
+    const pinned = readJson<SavedTab[]>(localStorage, PINNED) ?? [];
+    pinned.filter((t) => typeof t?.url === 'string').forEach((t) => {
+      const tab = this.newTab(t.url, { activate: false, pinned: true, groupId: null });
+      if (t.title) {
+        this.sleep(tab);
+        tab.title = t.title;
+      }
+    });
+    return false;
+  }
+
+  /** The tabs from last time, when they're not restored at startup ("Restore 5 tabs"). */
+  get lastSession(): SavedSession | null {
+    const last = readJson<SavedSession>(localStorage, LAST_SESSION);
+    return last?.tabs?.some((t) => !t.pinned) ? last : null;
+  }
+
+  restoreLastSession() {
+    const last = this.lastSession;
+    if (!last) return;
+    localStorage.removeItem(LAST_SESSION);
+    this.restore({ ...last, tabs: last.tabs.filter((t) => !t.pinned) });
   }
 
   saveTabs() {
-    const urls = this.tabs.map((t) => t.url);
-    const active = this.tabs.findIndex((t) => t.id === this.activeId);
-    try {
-      sessionStorage.setItem(SAVED_TABS, JSON.stringify({ urls, active }));
-    } catch {}
+    // Private tabs are never saved.
+    const tabs = this.tabs.filter((t) => !t.private);
+    const saved: SavedTab[] = tabs.map((t) => ({ url: t.url, title: t.title, pinned: t.pinned, group: t.groupId }));
+    const active = Math.max(0, tabs.findIndex((t) => t.id === this.activeId));
+    const groups = this.groups.filter((g) => tabs.some((t) => t.groupId === g.id)).map((g) => ({ ...g }));
+    writeJson(sessionStorage, SAVED_TABS, { tabs: saved, groups, active });
+    if (this.privateWindow) return;
+    writeJson(localStorage, PINNED, saved.filter((t) => t.pinned).map(({ url, title }) => ({ url, title })));
+    if (saved.some((t) => !t.pinned && t.url !== START)) writeJson(localStorage, LAST_SESSION, { tabs: saved, groups, active, at: Date.now() } satisfies SavedSession);
   }
 
-  closeTab(id: number) {
+  setStartup(value: 'newtab' | 'restore') {
+    this.startup = value;
+    localStorage.setItem(STARTUP, value);
+  }
+
+  setSleepAfter(minutes: number) {
+    this.sleepAfter = minutes;
+    localStorage.setItem(SLEEP_AFTER, String(minutes));
+  }
+
+  // --- Closing ---
+
+  /** Close a tab. Pinned tabs only close when `force`d (from their menu), not with ⌘W. */
+  closeTab(id: number, opts: { force?: boolean } = {}) {
     const i = this.tabs.findIndex((t) => t.id === id);
     if (i === -1) return;
     const tab = this.tabs[i];
-    if (tab.history.some((url) => url !== START)) {
+    if (tab.pinned && !opts.force) {
+      this.say('Pinned tabs stay open. Unpin it to close it.');
+      return;
+    }
+    if (!tab.private && tab.history.some((url) => url !== START)) {
       const closed = { url: tab.url, title: tab.title, history: [...tab.history], index: tab.index, at: i, closedAt: Date.now() };
       this.closed = [...this.closed, closed].slice(-MAX_CLOSED);
     }
@@ -127,13 +296,27 @@ class Browser {
     controllers.get(id)?.abort();
     controllers.delete(id);
     this.tabs.splice(i, 1);
+    if (this.inSplit(id)) this.split = null;
+    // A group with no tabs left goes too.
+    if (tab.groupId !== null && !this.tabs.some((t) => t.groupId === tab.groupId)) this.groups = this.groups.filter((g) => g.id !== tab.groupId);
     // Closing the last tab closes the desktop app, like other browsers. A phone app can't close
     // itself, so there it opens a fresh tab instead.
     if (this.tabs.length === 0) {
       if (isApp) closeWindow().catch(() => this.newTab());
       else this.newTab();
+    } else if (this.activeId === id) {
+      const visible = this.tabs.filter((t) => !this.groupOf(t)?.collapsed);
+      this.activate((visible[Math.min(i, visible.length - 1)] ?? this.tabs[Math.min(i, this.tabs.length - 1)]).id);
     }
-    else if (this.activeId === id) this.activeId = this.tabs[Math.min(i, this.tabs.length - 1)].id;
+  }
+
+  closeOthers(id: number) {
+    for (const t of [...this.tabs]) if (t.id !== id && !t.pinned) this.closeTab(t.id);
+  }
+
+  closeToTheRight(id: number) {
+    const i = this.tabs.findIndex((t) => t.id === id);
+    for (const t of this.tabs.slice(i + 1)) if (!t.pinned) this.closeTab(t.id);
   }
 
   /** Bring back a closed tab (the last one, unless another is given), with its back and forward list. */
@@ -141,23 +324,139 @@ class Browser {
     if (!closed) return;
     this.closed = this.closed.filter((c) => c !== closed);
     const after = this.tabs[Math.min(closed.at, this.tabs.length) - 1]?.id;
-    const tab = this.newTab(closed.url, { after });
+    const tab = this.newTab(closed.url, { after, groupId: null });
     if (after === undefined && this.tabs.length > 1) {
-      // It was the first tab: put it back first.
+      // It was the first tab: put it back first (after any pinned ones).
       const at = this.tabs.findIndex((t) => t.id === tab.id);
       const [moved] = this.tabs.splice(at, 1);
-      this.tabs.unshift(moved);
+      this.tabs.splice(this.tabs.filter((t) => t.pinned).length, 0, moved);
     }
     const reopened = this.tabs.find((t) => t.id === tab.id)!;
     reopened.history = closed.history;
     reopened.index = Math.min(closed.index, closed.history.length - 1);
   }
 
-  /** A page's title arrived. */
-  titled(tab: Tab, title: string) {
-    tab.title = title;
-    if (!tab.preview) pageHistory.retitle(tab.url, title);
+  // --- Arranging tabs ---
+
+  /** Move a tab to a place in the tab bar. Pinned tabs stay with pinned tabs. */
+  moveTab(id: number, to: number) {
+    const from = this.tabs.findIndex((t) => t.id === id);
+    if (from === -1) return;
+    const [tab] = this.tabs.splice(from, 1);
+    const pinnedCount = this.tabs.filter((t) => t.pinned).length;
+    const at = tab.pinned ? Math.min(to, pinnedCount) : Math.max(pinnedCount, Math.min(to, this.tabs.length));
+    this.tabs.splice(at, 0, tab);
+    if (!tab.pinned) {
+      // Dropped inside a group joins it; dropped outside its own leaves it.
+      const left = this.tabs[at - 1];
+      const right = this.tabs[at + 1];
+      if (left?.groupId !== null && left?.groupId === right?.groupId) tab.groupId = left!.groupId;
+      else if (tab.groupId !== null && left?.groupId !== tab.groupId && right?.groupId !== tab.groupId) tab.groupId = null;
+    }
   }
+
+  pin(tab: Tab, pinned: boolean) {
+    tab.pinned = pinned;
+    if (pinned) tab.groupId = null;
+    this.moveTab(tab.id, pinned ? this.tabs.filter((t) => t.pinned && t.id !== tab.id).length : this.tabs.filter((t) => t.pinned).length);
+  }
+
+  duplicate(tab: Tab) {
+    const copy = this.newTab(tab.url, { after: tab.id, private: tab.private });
+    copy.history = [...tab.history];
+    copy.index = tab.index;
+  }
+
+  mute(tab: Tab, muted = !tab.muted) {
+    tab.muted = muted;
+  }
+
+  /** A new group with these tabs. Returns it so it can be named. */
+  group(ids: number[], name = ''): TabGroup {
+    const used = new Set(this.groups.map((g) => g.color));
+    const color = GROUP_COLORS.find((c) => !used.has(c)) ?? GROUP_COLORS[this.groups.length % GROUP_COLORS.length];
+    const group: TabGroup = { id: nextGroup++, name, color, collapsed: false };
+    this.groups.push(group);
+    this.addToGroup(ids, group.id);
+    return this.groups.at(-1)!;
+  }
+
+  addToGroup(ids: number[], groupId: number) {
+    for (const id of ids) {
+      const tab = this.tabs.find((t) => t.id === id);
+      if (!tab || tab.pinned) continue;
+      tab.groupId = groupId;
+      // Keep a group's tabs together, after its last one.
+      const last = this.tabs.findLastIndex((t) => t.groupId === groupId && t.id !== id);
+      if (last !== -1) this.moveTab(id, this.tabs.findIndex((t) => t.id === id) < last ? last : last + 1);
+    }
+  }
+
+  ungroup(tab: Tab) {
+    const g = tab.groupId;
+    tab.groupId = null;
+    if (g !== null && !this.tabs.some((t) => t.groupId === g)) this.groups = this.groups.filter((x) => x.id !== g);
+  }
+
+  removeGroup(groupId: number, closeTabs: boolean) {
+    for (const t of [...this.tabs]) {
+      if (t.groupId !== groupId) continue;
+      if (closeTabs) this.closeTab(t.id, { force: true });
+      else t.groupId = null;
+    }
+    this.groups = this.groups.filter((g) => g.id !== groupId);
+  }
+
+  /** Move a tab into a new window (desktop app), or a new browser window (web). */
+  async moveToNewWindow(tab: Tab, at?: { x: number; y: number }) {
+    if (desktop) {
+      await desktop.window.newWindow(tab.url, { ...at, private: tab.private });
+    } else {
+      window.open(`${location.origin}/?open=${encodeURIComponent(tab.url)}`, '_blank');
+    }
+    this.closeTab(tab.id, { force: true });
+  }
+
+  /** Show two tabs side by side. */
+  splitWith(left: number, right: number) {
+    if (left === right) return;
+    this.split = { left, right, ratio: 0.5 };
+    this.activate(left);
+    const r = this.tabs.find((t) => t.id === right);
+    if (r?.view.type === 'asleep') this.wake(r);
+  }
+
+  // --- Sleeping tabs ---
+
+  /** Let a tab go to sleep: its page is let go of, to save memory, until it's looked at again. */
+  sleep(tab: Tab) {
+    if (tab.id === this.activeId || this.inSplit(tab.id)) return;
+    controllers.get(tab.id)?.abort();
+    tab.loadId++;
+    tab.loading = false;
+    tab.reader = null;
+    tab.view = { type: 'asleep' };
+  }
+
+  wake(tab: Tab) {
+    if (tab.view.type === 'asleep') this.go(tab, tab.url, 'none');
+  }
+
+  /** Called every minute: tabs in the background for long enough go to sleep. */
+  sleepIdle() {
+    if (!this.sleepAfter) return;
+    const before = Date.now() - this.sleepAfter * 60_000;
+    for (const t of this.tabs) {
+      if (t.view.type !== 'asleep' && !t.audible && t.lastActive < before && !this.isVisible(t.id)) this.sleep(t);
+    }
+  }
+
+  say(text: string) {
+    this.toast = text;
+    setTimeout(() => this.toast === text && (this.toast = ''), 3500);
+  }
+
+  // --- Going places ---
 
   /** Handle whatever was typed into an address box: open an address, or search with Nox. */
   open(tab: Tab, text: string) {
@@ -180,6 +479,8 @@ class Browser {
       tab.history[tab.index] = u.href;
     }
     tab.url = u.href;
+    tab.reader = null;
+    tab.audible = false;
     controllers.get(tab.id)?.abort();
     find.pageChanged(tab.id);
 
@@ -206,7 +507,7 @@ class Browser {
     tab.icon = null;
 
     const user = account.user && { username: account.user.username };
-    load(u, { signal: controller.signal, fresh, user, preview: tab.preview?.base }).then(async (result) => {
+    load(u, { signal: controller.signal, fresh, user, preview: tab.preview?.base, private: tab.private }).then(async (result) => {
       if (result.type === 'aborted' || tab.loadId !== loadId) return;
       // Preview links last an hour. Get a fresh one and try again.
       if (result.type === 'error' && result.error.code === 'preview_expired' && tab.preview && !retried) {
@@ -233,15 +534,21 @@ class Browser {
     });
   }
 
-  /** A site's page opened: keep it in history, and count the visit (not for previews). */
+  /** A site's page opened: keep it in history, and count the visit (not for previews or private tabs). */
   private visited(tab: Tab, site: string, mode: Mode) {
-    if (tab.preview) return;
+    if (tab.preview || tab.private) return;
     if (mode !== 'none') pageHistory.add(tab.url, tab.title);
     const today = `${site}:${new Date().toDateString()}`;
     if (!counted.has(today)) {
       counted.add(today);
       api('POST', `/api/sites/${encodeURIComponent(site)}/visit`).catch(() => counted.delete(today));
     }
+  }
+
+  /** A page's title arrived. */
+  titled(tab: Tab, title: string) {
+    tab.title = title;
+    if (!tab.preview && !tab.private) pageHistory.retitle(tab.url, title);
   }
 
   /** Open a site that's waiting for approval, as its owner or an admin. `site` is its key. */
@@ -292,6 +599,9 @@ class Browser {
     this.addressFocus++;
   }
 
+  /** Named actions: from keyboard shortcuts (see keys.ts), the Mac's menu bar and the command palette. */
+  commands: Record<string, () => void> = {};
+
   /**
    * Keyboard shortcuts (⌘ or Ctrl and a key, by name: see keys.ts), from the browser, forwarded by
    * a page, or picked from the Mac's menu bar. Returns true if handled.
@@ -303,6 +613,9 @@ class Browser {
       this.focusAddress();
     } else if (key === 'shift+t') {
       this.reopenClosed();
+    } else if (key === 'shift+n') {
+      this.newTab(undefined, { private: true });
+      this.focusAddress();
     } else if (key === 'w') {
       if (tab) this.closeTab(tab.id);
     } else if (key === 'l') {
@@ -315,7 +628,7 @@ class Browser {
       if (tab) this.forward(tab);
     } else if (/^[1-9]$/.test(key)) {
       const target = key === '9' ? this.tabs.at(-1) : this.tabs[Number(key) - 1];
-      if (target) this.activeId = target.id;
+      if (target) this.activate(target.id);
     } else if (key === 'd') {
       if (tab && bookmarks.canBookmark(tab.url)) bookmarks.ask++;
     } else if (key === 'shift+b') {
@@ -324,6 +637,8 @@ class Browser {
       this.newTab('biggle://bookmarks', { after: tab?.id });
     } else if (key === (isMac ? 'y' : 'h')) {
       this.newTab('biggle://history', { after: tab?.id });
+    } else if (key === (isMac ? 'shift+j' : 'j')) {
+      this.newTab('biggle://downloads', { after: tab?.id });
     } else if (key === 'f') {
       if (tab) find.show(tab.id);
     } else if (key === 'g') {
@@ -335,6 +650,10 @@ class Browser {
       if (!tab || tab.url === START) return true;
       if (key === '0') zoom.reset(tab.url);
       else zoom.step(tab.url, key === '=' ? 1 : -1);
+    } else if (this.commands[key]) {
+      // Things other parts of the browser handle: the command palette (k, shift+a), printing (p),
+      // screenshots (shift+s), reader mode (shift+r), game mode (shift+f)…
+      this.commands[key]();
     } else {
       return false;
     }
@@ -380,14 +699,27 @@ class Browser {
       case 'nav': {
         if (msg.dir === 'back') this.back(tab);
         else if (msg.dir === 'forward') this.forward(tab);
+        else if (msg.dir === 'reload') this.reload(tab);
         break;
       }
       case 'call': {
-        if (tab.view.type === 'page') answerCall(tab.view.site, msg, reply);
+        if (tab.view.type === 'page') answerCall(tab.view.site, msg, reply, { private: tab.private });
         break;
       }
       case 'local': {
-        if (tab.view.type === 'page') saveLocal(tab.view.site, msg.entries);
+        if (tab.view.type === 'page') saveLocal(tab.view.site, msg.entries, tab.private);
+        break;
+      }
+      case 'audio': {
+        tab.audible = msg.audible === true;
+        break;
+      }
+      case 'hover': {
+        if (tab.id === this.activeId) this.hoverUrl = typeof msg.url === 'string' ? msg.url.slice(0, 500) : '';
+        break;
+      }
+      case 'zoom': {
+        if (msg.by === 1 || msg.by === -1) zoom.step(tab.url, msg.by);
         break;
       }
     }
@@ -413,6 +745,7 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'settings') return 'Settings';
   if (page === 'bookmarks') return 'Bookmarks';
   if (page === 'history') return 'History';
+  if (page === 'downloads') return 'Downloads';
   if (page === 'profile') return path || 'Profile';
   return path ? `Editing ${path}` : 'My sites';
 }

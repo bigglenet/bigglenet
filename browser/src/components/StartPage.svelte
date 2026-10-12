@@ -1,5 +1,10 @@
+<script lang="ts" module>
+  let offered = false;
+</script>
+
 <script lang="ts">
   import { account } from '../lib/account.svelte';
+  import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
   import { siteHome, siteHost } from '../lib/url';
@@ -19,6 +24,13 @@
     }
   });
   const directory = loadDirectory();
+  // Just started, with tabs from last time not reopened: offer them (once).
+  let restoreOffer = $state<number | null>(
+    !offered && browser.startup === 'newtab' && browser.tabs.filter((x) => !x.pinned).length === 1 && browser.lastSession
+      ? browser.lastSession.tabs.filter((x) => !x.pinned).length
+      : null,
+  );
+  offered = true;
   const wash = $derived(BACKDROPS.find((b) => b.id === settings.backdrop)?.color ?? null);
 
   // The clock, when it's switched on.
@@ -41,6 +53,14 @@
   <div class="start" class:washed={wash} style:--wash={wash}>
     <div class="inner">
       <h1 class="brand"><span class="logo-word" aria-hidden="true"></span><span class="sr-only">bigglenet</span></h1>
+
+      {#if restoreOffer}
+        <div class="restore">
+          <span>{t('Your tabs from last time are still here.')}</span>
+          <button onclick={() => ((restoreOffer = null), browser.restoreLastSession())}>{t('Open {n} tabs', { n: restoreOffer })}</button>
+          <button class="no" aria-label={t('No thanks')} onclick={() => (restoreOffer = null)}><Icon name="close" size={14} /></button>
+        </div>
+      {/if}
 
       {#if settings.shown.clock}
         <div class="clock">
@@ -145,6 +165,39 @@
     background: linear-gradient(160deg, color-mix(in srgb, var(--wash) 32%, var(--surface)), var(--surface) 75%);
   }
 
+  .restore {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -16px 0 24px;
+    padding: 10px 10px 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    font-size: 14px;
+  }
+  .restore span {
+    flex: 1;
+  }
+  .restore button {
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .restore .no {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    padding: 0;
+    background: none;
+    color: var(--muted);
+  }
   .customize {
     position: absolute;
     right: 18px;
