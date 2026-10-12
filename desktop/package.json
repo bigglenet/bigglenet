@@ -1,7 +1,7 @@
 {
   "name": "bigglenet",
   "productName": "Bigglenet",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "The Biggle browser",
   "author": "Bigglenet <noreply@bigglenet.ethembeldagli.dev>",
