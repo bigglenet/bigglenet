@@ -20,7 +20,7 @@
 //   POST   /api/chats/:id/signal { to, data }      pass call connection details to someone
 //   POST   /api/chats/:id/together { data }        watching or listening together in a call
 import { randomId, requireUser, type User } from './auth';
-import { deleteFile, fileLink } from './files';
+import { deleteFile, fileInfo, fileLink, putFile } from './files';
 import { HttpError, json, readJson, str } from './http';
 import { notify, type LiveEvent } from './live';
 import { blockedIds } from './people';
@@ -436,18 +436,18 @@ export async function sendMessage(req: Request, env: Env, rawId: string): Promis
     const a = input.attachment as Record<string, unknown>;
     const key = str(a.key);
     if (!key.startsWith(`chat/${chat.id}/`)) throw new HttpError(400, 'bad_file', "That file isn't in this chat.");
-    const object = await env.FILES.head(key);
-    if (!object) throw new HttpError(400, 'bad_file', 'That file didn’t finish uploading. Try again.');
+    const file = await fileInfo(env, key);
+    if (!file) throw new HttpError(400, 'bad_file', 'That file didn’t finish uploading. Try again.');
     const num = (v: unknown, max: number) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.min(Math.round(Number(v)), max) : undefined);
     attachment = {
       key,
-      name: object.customMetadata?.name ?? 'file',
-      type: object.httpMetadata?.contentType ?? 'application/octet-stream',
-      size: object.size,
+      name: file.name ?? 'file',
+      type: file.type,
+      size: file.size,
       width: num(a.width, 20000),
       height: num(a.height, 20000),
       duration: num(a.duration, 24 * 3600),
-      voice: a.voice === true && /^audio\//.test(object.httpMetadata?.contentType ?? '') ? true : undefined,
+      voice: a.voice === true && /^audio\//.test(file.type) ? true : undefined,
     };
   }
   if (!body && !attachment) throw new HttpError(400, 'empty', 'Write something first.');
@@ -543,7 +543,7 @@ export async function uploadFile(req: Request, env: Env, rawId: string): Promise
   } catch {}
   name = name.replace(/[\u0000-\u001f/\\]/g, '').trim().slice(0, MAX_FILE_NAME) || 'file';
   const key = `chat/${chat.id}/${randomId(12)}`;
-  await env.FILES.put(key, bytes, { httpMetadata: { contentType: type }, customMetadata: { name, by: String(me.id) } });
+  await putFile(env, key, bytes, type, { name, owner: me.id });
   return json({ key, name, type, size: bytes.byteLength }, 201);
 }
 

@@ -12,10 +12,16 @@
       "database_name": "bigglenet",
       "database_id": "d68de7d5-a876-46e2-9689-95b8e81e5138",
       "migrations_dir": "migrations"
+    },
+    // Profile pictures, and pictures, files and voice messages sent in chats (files.ts), apart
+    // so they can't fill up the main database.
+    {
+      "binding": "FILES_DB",
+      "database_name": "bigglenet-files",
+      "database_id": "15ee71c1-769a-4c51-a2e4-33bb75766a35",
+      "migrations_dir": "files-migrations"
     }
   ],
-  // Profile pictures, and pictures, files and voice messages sent in chats.
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "bigglenet-files" }],
   "durable_objects": {
     "bindings": [
       { "name": "LIVE", "class_name": "Live" },

@@ -33,7 +33,7 @@
 //   /api/me/2fa*, /api/auth/login/2fa    two-factor sign-in (twofactor.ts)
 //   /api/passkeys*, /passkey/:id      passkeys (passkeys.ts)
 //   /api/push                        web push (push.ts)
-//   /api/admin/backups*, /api/admin/restore   nightly backups (backups.ts)
+//   /api/admin/backups*, /api/admin/restore   restore points and copies of the database (backups.ts)
 //   /api/live                        WebSocket for live updates
 import * as account from './account';
 import * as admin from './admin';
@@ -299,26 +299,16 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/push$/, push.unsubscribe],
 
   ['GET', /^\/api\/admin\/backups$/, backups.listBackups],
-  ['GET', /^\/api\/admin\/backups\/(\d+)\/download$/, backups.downloadBackup],
+  ['POST', /^\/api\/admin\/backups\/export$/, backups.exportStep],
   ['POST', /^\/api\/admin\/backups\/(\d+)\/restore$/, backups.restoreBackup],
   ['POST', /^\/api\/admin\/restore$/, backups.undoRestore],
 
   ['GET', /^\/api\/live$/, connect],
 ];
 
-async function handle(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handle(req: Request, env: Env): Promise<Response> {
   if (req.method === 'OPTIONS') return preflight();
   const { pathname, search } = new URL(req.url);
-
-  // A backup runs on after the answer, so it needs the context.
-  if (pathname === '/api/admin/backups' && req.method === 'POST') {
-    try {
-      return await backups.backupNow(req, env, ctx);
-    } catch (e) {
-      if (e instanceof HttpError) return fail(e.status, e.code, e.message);
-      throw e;
-    }
-  }
 
   const file = pathname.match(/^\/files\/(.+)$/);
   if (file && req.method === 'GET') {
@@ -363,8 +353,8 @@ async function handle(req: Request, env: Env, ctx: ExecutionContext): Promise<Re
 
 export default {
   // Errors come back in the asker's language (i18n.ts).
-  async fetch(req, env, ctx): Promise<Response> {
-    return translateError(await handle(req, env, ctx), langOf(req));
+  async fetch(req, env): Promise<Response> {
+    return translateError(await handle(req, env), langOf(req));
   },
 
   async email(message, env) {
@@ -373,11 +363,11 @@ export default {
 
   // Every minute (wrangler.jsonc), taking turns so each run stays within the Workers limits
   // (clubs.ts): event reminders, then reading changed sites for search. At 03:00 UTC, the
-  // nightly backup instead, and at 03:31 a check of who's really online.
+  // nightly restore point instead, and at 03:31 a check of who's really online.
   async scheduled(controller, env, ctx) {
     const at = new Date(controller.scheduledTime);
     const minute = at.getUTCMinutes();
-    if (at.getUTCHours() === 3 && minute === 0) ctx.waitUntil(backups.runBackup(env));
+    if (at.getUTCHours() === 3 && minute === 0) ctx.waitUntil(backups.markRestorePoint(env));
     else if (at.getUTCHours() === 3 && minute === 31) ctx.waitUntil(fixPresence(env));
     else ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
   },

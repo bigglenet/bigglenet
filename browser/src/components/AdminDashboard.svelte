@@ -1,11 +1,10 @@
 <script lang="ts">
   // The top of biggle://admin: how the Bigglenet is doing, reports to look at, the announcement
-  // banner, and backups (server/src/moderation.ts, backups.ts).
+  // banner, and restore points and copies of the database (server/src/moderation.ts, backups.ts).
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
-  import { SERVER } from '../lib/config';
-  import { account } from '../lib/account.svelte';
   import { announcements } from '../lib/announcement.svelte';
+  import { downloads } from '../lib/downloads.svelte';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { siteHome, siteHost } from '../lib/url';
 
@@ -16,9 +15,11 @@
     signups: { day: number; n: number }[];
     totals: { users: number; online: number; today: number; week: number; sites: number; pending: number; messages: number; threads: number; clubs: number; reports: number };
     busiest: { name: string; tld: 'biggle' | 'b'; title: string | null; visits: number }[];
+    storage: { database: number | null; databaseSpace: number; files: number; filesSpace: number };
   };
   type Report = { id: number; kind: string; target: string; summary: string; reason: string | null; reporter: string | null; created_at: number };
-  type Backup = { id: number; size: number | null; status: string; error: string | null; restorable: number; created_at: number };
+  type Point = { id: number; created_at: number };
+  type Backups = { configured: boolean; days: number; points: Point[] };
 
   let dash = $state<Dashboard | null>(null);
   let reports = $state<Report[]>([]);
@@ -26,7 +27,8 @@
   let text = $state('');
   let level = $state<'info' | 'warning'>('info');
   let hours = $state(0);
-  let backups = $state<{ configured: boolean; backups: Backup[] } | null>(null);
+  let backups = $state<Backups | null>(null);
+  let copying = $state(false);
   let restoring = $state<number | null>(null);
   let undo = $state<string | null>(null);
   let error = $state('');
@@ -38,7 +40,7 @@
         api<Dashboard>('GET', '/api/admin/dashboard'),
         api<{ reports: Report[] }>('GET', '/api/admin/reports'),
         api<{ announcement: typeof announcement }>('GET', '/api/announcement'),
-        api<{ configured: boolean; backups: Backup[] }>('GET', '/api/admin/backups'),
+        api<Backups>('GET', '/api/admin/backups'),
       ]);
       dash = d;
       reports = r.reports;
@@ -77,29 +79,40 @@
     });
   };
   const endAnnouncement = () => act(async () => (await api('DELETE', '/api/admin/announcements'), announcements.check()));
-  const backupNow = () => act(async () => (await api('POST', '/api/admin/backups'), browser.say(t('Backing up. It takes a minute or two.'))));
-  const restore = (b: Backup) =>
+  const restore = (p: Point) =>
     act(async () => {
-      const r = await api<{ undo: string | null }>('POST', `/api/admin/backups/${b.id}/restore`);
+      const r = await api<{ undo: string | null }>('POST', `/api/admin/backups/${p.id}/restore`);
       restoring = null;
       undo = r.undo;
-      browser.say(t('The database is back to {when}.', { when: when(b.created_at) }));
+      browser.say(t('The database is back to {when}.', { when: when(p.created_at) }));
     });
   const undoRestore = () => act(async () => (await api('POST', '/api/admin/restore', { bookmark: undo }), (undo = null)));
 
-  async function download(b: Backup) {
-    const res = await fetch(`${SERVER}/api/admin/backups/${b.id}/download`, { headers: { Authorization: `Bearer ${account.token}` } });
-    if (!res.ok) return void (error = t('Couldn’t download that backup.'));
-    const url = URL.createObjectURL(await res.blob());
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bigglenet-backup-${b.id}.sql`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  // D1 makes the copy in the background: ask again every couple of seconds until it's ready, then
+  // download it from Cloudflare's link.
+  async function downloadCopy() {
+    if (copying) return;
+    copying = true;
+    error = '';
+    try {
+      let bookmark: string | null = null;
+      for (let i = 0; i < 90; i++) {
+        const r: { done: boolean; bookmark: string | null; url: string | null } = await api('POST', '/api/admin/backups/export', { bookmark });
+        if (r.done && r.url) return void downloads.get(r.url);
+        bookmark = r.bookmark;
+        await new Promise((res) => setTimeout(res, 2000));
+      }
+      error = t('Making the copy took too long. Try again.');
+    } catch (e) {
+      error = errorText(e);
+    } finally {
+      copying = false;
+    }
   }
 
   const when = (s: number) => new Date(s * 1000).toLocaleString(i18n.locale, { dateStyle: 'medium', timeStyle: 'short' });
-  const mb = (n: number | null) => (n == null ? '' : n < 1024 * 1024 ? `${Math.ceil(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
+  // Counted the way Cloudflare counts its limits (500 MB = 500,000,000 bytes).
+  const mb = (n: number | null) => (n == null ? '' : n < 1_000_000 ? `${Math.ceil(n / 1000)} KB` : `${Number((n / 1_000_000).toFixed(1)).toLocaleString(i18n.locale)} MB`);
   const days = $derived.by(() => {
     if (!dash) return [];
     const byDay = new Map(dash.signups.map((s) => [s.day, s.n]));
@@ -122,6 +135,16 @@
       <div><strong>{n.sites}</strong><span>{t('live sites')}</span></div>
       <div><strong>{n.messages}</strong><span>{t('messages today')}</span></div>
     </div>
+    <h3>{t('Space')}</h3>
+    <ul class="space">
+      {#each [[t('Database'), dash.storage.database, dash.storage.databaseSpace], [t('Files people sent'), dash.storage.files, dash.storage.filesSpace]] as [label, used, room] (label)}
+        <li>
+          <span class="grow">{label}</span>
+          <span class="muted small">{used == null ? '—' : t('{used} of {room}', { used: mb(used as number), room: mb(room as number) })}</span>
+          <meter min="0" max={room as number} value={(used as number | null) ?? 0} high={(room as number) * 0.8} aria-label={label as string}></meter>
+        </li>
+      {/each}
+    </ul>
     <h3>{t('Sign-ups, last 30 days')}</h3>
     <svg class="chart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label={t('Sign-ups each day')}>
       {#each days as d, i (d.day)}
@@ -195,34 +218,29 @@
 <section id="backups">
   <h2>{t('Backups')}</h2>
   {#if backups && !backups.configured}
-    <p class="muted">{t('Not set up yet. Nightly backups need a Cloudflare API token (CF_API_TOKEN, with D1 edit) and CF_ACCOUNT_ID as secrets, and R2 storage.')}</p>
+    <p class="muted">{t('Not set up yet. Backups need a Cloudflare API token that can edit D1 (CF_API_TOKEN) as a secret.')}</p>
   {:else if backups}
-    <p class="muted">{t('Every night at 03:00 UTC, kept for two weeks. Restoring puts the whole database back to that moment (up to 7 days back).')}</p>
+    <p class="muted">{t('The database can go back to any moment of the last {days} days. Each night at 03:00 UTC is marked here.', { days: backups.days })}</p>
     {#if undo}
       <div class="current warning">
         <span>{t('Restored. Changed your mind?')}</span>
         <button class="ghost" disabled={busy} onclick={undoRestore}>{t('Undo the restore')}</button>
       </div>
     {/if}
-    <button class="ghost" disabled={busy} onclick={backupNow}>{t('Back up now')}</button>
+    <button class="ghost" disabled={copying} onclick={downloadCopy}>{copying ? t('Making a copy…') : t('Download a copy now')}</button>
     <ul class="backups">
-      {#each backups.backups as b (b.id)}
+      {#each backups.points as p (p.id)}
         <li>
-          <span class="grow">{when(b.created_at)} <span class="muted small">{b.status === 'done' ? mb(b.size) : b.status === 'running' ? t('running…') : t('failed: {why}', { why: b.error ?? '' })}</span></span>
-          {#if b.status === 'done'}
-            <button class="link" onclick={() => download(b)}>{t('Download')}</button>
-            {#if b.restorable}
-              {#if restoring === b.id}
-                <button class="danger" disabled={busy} onclick={() => restore(b)}>{t('Restore everything to then')}</button>
-                <button class="link" onclick={() => (restoring = null)}>{t('Cancel')}</button>
-              {:else}
-                <button class="link" onclick={() => (restoring = b.id)}>{t('Restore…')}</button>
-              {/if}
-            {/if}
+          <span class="grow">{when(p.created_at)}</span>
+          {#if restoring === p.id}
+            <button class="danger" disabled={busy} onclick={() => restore(p)}>{t('Restore everything to then')}</button>
+            <button class="link" onclick={() => (restoring = null)}>{t('Cancel')}</button>
+          {:else}
+            <button class="link" onclick={() => (restoring = p.id)}>{t('Restore…')}</button>
           {/if}
         </li>
       {:else}
-        <li class="muted">{t('No backups yet.')}</li>
+        <li class="muted">{t('No restore points yet. The first one is marked tonight.')}</li>
       {/each}
     </ul>
   {/if}
@@ -302,7 +320,8 @@
     font-size: 14px;
   }
   .reports,
-  .backups {
+  .backups,
+  .space {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -315,7 +334,8 @@
     border-radius: 12px;
     background: var(--surface);
   }
-  .backups li {
+  .backups li,
+  .space li {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -324,6 +344,10 @@
   }
   .grow {
     flex: 1;
+  }
+  .space meter {
+    width: 100%;
+    height: 8px;
   }
   .buttons {
     display: flex;

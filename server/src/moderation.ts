@@ -11,6 +11,7 @@
 //   GET    /api/status                     up or not, which version, how fast (no sign-in)
 import pkg from '../../package.json';
 import { requireAdmin, requireUser } from './auth';
+import { filesSpace } from './files';
 import { HttpError, json, readJson, siteAddress, str } from './http';
 import { forget } from './gateway';
 import { addNotification } from './notifications';
@@ -188,7 +189,11 @@ export async function dashboard(req: Request, env: Env): Promise<Response> {
        WHERE v.day > ? GROUP BY n.name ORDER BY visits DESC LIMIT 10`,
     ).bind(day - 7),
   ]);
-  return json({ today: day, signups: signups.results, totals: totals.results[0], busiest: busiest.results });
+  // How full the two databases are (each holds 500 MB on Workers Free). D1 says how big a
+  // database is with every answer.
+  const files = await filesSpace(env);
+  const storage = { database: (totals.meta as { size_after?: number }).size_after ?? null, databaseSpace: 500_000_000, files: files.used, filesSpace: files.space };
+  return json({ today: day, signups: signups.results, totals: totals.results[0], busiest: busiest.results, storage });
 }
 
 // --- The status page ---

@@ -1,5 +1,5 @@
 -- Bigglenet 1.0, part 7: the platform. Reports and announcements, two-factor sign-in, passkeys,
--- push notifications, settings sync and nightly backups.
+-- push notifications, settings sync and nightly restore points.
 
 -- Reports: someone flagged a site, message, post, comment, note or person for admins.
 CREATE TABLE reports (
@@ -100,16 +100,10 @@ CREATE TABLE user_sync (
   PRIMARY KEY (user_id, key)
 );
 
--- Nightly backups (cron): a copy of the database in the FILES bucket, and the moment it was
--- taken, to restore to.
-CREATE TABLE backups (
+-- Restore points: each night (cron) the moment is marked with its D1 Time Travel bookmark, so
+-- an admin can put the database back to it (Time Travel keeps 7 days on Workers Free).
+CREATE TABLE restore_points (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT,
-  size INTEGER,
-  -- 'running', 'done' or 'failed'.
-  status TEXT NOT NULL,
-  error TEXT,
-  -- D1 Time Travel bookmark for that moment.
-  bookmark TEXT,
+  bookmark TEXT NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );

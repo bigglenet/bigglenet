@@ -1,4 +1,4 @@
--- Profiles: a short bio, a picture (stored in R2, see files.ts; avatar_v changes with each new
+-- Profiles: a short bio, a picture (in the files database, see files.ts; avatar_v changes with each new
 -- one), a status ("📚 Revising", until a time), and what you're up to on the Bigglenet
 -- ("Playing GTA V"), which friends only see if you turn sharing on.
 ALTER TABLE users ADD COLUMN bio TEXT;
