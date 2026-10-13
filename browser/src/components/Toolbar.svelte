@@ -21,7 +21,7 @@
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
   import SiteInfo from './SiteInfo.svelte';
-  import { shot } from './ScreenshotTool.svelte';
+  import { canScreenshot, shot } from './ScreenshotTool.svelte';
 
   const tab = $derived(browser.active);
   const zoomed = $derived(tab ? zoom.of(tab.url) : 1);
@@ -118,7 +118,7 @@
       );
     }
     items.push({ label: t('Print…'), icon: 'printer', action: () => printPage(t0) });
-    if (isApp) items.push({ label: t('Take a screenshot'), icon: 'camera', action: () => shot.start() });
+    if (canScreenshot) items.push({ label: t('Take a screenshot'), icon: 'camera', action: () => shot.start() });
     items.push({ label: t('Find in page'), icon: 'search', action: () => browser.shortcut('f') }, { separator: true });
     if (site) {
       const key = siteKey(site);

@@ -4,7 +4,7 @@ import type { IconName } from '../components/Icon.svelte';
 import { bookmarks } from './bookmarks.svelte';
 import { browser, GROUP_COLORS, type GroupColor, type Tab, type TabGroup } from './browser.svelte';
 import { t } from './i18n.svelte';
-import { desktop, isApp } from './platform';
+import { downloads } from './downloads.svelte';
 import { fromGateway, noxSearch, START } from './url';
 
 export type MenuItem =
@@ -58,7 +58,7 @@ class ContextMenu {
       if (items.length) items.push(sep);
       if (address) items.push({ label: t('Open picture in new tab'), icon: 'plus', action: () => browser.newTab(address, { after: tab.id }) });
       items.push({ label: t('Copy picture address'), icon: 'copy', action: () => copy(address ?? image) });
-      if (isApp && /^https?:/i.test(image)) items.push({ label: t('Save picture'), icon: 'download', action: () => desktop?.downloads.start(image) });
+      if (/^https?:/i.test(image)) items.push({ label: t('Save picture'), icon: 'download', action: () => downloads.get(image) });
     }
     if (at.selection) {
       const text = at.selection;

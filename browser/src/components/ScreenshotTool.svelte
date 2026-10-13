@@ -1,5 +1,8 @@
 <script lang="ts" module>
-  // Screenshots (⇧⌘S, desktop app): drag over part of the page, or press Enter for all of it.
+  import { isApp as app } from '../lib/platform';
+  // Screenshots (⇧⌘S): drag over part of the page, or press Enter for all of it. The desktop app
+  // takes the picture itself; web browsers that can share a tab (Chrome, Edge) ask first.
+  export const canScreenshot = app || (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia && !matchMedia('(pointer: coarse)').matches);
   class Shot {
     open = $state(false);
     start() {
@@ -40,17 +43,51 @@
     if (shot.open && picture) return overlays.hold();
   });
 
+  /** The web: a picture of this tab, through the browser's screen sharing (it asks first). */
+  async function captureTab(r: DOMRect): Promise<string | null> {
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'browser' },
+        audio: false,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+      } as DisplayMediaStreamOptions);
+    } catch {
+      return null;
+    }
+    try {
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.muted = true;
+      await video.play();
+      // Let the sharing prompt disappear from the picture.
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const scale = video.videoWidth / innerWidth;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(r.width * scale);
+      canvas.height = Math.round(r.height * scale);
+      canvas.getContext('2d')!.drawImage(video, r.x * scale, r.y * scale, r.width * scale, r.height * scale, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png');
+    } finally {
+      stream.getTracks().forEach((t) => t.stop());
+    }
+  }
+
   async function capture() {
     const tab = browser.active;
     const section = tab && document.querySelector<HTMLElement>(`[data-tab="${tab.id}"]`);
-    if (!tab || !section || !desktop) {
+    if (!tab || !section || !canScreenshot) {
       shot.open = false;
       return;
     }
     area = section.getBoundingClientRect();
     const control = controlFor(tab.id);
     // A site straight from the internet can draw itself; anything else is in the window.
-    picture = (tab.view.type === 'web' && control?.capture ? await control.capture() : null) ?? (await desktop.window.capture({ x: area.x, y: area.y, width: area.width, height: area.height }));
+    picture = desktop
+      ? ((tab.view.type === 'web' && control?.capture ? await control.capture() : null) ??
+        (await desktop.window.capture({ x: area.x, y: area.y, width: area.width, height: area.height })))
+      : await captureTab(area);
     if (!picture) {
       browser.say(t('Couldn’t take a screenshot of this page.'));
       shot.open = false;

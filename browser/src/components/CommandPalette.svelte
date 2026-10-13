@@ -26,7 +26,7 @@
   import { parse, siteHome, siteHost, siteKey, START } from '../lib/url';
   import { zoom } from '../lib/zoom.svelte';
   import { couch } from '../lib/couch.svelte';
-  import { shot } from './ScreenshotTool.svelte';
+  import { canScreenshot, shot } from './ScreenshotTool.svelte';
   import Icon, { type IconName } from './Icon.svelte';
 
   type Entry = { id: string; label: string; detail?: string; icon: IconName; hint?: string; run: () => void; kind: string };
@@ -98,7 +98,7 @@
         c('duplicate', t('Duplicate tab'), 'copy', () => browser.duplicate(tab)),
         c('move', t('Move tab to new window'), 'external', () => browser.moveToNewWindow(tab)),
       );
-      if (isApp) list.push(c('shot', t('Take a screenshot'), 'camera', () => shot.start(), `${shift}${mod}S`));
+      if (canScreenshot) list.push(c('shot', t('Take a screenshot'), 'camera', () => shot.start(), `${shift}${mod}S`));
       if (site) {
         const key = siteKey(site);
         list.push(

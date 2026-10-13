@@ -30,7 +30,7 @@
   import DownloadsPage from './components/DownloadsPage.svelte';
   import PerfOverlay from './components/PerfOverlay.svelte';
   import ReaderView from './components/ReaderView.svelte';
-  import ScreenshotTool, { shot } from './components/ScreenshotTool.svelte';
+  import ScreenshotTool, { canScreenshot, shot } from './components/ScreenshotTool.svelte';
   import AdminPages from './components/AdminPages.svelte';
   import BookmarksBar from './components/BookmarksBar.svelte';
   import BookmarksPage from './components/BookmarksPage.svelte';
@@ -86,7 +86,7 @@
     k: () => (palette.open = palette.open ? null : 'all'),
     'shift+a': () => (palette.open = palette.open ? null : 'tabs'),
     p: () => browser.active && printPage(browser.active),
-    'shift+s': () => isApp && shot.start(),
+    'shift+s': () => canScreenshot && shot.start(),
     'shift+r': () => browser.active && toggleReader(browser.active),
     'shift+f': () => setGameMode(!browser.gameMode),
   });
@@ -395,7 +395,7 @@
   {#if perf.on}<PerfOverlay />{/if}
   <ContextMenu />
   <CommandPalette />
-  {#if isApp}<ScreenshotTool />{/if}
+  <ScreenshotTool />
 
   {#if browser.switcher}
     <TabSwitcher />
