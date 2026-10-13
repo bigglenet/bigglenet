@@ -244,7 +244,9 @@ export function setupSites() {
   ipcMain.handle('site-view:capture', async (event, id, width) => {
     const entry = get(event, id);
     if (!entry) return null;
-    const image = await entry.view.webContents.capturePage();
+    // Fails while the window can't be seen (hidden, or on another space): no picture then.
+    const image = await entry.view.webContents.capturePage().catch(() => null);
+    if (!image) return null;
     return (width ? image.resize({ width: Math.round(width) }) : image).toDataURL();
   });
 
