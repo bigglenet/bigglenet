@@ -4,6 +4,7 @@ import { account } from './account.svelte';
 import { api, ApiError } from './api';
 import { SERVER } from './config';
 import { t } from './i18n.svelte';
+import { sites } from './sites.svelte';
 import { social } from './social.svelte';
 
 export type Attachment = {
@@ -58,6 +59,8 @@ export type Chat = {
   id: number;
   kind: 'direct' | 'group';
   name: string | null;
+  /** A club's own chat (its members are the club's). */
+  club?: number | null;
   members: string[];
   lastAt: number | null;
   last: {
@@ -187,6 +190,12 @@ class Chats {
     if (m.from && this.typing[m.chatId]?.[m.from]) delete this.typing[m.chatId][m.from];
     const chat = this.get(m.chatId);
     if (!chat) return void this.refresh();
+    // "joined the club", "named the group…": who's in it or what it's called changed. In a
+    // club, its site may have too (clubs.ts sends just this one message).
+    if (m.kind === 'event') {
+      this.refresh();
+      if (chat.club) sites.refreshMine();
+    }
     chat.last = lastOf(m);
     chat.lastAt = m.at;
     if (!mine) chat.unread++;

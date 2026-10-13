@@ -2,6 +2,7 @@
 // (checked with an emailed code, or by emailing us) or signs in with Google.
 import { mailMode, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
+import { useInvite } from './invites';
 
 export type User = {
   id: number;
@@ -280,6 +281,7 @@ export async function signupFinish(req: Request, env: Env): Promise<Response> {
     if (String(e).includes('UNIQUE')) throw new HttpError(409, 'username_taken', 'Someone just took that username or email. Start again.');
     throw e;
   }
+  await useInvite(env, body.invite, { id: created!.id, username });
   return signedIn(env, created!.id, 201);
 }
 

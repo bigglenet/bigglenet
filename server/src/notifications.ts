@@ -17,6 +17,8 @@ export type NotificationKind =
   | 'site-rejected'
   | 'friend-request'
   | 'friend-accepted'
+  /** Someone signed up through your invite link (invites.ts). */
+  | 'invite-joined'
   | 'comment'
   | 'contact'
   | 'site-updated'

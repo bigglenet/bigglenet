@@ -10,7 +10,7 @@
   import { errorText } from '../../lib/api';
   import { browser } from '../../lib/browser.svelte';
   import { calls } from '../../lib/calls.svelte';
-  import { clock, dayLabel, fullTime, sameDay, type Part } from '../../lib/chatformat';
+  import { clock, dayLabel, fullTime, linkify, sameDay, type Part } from '../../lib/chatformat';
   import { chats, type Attachment, type Chat, type ChatMessage } from '../../lib/chats.svelte';
   import { t } from '../../lib/i18n.svelte';
   import { people } from '../../lib/people.svelte';
@@ -245,7 +245,8 @@
   {#each rows as r (r.m.id)}
     {#if r.day}<div class="day"><span>{r.day}</span></div>{/if}
     {#if r.m.kind === 'event'}
-      <p class="event" title={fullTime(r.m.at)}>{r.m.from ? `${who(r.m.from)} ${r.m.body}` : r.m.body} · {clock(r.m.at)}</p>
+      <!-- Links in them (a club's new event) work like links in messages. -->
+      <p class="event" title={fullTime(r.m.at)}>{#each linkify(r.m.from ? `${who(r.m.from)} ${r.m.body}` : r.m.body) as part, i (i)}{#if part.link}<button class="event-link" onclick={() => openLink(part.link!)}>{part.text}</button>{:else}{part.text}{/if}{/each} · {clock(r.m.at)}</p>
     {:else}
       <div class="msg" class:mine={r.mine} class:first={r.first} class:last={r.last} data-message={r.m.id}>
         {#if chat.kind === 'group' && !r.mine}
@@ -501,5 +502,14 @@
     border-top: 1px solid var(--border);
     font-size: 13.5px;
     text-align: center;
+  }
+  .event-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>

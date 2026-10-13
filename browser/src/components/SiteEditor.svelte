@@ -27,6 +27,7 @@
     drafts: boolean;
     owner: string | null;
     editors: string[];
+    club: { id: number; name: string } | null;
     /** The owner (or an admin): may add editors, change the address, delete the site. */
     canManage: boolean;
   };
@@ -579,6 +580,7 @@
       {name}
       owner={info.owner}
       editors={info.editors}
+      club={info.club}
       canManage={info.canManage}
       {head}
       {images}

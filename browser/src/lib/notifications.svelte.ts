@@ -92,6 +92,8 @@ export function describe(n: Notification): { text: string; href: string | null; 
       return { text: t('{who} wants to be friends', { who: s(d.username) }), href: `biggle://u/${s(d.username)}`, icon: 'users' };
     case 'friend-accepted':
       return { text: t('{who} accepted your friend request', { who: s(d.username) }), href: `biggle://u/${s(d.username)}`, icon: 'users' };
+    case 'invite-joined':
+      return { text: t('{who} joined with your invite link. You’re friends now.', { who: s(d.username) }), href: `biggle://u/${s(d.username)}`, icon: 'users' };
     case 'comment':
       return {
         text: t('{who} commented on {page}: “{body}”', { who: s(d.author), page: siteHost(site) + s(d.path), body: s(d.body) }),

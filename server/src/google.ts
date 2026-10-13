@@ -4,6 +4,7 @@
 import { checkUsername, randomId, signedIn } from './auth';
 import { mailMode } from './email';
 import { HttpError, json, readJson, str } from './http';
+import { useInvite } from './invites';
 
 const REQUEST_TTL = 10 * 60;
 
@@ -130,6 +131,7 @@ export async function finish(req: Request, env: Env): Promise<Response> {
     throw e;
   }
   await env.DB.prepare('DELETE FROM oauth_requests WHERE id = ?').bind(row.id).run();
+  await useInvite(env, body.invite, { id: created!.id, username });
   return signedIn(env, created!.id, 201);
 }
 

@@ -3,6 +3,7 @@
   // and (for code sites) what a link to it looks like when it's shared.
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
+  import { browser } from '../lib/browser.svelte';
   import type { HeadMeta } from '../lib/headmeta';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
@@ -23,6 +24,7 @@
     name,
     owner,
     editors,
+    club = null,
     canManage,
     head,
     images,
@@ -35,6 +37,8 @@
     name: string;
     owner: string | null;
     editors: string[];
+    /** The club whose site this is: all its members can edit it. */
+    club?: { id: number; name: string } | null;
     canManage: boolean;
     /** The code site's head, or null for easy sites (the easy editor has its own). */
     head: HeadMeta | null;
@@ -145,6 +149,12 @@
         <p class="muted">
           {t('Editors can change the site’s files and publish changes. Only the owner can delete the site or change its address.')}
         </p>
+        {#if club}
+          <p class="club">
+            {t('This is the site of the club {club}, so all its members can edit it too.', { club: club.name })}
+            <button class="link" onclick={() => (onclose(), browser.newTab(`biggle://clubs/${club!.id}`, { after: browser.activeId }))}>{t('Open the club')}</button>
+          </p>
+        {/if}
         <ul class="people">
           {#if owner}
             <li>
@@ -496,5 +506,19 @@
     .lists {
       grid-template-columns: 1fr;
     }
+  }
+  .club {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    font-size: 13.5px;
+  }
+  .link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
   }
 </style>

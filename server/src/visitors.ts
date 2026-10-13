@@ -1,6 +1,7 @@
 // Who comes by a site: visit counts (one per person per day) and the site's guestbook.
 // Pages show them with <biggle-visits> and <biggle-guestbook>; owners see the counts in My sites.
 import { requireUser, type User } from './auth';
+import { record } from './feed';
 import { HttpError, json, readJson, SITE_KEY_RE, siteAddress, str } from './http';
 import { addNotification } from './notifications';
 import { blockedBetween, blockedIds } from './people';
@@ -117,6 +118,7 @@ export async function sign(req: Request, env: Env, key: string): Promise<Respons
   if (site.owner_id && site.owner_id !== me.id) {
     await addNotification(env, site.owner_id, 'guestbook', { site: site.name, author: me.username, body: body.slice(0, 140) });
   }
+  if (site.status === 'live') await record(env, me.id, 'guestbook', { body: body.slice(0, 140) }, site.name);
   return json({ note: shown(note, site, me) }, 201);
 }
 

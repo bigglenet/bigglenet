@@ -9,7 +9,7 @@ import { closeWindow, desktop, isApp, isMac } from './platform';
 import { startSettings } from './startpage.svelte';
 import { zoom } from './zoom.svelte';
 import { saveLocal } from './storage';
-import { fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START, withHash, type InternalPage } from './url';
+import { BUILT_IN_SITES, fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START, withHash, type InternalPage } from './url';
 
 export type View =
   | { type: 'internal'; page: InternalPage; path: string }
@@ -483,9 +483,9 @@ class Browser {
     controllers.get(tab.id)?.abort();
     find.pageChanged(tab.id);
 
-    // chat.biggle is the built-in chat app.
-    if (u.kind === 'internal' || u.name === 'chat') {
-      const page = u.kind === 'internal' ? u.page : 'chat';
+    // chat.biggle and board.biggle are built in.
+    if (u.kind === 'internal' || (u.tld === 'biggle' && Object.hasOwn(BUILT_IN_SITES, u.name))) {
+      const page = u.kind === 'internal' ? u.page : BUILT_IN_SITES[u.name];
       const path = u.kind === 'internal' ? u.path : u.path.replace(/^\/+|\/+$/g, '');
       tab.loadId++;
       tab.loading = false;
@@ -742,6 +742,12 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'nox') return 'Nox';
   if (page === 'requests') return 'Feature requests';
   if (page === 'chat') return 'Chat';
+  if (page === 'board') return path.startsWith('thread/') ? 'Board' : path ? 'Board' : 'The board';
+  if (page === 'feed') return 'Feed';
+  if (page === 'clubs') return path ? 'Club' : 'Clubs';
+  if (page === 'events') return path === 'new' ? 'New event' : path ? 'Event' : 'Events';
+  if (page === 'collections') return path ? 'Collection' : 'Collections';
+  if (page === 'invite') return 'Invite';
   if (page === 'settings') return 'Settings';
   if (page === 'bookmarks') return 'Bookmarks';
   if (page === 'history') return 'History';

@@ -7,6 +7,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { userForToken } from './auth';
 import { fail, SITE_KEY_RE } from './http';
+import { isEditor } from './sites';
 
 const ROOM_RE = /^[a-z0-9_:-]{1,60}$/i;
 const MAX_MEMBERS = 50;
@@ -26,8 +27,7 @@ export async function connectRoom(req: Request, env: Env, site: string, room: st
   if (!user) return fail(401, 'signed_out', 'Sign in first.');
   const row = await env.DB.prepare('SELECT owner_id, status FROM names WHERE name = ?').bind(site).first<{ owner_id: number | null; status: string }>();
   if (!row) return fail(404, 'no_such_site', "That site doesn't exist.");
-  const runs =
-    row.owner_id === user.id || !!user.is_admin || !!(await env.DB.prepare('SELECT 1 FROM site_editors WHERE site = ? AND user_id = ?').bind(site, user.id).first());
+  const runs = row.owner_id === user.id || !!user.is_admin || (await isEditor(env, site, user.id));
   // Sites waiting for approval, and the editor's own room, are only for the people who run them.
   if ((row.status !== 'live' || room.toLowerCase().startsWith('editor')) && !runs) return fail(403, 'not_yours', "You can't join that room.");
   const headers = new Headers(req.headers);

@@ -55,6 +55,12 @@ function setStatus(env: Env, a: number, b: number, aSees: Status, bSees: Status)
 const friendsChanged = (env: Env, a: number, b: number) =>
   Promise.all([notify(env, a, { type: 'friends' }), notify(env, b, { type: 'friends' })]);
 
+/** Make two people friends at once (someone signed up through the other's invite link). */
+export async function makeFriends(env: Env, a: number, b: number) {
+  await setStatus(env, a, b, 'friends', 'friends');
+  await friendsChanged(env, a, b);
+}
+
 export async function listFriends(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
   // Unread and last message come from the one-to-one chat with each friend.

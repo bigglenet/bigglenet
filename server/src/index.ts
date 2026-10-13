@@ -20,10 +20,21 @@
 //   /api/sites/:key/{comments,polls,likes,scores,achievements,contact,walls,stats}  for pages (sitekit.ts)
 //   /api/rooms/:site/:room           WebSocket rooms for multiplayer (rooms.ts)
 //   /files/:key                      private files, through signed links (files.ts)
+//   /api/feed                        what friends have been up to (feed.ts)
+//   /api/invites*, /invite/:code     invite links (invites.ts)
+//   /api/clubs*                      clubs (clubs.ts)
+//   /api/board*                      the board, board.biggle (board.ts)
+//   /api/events*                     events, and their reminders (cron, events.ts)
+//   /api/collections*                collections of favourite sites (collections.ts)
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
+import * as board from './board';
 import * as chat from './chat';
+import * as clubs from './clubs';
+import * as collections from './collections';
+import * as events from './events';
+import { feed } from './feed';
 import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
 import * as notifications from './notifications';
@@ -37,6 +48,7 @@ import { serveFile } from './files';
 import { fail, HttpError, preflight } from './http';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
+import * as invites from './invites';
 import { connect } from './live';
 import * as sites from './sites';
 import * as social from './social';
@@ -171,6 +183,51 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/notifications$/, notifications.list],
   ['POST', /^\/api\/notifications\/read$/, notifications.markRead],
 
+  ['GET', /^\/api\/feed$/, feed],
+
+  ['GET', /^\/api\/invites$/, invites.myInvite],
+  ['POST', /^\/api\/invites\/new$/, invites.newInvite],
+  ['GET', /^\/api\/invites\/([^/]+)$/, invites.inviteInfo],
+  ['GET', /^\/invite\/([^/]+)$/, invites.inviteLink],
+
+  ['GET', /^\/api\/clubs$/, clubs.listClubs],
+  ['POST', /^\/api\/clubs$/, clubs.createClub],
+  ['GET', /^\/api\/clubs\/(\d+)$/, clubs.getClubInfo],
+  ['PATCH', /^\/api\/clubs\/(\d+)$/, clubs.updateClub],
+  ['DELETE', /^\/api\/clubs\/(\d+)$/, clubs.deleteClub],
+  ['POST', /^\/api\/clubs\/(\d+)\/join$/, clubs.joinClub],
+  ['POST', /^\/api\/clubs\/(\d+)\/leave$/, clubs.leaveClub],
+  ['POST', /^\/api\/clubs\/(\d+)\/invite$/, clubs.inviteToClub],
+  ['DELETE', /^\/api\/clubs\/(\d+)\/members\/([^/]+)$/, clubs.removeFromClub],
+
+  ['GET', /^\/api\/board$/, board.boards],
+  ['GET', /^\/api\/board\/threads\/(\d+)$/, board.thread],
+  ['POST', /^\/api\/board\/threads\/(\d+)$/, board.reply],
+  ['PATCH', /^\/api\/board\/threads\/(\d+)$/, board.updateThread],
+  ['DELETE', /^\/api\/board\/threads\/(\d+)$/, board.deleteThread],
+  ['PATCH', /^\/api\/board\/posts\/(\d+)$/, board.editPost],
+  ['DELETE', /^\/api\/board\/posts\/(\d+)$/, board.deletePost],
+  ['GET', /^\/api\/board\/([a-z]+)$/, board.threads],
+  ['POST', /^\/api\/board\/([a-z]+)$/, board.startThread],
+
+  ['GET', /^\/api\/events$/, events.listEvents],
+  ['POST', /^\/api\/events$/, events.createEvent],
+  ['GET', /^\/api\/events\/(\d+)$/, events.getEventInfo],
+  ['PATCH', /^\/api\/events\/(\d+)$/, events.updateEvent],
+  ['DELETE', /^\/api\/events\/(\d+)$/, events.deleteEvent],
+  ['POST', /^\/api\/events\/(\d+)\/answer$/, events.answerEvent],
+  ['POST', /^\/api\/events\/(\d+)\/invite$/, events.inviteToEvent],
+
+  ['GET', /^\/api\/collections$/, collections.myCollections],
+  ['POST', /^\/api\/collections$/, collections.createCollection],
+  ['GET', /^\/api\/collections\/for\/([^/]+)$/, collections.collectionsFor],
+  ['GET', /^\/api\/collections\/([A-Za-z0-9]+)$/, collections.getCollectionInfo],
+  ['PATCH', /^\/api\/collections\/([A-Za-z0-9]+)$/, collections.updateCollection],
+  ['DELETE', /^\/api\/collections\/([A-Za-z0-9]+)$/, collections.deleteCollection],
+  ['POST', /^\/api\/collections\/([A-Za-z0-9]+)\/sites$/, collections.addToCollection],
+  ['DELETE', /^\/api\/collections\/([A-Za-z0-9]+)\/sites\/([^/]+)$/, collections.removeFromCollection],
+  ['PUT', /^\/api\/collections\/([A-Za-z0-9]+)\/order$/, collections.reorderCollection],
+
   ['GET', /^\/api\/live$/, connect],
 ];
 
@@ -222,5 +279,10 @@ export default {
 
   async email(message, env) {
     await receive(message, env);
+  },
+
+  // Every minute (wrangler.jsonc): event reminders.
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(events.remindSoon(env));
   },
 } satisfies ExportedHandler<Env>;

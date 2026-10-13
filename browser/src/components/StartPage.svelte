@@ -107,6 +107,12 @@
           </span>
           <Icon name="forward" />
         </button>
+        <nav class="places" aria-label={t('Community')}>
+          <button onclick={() => browser.go(tab, 'biggle://feed')}><Icon name="users" size={17} /> {t('Feed')}</button>
+          <button onclick={() => browser.go(tab, 'biggle://clubs')}><Icon name="users" size={17} /> {t('Clubs')}</button>
+          <button onclick={() => browser.go(tab, 'biggle://events')}><Icon name="clock" size={17} /> {t('Events')}</button>
+          <button onclick={() => browser.go(tab, 'biggle://board.biggle')}><Icon name="chat" size={17} /> {t('The board')}</button>
+        </nav>
       {/if}
 
       {#if settings.shown.latest}
@@ -365,6 +371,34 @@
   }
   .make:hover {
     border-color: var(--accent);
+  }
+  .places {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .places button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 8px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .places button:hover {
+    border-color: var(--accent);
+  }
+  @media (max-width: 520px) {
+    .places {
+      grid-template-columns: 1fr 1fr;
+    }
   }
   .make-plus {
     flex: none;

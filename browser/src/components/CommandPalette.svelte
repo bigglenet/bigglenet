@@ -25,6 +25,7 @@
   import { updates } from '../lib/updates.svelte';
   import { parse, siteHome, siteHost, siteKey, START } from '../lib/url';
   import { zoom } from '../lib/zoom.svelte';
+  import { collect } from '../lib/collect.svelte';
   import { couch } from '../lib/couch.svelte';
   import { canScreenshot, shot } from './ScreenshotTool.svelte';
   import Icon, { type IconName } from './Icon.svelte';
@@ -51,9 +52,10 @@
   });
 
   const tab = $derived(browser.active);
+  // A real site (not chat.biggle or board.biggle, which are built in).
   const site = $derived.by(() => {
     const u = tab && parse(tab.url);
-    return u?.kind === 'site' ? u : null;
+    return u?.kind === 'site' && tab?.view.type !== 'internal' ? u : null;
   });
 
   function go(href: string) {
@@ -74,6 +76,12 @@
       c('sites', t('My sites'), 'globe', () => go('biggle://sites')),
       c('nox', t('Search the Bigglenet with Nox'), 'search', () => go('biggle://nox')),
       c('chat', t('Chats'), 'chat', () => (social.open = true)),
+      c('feed', t('Feed: what friends are up to'), 'users', () => go('biggle://feed')),
+      c('clubs', t('Clubs'), 'users', () => go('biggle://clubs')),
+      c('events', t('Events'), 'clock', () => go('biggle://events')),
+      c('new-event', t('Plan an event'), 'plus', () => go('biggle://events/new')),
+      c('board', t('The board (forums)'), 'chat', () => go('biggle://board.biggle')),
+      c('collections', t('My collections'), 'star', () => go('biggle://collections')),
       c('bar', bookmarks.bar ? t('Hide the bookmarks bar') : t('Show the bookmarks bar'), 'star', () => bookmarks.showBar(!bookmarks.bar), `${shift}${mod}B`),
       c('game', browser.gameMode ? t('Leave game mode') : t('Game mode'), 'gamepad', () => setGameMode(!browser.gameMode), `${shift}${mod}F`),
       c('perf', perf.on ? t('Hide the performance overlay') : t('Show the performance overlay (FPS)'), 'gauge', () => perf.toggle()),
@@ -104,6 +112,7 @@
         list.push(
           c('dark', siteSettings.dark(key) ? t('Turn off dark mode for this site') : t('Dark mode for this site'), 'moon', () => siteSettings.setDark(key, !siteSettings.dark(key))),
           c('offline', t('Save this site for offline'), 'download', () => saveForOffline(tab)),
+          c('collect', t('Add this site to a collection'), 'star', () => collect.open(key)),
           c('site-settings', t('Site settings'), 'settings', () => go(`biggle://settings/sites/${key}`)),
         );
       }

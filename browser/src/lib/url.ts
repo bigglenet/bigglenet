@@ -3,10 +3,27 @@ import { PREVIEW_PREFIX, SITE_PREFIX } from './config';
 export const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /**
- * Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. Chat is built
- * in too, but lives at biggle://chat.biggle.
+ * Built-in pages, addressed as `biggle://<page>/<path>?<query>` with no `.biggle`. Chat and the
+ * board are built in too, but live at biggle://chat.biggle and biggle://board.biggle.
  */
-export type InternalPage = 'start' | 'admin' | 'sites' | 'nox' | 'requests' | 'settings' | 'bookmarks' | 'history' | 'downloads' | 'profile' | 'chat';
+export type InternalPage =
+  | 'start'
+  | 'admin'
+  | 'sites'
+  | 'nox'
+  | 'requests'
+  | 'settings'
+  | 'bookmarks'
+  | 'history'
+  | 'downloads'
+  | 'profile'
+  | 'chat'
+  | 'board'
+  | 'feed'
+  | 'clubs'
+  | 'events'
+  | 'collections'
+  | 'invite';
 /** The address each built-in page answers to. The new tab page is biggle://newtab (or biggle://start). */
 const INTERNAL_HOSTS: Record<string, InternalPage> = {
   newtab: 'start',
@@ -21,7 +38,15 @@ const INTERNAL_HOSTS: Record<string, InternalPage> = {
   downloads: 'downloads',
   // Profiles: biggle://u/<username>.
   u: 'profile',
+  feed: 'feed',
+  clubs: 'clubs',
+  events: 'events',
+  collections: 'collections',
+  invite: 'invite',
 };
+
+/** Built-in pages that look like sites: biggle://chat.biggle and biggle://board.biggle. */
+export const BUILT_IN_SITES: Record<string, InternalPage> = { chat: 'chat', board: 'board' };
 export const START = 'biggle://newtab';
 
 const isInternal = (s: string) => Object.hasOwn(INTERNAL_HOSTS, s);

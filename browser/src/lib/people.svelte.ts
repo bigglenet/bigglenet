@@ -18,6 +18,9 @@ export type Profile = {
   sites: { name: string; tld: 'biggle' | 'b'; title: string | null }[];
   friends: number;
   achievements: { site: string; key: string; title: string; description: string | null; at: number }[];
+  /** Their listed collections and open clubs. */
+  collections?: { id: string; title: string; sites: number }[];
+  clubs?: { id: number; name: string; emoji: string | null }[];
   friendship: 'friends' | 'incoming' | 'outgoing' | null;
   blocked: boolean;
   me: boolean;

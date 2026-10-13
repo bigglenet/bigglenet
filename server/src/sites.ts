@@ -1,6 +1,8 @@
 // Sites hosted on the Bigglenet itself, made with the Biggle site editor.
 // New sites wait for an admin's approval; until then only the owner and admins can see them.
 import { requireAdmin, requireUser, type User } from './auth';
+import { inSiteClub } from './clubs';
+import { record } from './feed';
 import { forget } from './gateway';
 import { blobBytes, HttpError, json, NAME_RE, readJson, siteAddress, siteKey, splitAddress, str } from './http';
 import { notify } from './live';
@@ -17,7 +19,7 @@ const PREVIEW_TTL = 60 * 60;
 const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
   'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
-  'newtab', 'settings', 'bookmarks', 'history', 'downloads', 'u',
+  'newtab', 'settings', 'bookmarks', 'history', 'downloads', 'u', 'feed', 'board', 'clubs', 'events', 'collections', 'invite',
 ]);
 
 /** The two address endings. Only admins and people they trust can use .b. */
@@ -97,7 +99,7 @@ async function getSite(env: Env, key: string): Promise<SiteRow> {
  */
 const SITE_TABLES = [
   'site_files', 'site_visits', 'guestbook', 'achievements', 'site_editors', 'site_drafts', 'page_comments', 'poll_votes',
-  'site_likes', 'scores', 'wall_strokes', 'page_views', 'site_referrals',
+  'site_likes', 'scores', 'wall_strokes', 'page_views', 'site_referrals', 'activity', 'clubs', 'collection_sites',
 ];
 
 /**
@@ -125,15 +127,21 @@ export async function moveSite(env: Env, key: string, tld: Tld): Promise<string>
   return next;
 }
 
+/** Someone the owner added as an editor, or a member of the club whose site it is (clubs.ts). */
+export async function isEditor(env: Env, site: string, userId: number): Promise<boolean> {
+  if (await env.DB.prepare('SELECT 1 FROM site_editors WHERE site = ? AND user_id = ?').bind(site, userId).first()) return true;
+  return inSiteClub(env, site, userId);
+}
+
 /**
- * The site, if this user may edit it: its owner, someone they added as an editor, or an admin.
+ * The site, if this user may edit it: its owner, an editor (isEditor), or an admin.
  * `ownerOnly`: things only the owner (or an admin) may do, like deleting it.
  */
 async function editable(req: Request, env: Env, name: string, ownerOnly = false): Promise<{ user: User; site: SiteRow; owner: boolean }> {
   const user = await requireUser(req, env);
   const site = await getSite(env, name);
   const owner = site.owner_id === user.id || !!user.is_admin;
-  const editor = !owner && !!(await env.DB.prepare('SELECT 1 FROM site_editors WHERE site = ? AND user_id = ?').bind(site.name, user.id).first());
+  const editor = !owner && (await isEditor(env, site.name, user.id));
   if (!owner && (ownerOnly || !editor)) throw new HttpError(403, 'not_yours', "That isn't your site.");
   if (site.url) throw new HttpError(400, 'external', `${siteAddress(site.name)} is hosted somewhere else, so it can't be edited here.`);
   return { user, site, owner };
@@ -201,6 +209,7 @@ export async function mySites(req: Request, env: Env): Promise<Response> {
        (SELECT COUNT(*) FROM site_drafts d WHERE d.site = n.name) AS drafts
      FROM names n
      WHERE n.owner_id = ?2 OR n.name IN (SELECT site FROM site_editors WHERE user_id = ?2)
+       OR n.name IN (SELECT c.site FROM clubs c JOIN club_members m ON m.club_id = c.id WHERE m.user_id = ?2)
      ORDER BY n.created_at DESC`,
   )
     .bind(today() - 7, user.id)
@@ -303,6 +312,8 @@ export async function getSiteInfo(req: Request, env: Env, name: string): Promise
     drafts: usesDrafts(site),
     owner: ownerName ?? null,
     editors: editors.map((e) => e.username),
+    /** The club whose site this is: all its members can edit it too. */
+    club: await env.DB.prepare('SELECT id, name FROM clubs WHERE site = ? LIMIT 1').bind(site.name).first<{ id: number; name: string }>(),
     canManage: owner,
   });
 }
@@ -330,7 +341,7 @@ export async function publishSite(req: Request, env: Env, name: string): Promise
     env.DB.prepare('DELETE FROM site_drafts WHERE site = ?').bind(site.name),
   ]);
   await touch(env, site.name);
-  await afterPublish(env, site.name, user.id);
+  for (const hook of publishHooks) await hook(env, site.name, user.id);
   return json({ published: results.length });
 }
 
@@ -341,9 +352,11 @@ export async function discardDrafts(req: Request, env: Env, name: string): Promi
   return json({});
 }
 
-/** People who follow a site hear it changed (follows.ts sets this up). */
-export let afterPublish: (env: Env, site: string, by: number) => Promise<void> = async () => {};
-export const onPublish = (fn: typeof afterPublish) => (afterPublish = fn);
+/** After a publish: it goes in the feed, and people who follow the site hear about it. */
+const publishHooks: ((env: Env, site: string, by: number) => Promise<void>)[] = [
+  (env, site, by) => record(env, by, 'site-updated', {}, site),
+];
+export const onPublish = (fn: (typeof publishHooks)[number]) => publishHooks.push(fn);
 
 // --- Editors: people who can edit a site with its owner ---
 
@@ -539,6 +552,8 @@ async function review(req: Request, env: Env, name: string, status: 'live' | 're
   if (site.owner_id) {
     await notify(env, site.owner_id, { type: 'site', name: site.name, status });
     await addNotification(env, site.owner_id, status === 'live' ? 'site-approved' : 'site-rejected', { site: site.name, note });
+    // A new site, for the owner's friends' feeds (once: not when it's approved again after a move).
+    if (status === 'live' && site.status !== 'live') await record(env, site.owner_id, 'site-new', { title: site.title }, site.name);
   }
   await notifyAdmins(env);
   return json({ site: publicSite(await getSite(env, site.name)) });

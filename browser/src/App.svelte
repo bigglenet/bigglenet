@@ -53,6 +53,15 @@
   import SiteWindow from './components/SiteWindow.svelte';
   import WebFrame from './components/WebFrame.svelte';
   import SiteEditor from './components/SiteEditor.svelte';
+  import BoardPage from './components/community/BoardPage.svelte';
+  import ClubsPage from './components/community/ClubsPage.svelte';
+  import CollectionPicker from './components/community/CollectionPicker.svelte';
+  import CollectionsPage from './components/community/CollectionsPage.svelte';
+  import EventsPage from './components/community/EventsPage.svelte';
+  import FeedPage from './components/community/FeedPage.svelte';
+  import InvitePage from './components/community/InvitePage.svelte';
+  import { collect } from './lib/collect.svelte';
+  import { invite, inviteCodeIn } from './lib/invite.svelte';
   import SitesPage from './components/SitesPage.svelte';
   import StartPage from './components/StartPage.svelte';
   import TabBar from './components/TabBar.svelte';
@@ -68,6 +77,12 @@
   browser.privateWindow = params.get('private') === '1';
   // Handled now: a reload shouldn't open it again.
   if (opening) params.delete('open');
+  // An invite link (bigglenet…/invite/CODE comes here as ?invite=CODE): kept for signing up.
+  const inviteCode = params.get('invite');
+  if (inviteCode) {
+    invite.remember(inviteCode);
+    params.delete('invite');
+  }
   history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
   if (browser.restoreTabs()) {
     // A reload: the same tabs as before.
@@ -79,6 +94,8 @@
     // Starting up: the tabs from last time (if that's the setting), or pinned tabs and a new one.
     browser.newTab(startSettings.newTabAddress);
   }
+  // Signed in already: show who the invite is from.
+  if (inviteCode && account.user) browser.newTab(`biggle://invite/${inviteCode}`);
   $effect(() => browser.saveTabs());
 
   // Shortcuts and commands handled here and in the components they belong to.
@@ -178,7 +195,12 @@
     touch = null;
   }
   initPlatform(
-    (href) => browser.openFromOutside(href),
+    (href) => {
+      // biggle://invite/CODE from outside: remembered for signing up, too.
+      const code = inviteCodeIn(href);
+      if (code && !account.user) invite.remember(code);
+      browser.openFromOutside(href);
+    },
     (key) => browser.shortcut(key),
   );
   // "Check for Updates…" in the Mac menu: show Settings → Updates, and check.
@@ -351,6 +373,18 @@
                 <ProfilePage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'chat'}
                 <ChatApp {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'feed'}
+                <FeedPage {tab} />
+              {:else if tab.view.page === 'clubs'}
+                <ClubsPage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'board'}
+                <BoardPage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'events'}
+                <EventsPage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'collections'}
+                <CollectionsPage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'invite'}
+                <InvitePage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
@@ -395,6 +429,7 @@
   {#if perf.on}<PerfOverlay />{/if}
   <ContextMenu />
   <CommandPalette />
+  {#if collect.site}<CollectionPicker />{/if}
   <ScreenshotTool />
 
   {#if browser.switcher}

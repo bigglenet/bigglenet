@@ -2,6 +2,7 @@
   // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
   import { account, type Again, type Ticket } from '../lib/account.svelte';
   import { errorText } from '../lib/api';
+  import { invite } from '../lib/invite.svelte';
   import { isApp, openExternal } from '../lib/platform';
 
   type Step =
@@ -212,6 +213,10 @@
 <div class="auth">
   <main>
     <span class="logo-word" aria-hidden="true"></span>
+
+    {#if invite.from && (step === 'welcome' || step === 'signup')}
+      <p class="invited">{invite.from} invited you. Make a Biggle ID and you’ll be friends straight away.</p>
+    {/if}
 
     {#if step === 'welcome'}
       <h1>The internet, but smaller and nicer</h1>
@@ -520,5 +525,13 @@
     to {
       transform: rotate(360deg);
     }
+  }
+  .invited {
+    margin: 0 0 18px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    font-size: 14px;
+    font-weight: 600;
   }
 </style>

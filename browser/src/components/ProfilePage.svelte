@@ -280,6 +280,41 @@
         </section>
       {/if}
 
+      {#if profile.clubs?.length}
+        <section>
+          <h2>{t('Clubs')}</h2>
+          <ul class="sites">
+            {#each profile.clubs as club (club.id)}
+              <li>
+                <button onclick={() => browser.go(tab, `biggle://clubs/${club.id}`)}>
+                  <span class="tile">{club.emoji || club.name[0]?.toUpperCase()}</span>
+                  <span class="text"><strong>{club.name}</strong></span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
+      {#if profile.collections?.length}
+        <section>
+          <h2>{t('Collections')}</h2>
+          <ul class="sites">
+            {#each profile.collections as c (c.id)}
+              <li>
+                <button onclick={() => browser.go(tab, `biggle://collections/${c.id}`)}>
+                  <span class="tile"><Icon name="star" size={16} /></span>
+                  <span class="text">
+                    <strong>{c.title}</strong>
+                    <span class="muted small">{plural(c.sites, '{n} site', '{n} sites')}</span>
+                  </span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
       {#if profile.achievements.length}
         <section>
           <h2>{t('Achievements')}</h2>

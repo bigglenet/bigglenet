@@ -3,6 +3,8 @@
   "name": "bigglenet",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
+  // Every minute: event reminders (events.ts remindSoon).
+  "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true },
   "d1_databases": [
     {
@@ -40,7 +42,7 @@
   "assets": {
     "directory": "../browser/dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/site/*", "/preview/*", "/files/*"]
+    "run_worker_first": ["/api/*", "/site/*", "/preview/*", "/files/*", "/invite/*"]
   },
   "routes": [{ "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }],
   "workers_dev": false

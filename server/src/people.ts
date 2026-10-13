@@ -90,12 +90,18 @@ export async function profile(req: Request, env: Env, username: string): Promise
   if (!isMe && (await env.DB.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?').bind(p.id, me.id).first())) {
     throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
   }
-  const [friendship, iBlocked, sites, friends, achievements] = await env.DB.batch([
+  const [friendship, iBlocked, sites, friends, achievements, collections, clubs] = await env.DB.batch([
     env.DB.prepare('SELECT status FROM friendships WHERE user_id = ? AND friend_id = ?').bind(me.id, p.id),
     env.DB.prepare('SELECT 1 AS yes FROM blocks WHERE user_id = ? AND blocked_id = ?').bind(me.id, p.id),
     env.DB.prepare("SELECT name, title FROM names WHERE owner_id = ? AND status = 'live' ORDER BY created_at").bind(p.id),
     env.DB.prepare("SELECT COUNT(*) AS n FROM friendships WHERE user_id = ? AND status = 'friends'").bind(p.id),
     env.DB.prepare('SELECT site, key, title, description, created_at FROM achievements WHERE user_id = ? ORDER BY created_at DESC LIMIT 60').bind(p.id),
+    env.DB.prepare(
+      `SELECT c.id, c.title, (SELECT COUNT(*) FROM collection_sites s WHERE s.collection_id = c.id) AS sites
+       FROM collections c WHERE c.user_id = ? AND c.listed = 1 ORDER BY c.updated_at DESC LIMIT 20`,
+    ).bind(p.id),
+    // Open clubs (closed ones are only for their members to know about).
+    env.DB.prepare('SELECT c.id, c.name, c.emoji FROM clubs c JOIN club_members m ON m.club_id = c.id WHERE m.user_id = ? AND c.open = 1 ORDER BY c.name LIMIT 20').bind(p.id),
   ]);
   const status = (friendship.results[0] as { status?: string } | undefined)?.status ?? null;
   return json({
@@ -118,6 +124,8 @@ export async function profile(req: Request, env: Env, username: string): Promise
       description: a.description,
       at: a.created_at,
     })),
+    collections: collections.results as { id: string; title: string; sites: number }[],
+    clubs: clubs.results as { id: number; name: string; emoji: string | null }[],
     friendship: status,
     blocked: iBlocked.results.length > 0,
     me: isMe,

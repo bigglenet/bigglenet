@@ -1,6 +1,7 @@
 // Biggle ID: who's signed in to this browser. You need one to use Bigglenet at all, with a
 // confirmed email address or Google.
 import { api, onSessionExpired, setToken } from './api';
+import { invite } from './invite.svelte';
 import { openExternal } from './platform';
 
 export type Me = {
@@ -80,7 +81,9 @@ class Account {
   }
 
   async signUpFinish(ticket: string, code: string) {
-    this.set(await api<SignedIn>('POST', '/api/auth/signup/finish', { ticket, code }));
+    // Signing up through an invite link makes you friends with whoever sent it.
+    this.set(await api<SignedIn>('POST', '/api/auth/signup/finish', { ticket, code, invite: invite.code }));
+    invite.forget();
   }
 
   /** With `password` when confirming by emailing us: the server keeps it until the email arrives. */
@@ -131,7 +134,8 @@ class Account {
   }
 
   async googleFinish(id: string, username: string) {
-    this.set(await api<SignedIn>('POST', '/api/auth/google/finish', { id, username }));
+    this.set(await api<SignedIn>('POST', '/api/auth/google/finish', { id, username, invite: invite.code }));
+    invite.forget();
   }
 
   async signOut() {

@@ -18,6 +18,7 @@
   import { zoom } from '../lib/zoom.svelte';
   import AccountButton from './AccountButton.svelte';
   import BookmarkButton from './BookmarkButton.svelte';
+  import { collect } from '../lib/collect.svelte';
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
   import SiteInfo from './SiteInfo.svelte';
@@ -25,9 +26,10 @@
 
   const tab = $derived(browser.active);
   const zoomed = $derived(tab ? zoom.of(tab.url) : 1);
+  // A real site (not chat.biggle or board.biggle, which are built in).
   const site = $derived.by(() => {
     const u = tab && parse(tab.url);
-    return u?.kind === 'site' ? u : null;
+    return u?.kind === 'site' && tab?.view.type !== 'internal' ? u : null;
   });
 
   let input = $state<HTMLInputElement>();
@@ -127,6 +129,7 @@
         offline.has(key)
           ? { label: t('Remove the offline copy'), icon: 'wifi', action: () => offline.remove(key) }
           : { label: t('Save for offline'), icon: 'wifi', action: () => saveForOffline(t0) },
+        { label: t('Add to collection…'), icon: 'star', action: () => collect.open(key) },
       );
     }
     items.push(

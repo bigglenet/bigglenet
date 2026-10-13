@@ -36,7 +36,8 @@ const MAX_NAME = 60;
 /** People in a call who haven't checked in for this long have gone. */
 const CALL_STALE_MS = 45_000;
 
-type Chat = { id: number; kind: 'direct' | 'group'; name: string | null; call_started: number | null };
+/** `club_id`: a club's own chat (clubs.ts), whose members are the club's. */
+type Chat = { id: number; kind: 'direct' | 'group'; name: string | null; call_started: number | null; club_id: number | null };
 type Attachment = {
   key: string;
   name: string;
@@ -166,7 +167,7 @@ async function memberIds(env: Env, chatId: number): Promise<number[]> {
 /** The chat, if I'm in it. */
 async function myChat(env: Env, me: User, rawId: string): Promise<Chat> {
   const chat = await env.DB.prepare(
-    `SELECT c.id, c.kind, c.name, c.call_started FROM chats c
+    `SELECT c.id, c.kind, c.name, c.call_started, c.club_id FROM chats c
      JOIN chat_members m ON m.chat_id = c.id AND m.user_id = ?
      WHERE c.id = ?`,
   )
@@ -183,7 +184,7 @@ async function requireCanTalk(env: Env, me: User, chat: Chat) {
   if (!other || !(await areFriends(env, me.id, other))) throw new HttpError(403, 'not_friends', 'You can only message your friends.');
 }
 
-const tellMembers = async (env: Env, chatId: number, event: LiveEvent) => {
+export const tellMembers = async (env: Env, chatId: number, event: LiveEvent) => {
   await Promise.all((await memberIds(env, chatId)).map((id) => notify(env, id, event)));
 };
 
@@ -267,7 +268,7 @@ export async function listChats(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
   const [chats, members, calls] = await env.DB.batch([
     env.DB.prepare(
-      `SELECT c.id, c.kind, c.name, c.last_at, c.call_started,
+      `SELECT c.id, c.kind, c.name, c.last_at, c.call_started, c.club_id,
          (SELECT COUNT(*) FROM chat_messages x
             WHERE x.chat_id = c.id AND x.id > m.read_up_to AND (x.sender_id IS NULL OR x.sender_id != ?1)) AS unread,
          (SELECT json_object('from', u.username, 'senderId', x.sender_id, 'kind', x.kind, 'body', substr(x.body, 1, 140), 'at', x.created_at,
@@ -287,7 +288,7 @@ export async function listChats(req: Request, env: Env): Promise<Response> {
        WHERE k.chat_id IN (SELECT chat_id FROM chat_members WHERE user_id = ?) AND k.seen_at > ?`,
     ).bind(me.id, Date.now() - CALL_STALE_MS),
   ]);
-  type Row = { id: number; kind: string; name: string | null; last_at: number | null; call_started: number | null; unread: number; last: string | null };
+  type Row = { id: number; kind: string; name: string | null; last_at: number | null; call_started: number | null; club_id: number | null; unread: number; last: string | null };
   const byChat = <T extends { chat_id: number }>(rows: T[], id: number) => rows.filter((r) => r.chat_id === id);
   type MemberRow = { chat_id: number; username: string; read_up_to: number };
   return json({
@@ -295,6 +296,8 @@ export async function listChats(req: Request, env: Env): Promise<Response> {
       id: c.id,
       kind: c.kind,
       name: c.name,
+      /** A club's chat: who's in it follows the club. */
+      club: c.club_id,
       members: byChat(members.results as MemberRow[], c.id).map((r) => r.username),
       /** How far each member has read, for "Seen". */
       reads: Object.fromEntries(byChat(members.results as MemberRow[], c.id).map((r) => [r.username, r.read_up_to])),
@@ -342,6 +345,7 @@ export async function renameChat(req: Request, env: Env, rawId: string): Promise
   const me = await requireUser(req, env);
   const chat = await myChat(env, me, rawId);
   if (chat.kind !== 'group') throw new HttpError(400, 'not_group', 'Only groups have names.');
+  if (chat.club_id) throw new HttpError(400, 'club_chat', 'This is a club’s chat. Change it from the club’s page.');
   const name = str((await readJson(req)).name).replace(/\s+/g, ' ').trim().slice(0, MAX_NAME);
   await env.DB.prepare('UPDATE chats SET name = ? WHERE id = ?').bind(name || null, chat.id).run();
   await postMessage(env, chat.id, me, name ? `named the group “${name}”` : 'removed the group name', 'event');
@@ -353,6 +357,7 @@ export async function addMembers(req: Request, env: Env, rawId: string): Promise
   const me = await requireUser(req, env);
   const chat = await myChat(env, me, rawId);
   if (chat.kind !== 'group') throw new HttpError(400, 'not_group', 'Make a group to add more people.');
+  if (chat.club_id) throw new HttpError(400, 'club_chat', 'This is a club’s chat. Change it from the club’s page.');
   const body = await readJson(req);
   const usernames = Array.isArray(body.usernames) ? body.usernames.map((u) => str(u).trim().toLowerCase()).filter(Boolean) : [];
   const current = await memberIds(env, chat.id);
@@ -375,6 +380,7 @@ export async function leaveChat(req: Request, env: Env, rawId: string): Promise<
   const me = await requireUser(req, env);
   const chat = await myChat(env, me, rawId);
   if (chat.kind !== 'group') throw new HttpError(400, 'not_group', "You can't leave a one-to-one chat. Remove the friend instead.");
+  if (chat.club_id) throw new HttpError(400, 'club_chat', 'This is a club’s chat. Change it from the club’s page.');
   await leaveCall(env, chat, me);
   await postMessage(env, chat.id, me, 'left the group', 'event');
   await env.DB.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').bind(chat.id, me.id).run();

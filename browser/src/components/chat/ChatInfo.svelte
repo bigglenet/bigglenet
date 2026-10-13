@@ -5,6 +5,8 @@
   import { errorText } from '../../lib/api';
   import { calls } from '../../lib/calls.svelte';
   import { chats, type Chat } from '../../lib/chats.svelte';
+  import { browser } from '../../lib/browser.svelte';
+  import { t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
@@ -106,11 +108,19 @@
       <p class="muted hint">You're not friends with {other} any more.</p>
     {/if}
   {:else}
-    <p class="label">Group name</p>
-    <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => chats.rename(chat.id, name), 'Name saved.'))}>
-      <input class="field" bind:value={name} maxlength="60" placeholder="Name this group" aria-label="Group name" />
-      <button class="btn" disabled={name.trim() === (chat.name ?? '')}>Save</button>
-    </form>
+    {#if chat.club}
+      <!-- A club's chat: its name and members follow the club. -->
+      <p class="muted hint">{t('This is a club’s chat. Everyone in the club is in it.')}</p>
+      <button class="btn add" onclick={() => browser.newTab(`biggle://clubs/${chat.club}`, { after: browser.activeId })}>
+        <Icon name="users" size={15} /> {t('Open the club')}
+      </button>
+    {:else}
+      <p class="label">Group name</p>
+      <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => chats.rename(chat.id, name), 'Name saved.'))}>
+        <input class="field" bind:value={name} maxlength="60" placeholder="Name this group" aria-label="Group name" />
+        <button class="btn" disabled={name.trim() === (chat.name ?? '')}>Save</button>
+      </form>
+    {/if}
 
     <p class="label">People · {chat.members.length}</p>
     {#each members as u (u)}
@@ -125,7 +135,9 @@
       </div>
     {/each}
 
-    {#if adding}
+    {#if chat.club}
+      <!-- Joining and leaving happen on the club's page. -->
+    {:else if adding}
       <p class="label">Add people</p>
       <ChatPeoplePicker bind:picked exclude={chat.members} />
       <div class="row-buttons">
@@ -145,6 +157,9 @@
       <button class="btn add" onclick={() => (adding = true)}><Icon name="userPlus" size={15} /> Add people</button>
     {/if}
 
+    {#if chat.club}
+      <!-- Nothing to leave here: leave the club instead. -->
+    {:else}
     <p class="label">Leave</p>
     {#if confirming}
       <div class="confirm">
@@ -156,6 +171,7 @@
       </div>
     {:else}
       <button class="btn danger" onclick={() => (confirming = true)}>Leave group</button>
+    {/if}
     {/if}
   {/if}
 </div>

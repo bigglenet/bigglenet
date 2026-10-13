@@ -17,6 +17,7 @@ import { HttpError, json, readJson, siteAddress, str } from './http';
 import { addNotification } from './notifications';
 import { blockedBetween, blockedIds } from './people';
 import { roomFor } from './rooms';
+import { isEditor } from './sites';
 import { today } from './visitors';
 
 const NAME_RE = /^[a-z0-9_-]{1,40}$/i;
@@ -34,10 +35,10 @@ async function site(env: Env, key: string, me: User): Promise<Site> {
   return s;
 }
 
-/** Its owner, an editor (site_editors) or an admin. */
+/** Its owner, an editor (or club member, see isEditor) or an admin. */
 export async function runs(env: Env, s: Pick<Site, 'name' | 'owner_id'>, me: User): Promise<boolean> {
   if (s.owner_id === me.id || me.is_admin) return true;
-  return !!(await env.DB.prepare('SELECT 1 FROM site_editors WHERE site = ? AND user_id = ?').bind(s.name, me.id).first());
+  return isEditor(env, s.name, me.id);
 }
 
 function checkName(raw: string, what: string): string {
