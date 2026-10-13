@@ -154,7 +154,7 @@ async function userByName(env: Env, username: string) {
   return user;
 }
 
-async function areFriends(env: Env, a: number, b: number) {
+export async function areFriends(env: Env, a: number, b: number) {
   return !!(await env.DB.prepare("SELECT 1 FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'friends'").bind(a, b).first());
 }
 

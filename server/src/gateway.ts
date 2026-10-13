@@ -212,19 +212,27 @@ export async function preview(req: Request, env: Env, token: string, rest: strin
   if (rest === '') return redirect(`/preview/${token}/${search}`);
   let path = rest.slice(1);
   if (path === '' || path.endsWith('/')) path += 'index.bhtml';
-  return serveHosted(req, env, name, path);
+  // Previews show unpublished changes too.
+  return serveHosted(req, env, name, path, true);
 }
 
-async function serveHosted(req: Request, env: Env, site: string, rawPath: string): Promise<Response> {
+async function serveHosted(req: Request, env: Env, site: string, rawPath: string, drafts = false): Promise<Response> {
   let path: string;
   try {
     path = decodeURIComponent(rawPath);
   } catch {
     return fail(400, 'bad_path', "That address isn't valid.");
   }
-  const file = await env.DB.prepare('SELECT type, content, updated_at FROM site_files WHERE site = ? AND path = ?')
-    .bind(site, path)
-    .first<{ type: string; content: ArrayBuffer | number[]; updated_at: number }>();
+  type Row = { type: string; content: ArrayBuffer | number[]; updated_at: number };
+  const draft = drafts
+    ? await env.DB.prepare('SELECT type, content, updated_at, deleted FROM site_drafts WHERE site = ? AND path = ?').bind(site, path).first<Row & { deleted: number }>()
+    : null;
+  const file =
+    draft && !draft.deleted
+      ? draft
+      : draft?.deleted
+        ? null
+        : await env.DB.prepare('SELECT type, content, updated_at FROM site_files WHERE site = ? AND path = ?').bind(site, path).first<Row>();
   if (!file) {
     // "/blog" → "/blog/" when there's a blog/index.bhtml.
     if (!path.includes('.')) {

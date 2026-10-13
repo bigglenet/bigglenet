@@ -14,6 +14,10 @@ export type MySite = {
   /** Visits (one per person per day): in all, and in the last 7 days. */
   visits?: number;
   week?: number;
+  /** Yours, or someone else's that they added you to. */
+  role?: 'owner' | 'editor';
+  /** Changes made but not published yet. */
+  drafts?: number;
 };
 
 class Sites {

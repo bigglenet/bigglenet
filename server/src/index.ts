@@ -17,6 +17,8 @@
 //   /api/sites/:key/visit(s), /guestbook   visit counts and guestbooks (visitors.ts)
 //   /api/users/*, /api/me/*, /api/blocks*  profiles, pictures, statuses, blocking (people.ts)
 //   /api/notifications*              the notification centre
+//   /api/sites/:key/{comments,polls,likes,scores,achievements,contact,walls,stats}  for pages (sitekit.ts)
+//   /api/rooms/:site/:room           WebSocket rooms for multiplayer (rooms.ts)
 //   /files/:key                      private files, through signed links (files.ts)
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
@@ -26,6 +28,8 @@ import { directory, gateway, preview, resolveName } from './gateway';
 import * as identity from './identity';
 import * as notifications from './notifications';
 import * as people from './people';
+import { connectRoom } from './rooms';
+import * as kit from './sitekit';
 import { linkPreview } from './previews';
 import * as requests from './requests';
 import * as google from './google';
@@ -39,6 +43,7 @@ import * as social from './social';
 import * as visitors from './visitors';
 
 export { Live } from './live';
+export { Room } from './rooms';
 
 type Handler = (req: Request, env: Env, ...params: string[]) => Promise<Response>;
 
@@ -82,6 +87,28 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['PATCH', /^\/api\/sites\/([^/]+)$/, sites.updateSite],
   ['DELETE', /^\/api\/sites\/([^/]+)$/, sites.deleteSite],
   ['POST', /^\/api\/sites\/([^/]+)\/submit$/, sites.submitSite],
+  ['POST', /^\/api\/sites\/([^/]+)\/publish$/, sites.publishSite],
+  ['POST', /^\/api\/sites\/([^/]+)\/discard$/, sites.discardDrafts],
+  ['POST', /^\/api\/sites\/([^/]+)\/editors$/, sites.addEditor],
+  ['DELETE', /^\/api\/sites\/([^/]+)\/editors\/([^/]+)$/, sites.removeEditor],
+  ['GET', /^\/api\/sites\/([^/]+)\/comments$/, kit.comments],
+  ['POST', /^\/api\/sites\/([^/]+)\/comments$/, kit.comment],
+  ['DELETE', /^\/api\/comments\/(\d+)$/, kit.uncomment],
+  ['GET', /^\/api\/sites\/([^/]+)\/polls\/([^/]+)$/, kit.poll],
+  ['POST', /^\/api\/sites\/([^/]+)\/polls\/([^/]+)$/, kit.vote],
+  ['GET', /^\/api\/sites\/([^/]+)\/likes$/, kit.likes],
+  ['POST', /^\/api\/sites\/([^/]+)\/likes$/, kit.likes],
+  ['DELETE', /^\/api\/sites\/([^/]+)\/likes$/, kit.likes],
+  ['GET', /^\/api\/sites\/([^/]+)\/scores\/([^/]+)$/, kit.scores],
+  ['POST', /^\/api\/sites\/([^/]+)\/scores\/([^/]+)$/, kit.submitScore],
+  ['POST', /^\/api\/sites\/([^/]+)\/achievements$/, kit.achieve],
+  ['POST', /^\/api\/sites\/([^/]+)\/contact$/, kit.contact],
+  ['GET', /^\/api\/sites\/([^/]+)\/walls\/([^/]+)$/, kit.wall],
+  ['POST', /^\/api\/sites\/([^/]+)\/walls\/([^/]+)$/, kit.wall],
+  ['DELETE', /^\/api\/sites\/([^/]+)\/walls\/([^/]+)$/, kit.wall],
+  ['GET', /^\/api\/sites\/([^/]+)\/stats$/, kit.stats],
+  ['GET', /^\/api\/rooms\/([^/]+)\/([^/]+)$/, connectRoom],
+  ['GET', /^\/api\/online$/, kit.online],
   ['POST', /^\/api\/sites\/([^/]+)\/preview$/, sites.previewToken],
   ['GET', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.readFile],
   ['PUT', /^\/api\/sites\/([^/]+)\/files\/(.+)$/, sites.writeFile],

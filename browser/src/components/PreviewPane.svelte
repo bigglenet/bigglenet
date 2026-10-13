@@ -1,7 +1,7 @@
 <script lang="ts">
   // A live preview of a site in the editor, loaded through its signed preview link.
   import { account } from '../lib/account.svelte';
-  import { answerCall } from '../lib/frame';
+  import { answerCall, closeScope, newScope, roomSend } from '../lib/frame';
   import { saveLocal } from '../lib/storage';
   import { load } from '../lib/loader';
   import { parse, type SiteUrl } from '../lib/url';
@@ -35,13 +35,21 @@
     return () => controller.abort();
   });
 
+  // The editor's preview can look things up, but not post anything.
+  const scope = $derived(newScope(site, `/${path}`, (m) => iframe?.contentWindow?.postMessage({ biggle: 1, ...m }, '*'), { preview: true }));
+  $effect(() => {
+    const s = scope;
+    return () => closeScope(s);
+  });
+
   $effect(() => {
     const onmessage = (e: MessageEvent) => {
       if (!iframe || e.source !== iframe.contentWindow) return;
       const msg = e.data;
       if (!msg || typeof msg !== 'object' || msg.biggle !== 1) return;
       const reply = (m: Record<string, unknown>) => iframe?.contentWindow?.postMessage({ biggle: 1, ...m }, '*');
-      if (msg.type === 'call') answerCall(site, msg, reply);
+      if (msg.type === 'call') answerCall(scope, msg, reply);
+      if (msg.type === 'room-send') roomSend(scope, msg.id, msg.data);
       if (msg.type === 'local') saveLocal(site, msg.entries);
       if (msg.type === 'navigate' && typeof msg.url === 'string') {
         const u = parse(msg.url);

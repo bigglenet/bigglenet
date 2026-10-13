@@ -3,7 +3,6 @@ import { api } from './api';
 import { bookmarks } from './bookmarks.svelte';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { find } from './find.svelte';
-import { answerCall } from './frame';
 import { pageHistory } from './history.svelte';
 import { load, type PageError } from './loader';
 import { closeWindow, desktop, isApp, isMac } from './platform';
@@ -80,7 +79,7 @@ export type ClosedTab = { url: string; title: string; history: string[]; index: 
 type SavedTab = { url: string; title?: string; pinned?: boolean; group?: number | null };
 type SavedSession = { tabs: SavedTab[]; groups: TabGroup[]; active: number; at: number };
 
-// Sites already counted as visited today (once per site per day, see server/src/visitors.ts).
+// Pages already counted in this tab (reloads and going back don't count again).
 const counted = new Set<string>();
 
 function readJson<T>(storage: Storage, key: string): T | null {
@@ -534,15 +533,19 @@ class Browser {
     });
   }
 
-  /** A site's page opened: keep it in history, and count the visit (not for previews or private tabs). */
+  /**
+   * A site's page opened: keep it in history, and count the visit for the site's stats: which page,
+   * and which site's link led here (not for previews or private tabs).
+   */
   private visited(tab: Tab, site: string, mode: Mode) {
     if (tab.preview || tab.private) return;
     if (mode !== 'none') pageHistory.add(tab.url, tab.title);
-    const today = `${site}:${new Date().toDateString()}`;
-    if (!counted.has(today)) {
-      counted.add(today);
-      api('POST', `/api/sites/${encodeURIComponent(site)}/visit`).catch(() => counted.delete(today));
-    }
+    if (mode === 'none' && counted.has(`${tab.id}:${tab.url}`)) return;
+    counted.add(`${tab.id}:${tab.url}`);
+    const u = parse(tab.url);
+    const before = tab.index > 0 ? parse(tab.history[tab.index - 1]) : null;
+    const from = before?.kind === 'site' && siteKey(before) !== site ? siteKey(before) : null;
+    api('POST', `/api/sites/${encodeURIComponent(site)}/visit`, { path: u?.kind === 'site' ? u.path : '/', from }).catch(() => {});
   }
 
   /** A page's title arrived. */
@@ -702,10 +705,7 @@ class Browser {
         else if (msg.dir === 'reload') this.reload(tab);
         break;
       }
-      case 'call': {
-        if (tab.view.type === 'page') answerCall(tab.view.site, msg, reply, { private: tab.private });
-        break;
-      }
+
       case 'local': {
         if (tab.view.type === 'page') saveLocal(tab.view.site, msg.entries, tab.private);
         break;

@@ -13,7 +13,16 @@ export type Block =
   | { id: string; type: 'greeting' }
   | { id: string; type: 'counter' }
   | { id: string; type: 'visits' }
-  | { id: string; type: 'guestbook' };
+  | { id: string; type: 'guestbook' }
+  | { id: string; type: 'poll'; question: string; options: string[] }
+  | { id: string; type: 'comments' }
+  | { id: string; type: 'like' }
+  | { id: string; type: 'wall' }
+  | { id: string; type: 'contact' }
+  | { id: string; type: 'leaderboard'; board: string; title: string }
+  | { id: string; type: 'online' }
+  | { id: string; type: 'newsites' }
+  | { id: string; type: 'embed'; url: string };
 
 export type BlockType = Block['type'];
 
@@ -25,6 +34,11 @@ export type EasySite = {
   theme: Theme;
   font: Font;
   blocks: Block[];
+  /** What a link to the site shows in chats: a line about it, and a picture (a file in the site). */
+  description?: string;
+  previewImage?: string;
+  /** The tab's icon: a picture in the site, or (when empty) the emoji. */
+  icon?: string;
 };
 
 export const THEMES: { id: Theme; name: string; bg: string; accent: string; dark?: boolean }[] = [
@@ -53,6 +67,15 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
   counter: 'Visit counter',
   visits: 'Total visits',
   guestbook: 'Guestbook',
+  poll: 'Poll',
+  comments: 'Comments',
+  like: 'Like button',
+  wall: 'Drawing wall',
+  contact: 'Contact button',
+  leaderboard: 'Leaderboard',
+  online: 'People online',
+  newsites: 'Newest sites',
+  embed: 'Another page',
 };
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -68,6 +91,12 @@ export function newBlock(type: BlockType): Block {
       return { id, type, src: '', alt: '' };
     case 'button':
       return { id, type, label: 'Visit hello.biggle', url: 'hello.biggle' };
+    case 'poll':
+      return { id, type, question: 'What should I make next?', options: ['A game', 'A blog', 'Art'] };
+    case 'leaderboard':
+      return { id, type, board: 'main', title: 'High scores' };
+    case 'embed':
+      return { id, type, url: 'hello.biggle' };
     default:
       return { id, type } as Block;
   }
@@ -122,6 +151,28 @@ function block(b: Block): string {
       return '<p class="counter">Visits so far: <strong><biggle-visits></biggle-visits></strong></p>';
     case 'guestbook':
       return '<biggle-guestbook></biggle-guestbook>';
+    case 'poll': {
+      const options = b.options.map((o) => o.replace(/\|/g, '/').trim()).filter(Boolean);
+      return options.length >= 2 ? `<biggle-poll id="poll-${b.id}" question="${esc(b.question)}" options="${esc(options.join('|'))}"></biggle-poll>` : '';
+    }
+    case 'comments':
+      return '<biggle-comments></biggle-comments>';
+    case 'like':
+      return '<p class="center"><biggle-like></biggle-like></p>';
+    case 'wall':
+      return `<biggle-wall id="wall-${b.id}"></biggle-wall>`;
+    case 'contact':
+      return '<p class="center"><biggle-contact></biggle-contact></p>';
+    case 'leaderboard':
+      return `<biggle-leaderboard board="${esc(b.board.replace(/[^a-z0-9_-]/gi, '') || 'main')}" heading="${esc(b.title)}"></biggle-leaderboard>`;
+    case 'online':
+      return '<p class="counter">On the Bigglenet right now: <strong><biggle-online></biggle-online></strong></p>';
+    case 'newsites':
+      return '<h2>New on the Bigglenet</h2><biggle-new-sites></biggle-new-sites>';
+    case 'embed': {
+      const target = linkTarget(b.url);
+      return target.startsWith('biggle://') ? `<biggle-embed src="${esc(target)}"></biggle-embed>` : '';
+    }
   }
 }
 
@@ -132,6 +183,9 @@ export function renderIndex(site: EasySite): string {
 <html lang="en">
 <head>
   <title>${esc(site.title)}</title>
+  ${site.description ? `<meta name="description" content="${esc(site.description)}">` : ''}
+  ${site.previewImage ? `<meta property="og:image" content="${esc(site.previewImage)}">` : ''}
+  <link rel="icon" href="${esc(site.icon || emojiIcon(site.emoji))}">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -224,6 +278,7 @@ a { color: var(--accent); }
   text-align: center;
 }
 .counter { color: var(--muted); font-size: 0.95rem; text-align: center; }
+.center { text-align: center; }
 footer { margin-top: 24px; text-align: center; color: var(--muted); font-size: 0.85rem; }
 `;
 }
@@ -234,4 +289,10 @@ export function renderFiles(site: EasySite): Record<string, string> {
     'index.bhtml': renderIndex(site),
     'style.css': renderStyle(site),
   };
+}
+
+/** An emoji as a tab icon (a tiny picture made of the emoji). */
+export function emojiIcon(emoji: string): string {
+  const e = emoji || '👋';
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${e.replace(/[<&]/g, '')}</text></svg>`)}`;
 }

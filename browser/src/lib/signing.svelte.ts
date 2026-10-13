@@ -1,22 +1,25 @@
-// Signing a site's guestbook. A page asks (<biggle-guestbook>'s button), and the browser shows
-// its own box to write in (GuestbookDialog.svelte), so a page can never sign it for you.
+// Writing something on a site as you: signing its guestbook, commenting on a page, or messaging
+// its owner. A page asks (<biggle-guestbook>, <biggle-comments>, <biggle-contact>), and the
+// browser shows its own box to write in (GuestbookDialog.svelte), so a page can never post
+// anything in your name by itself.
 
 export type GuestbookNote = { id: number; author: string; body: string; at: number; canDelete: boolean };
+export type WriteKind = 'guestbook' | 'comment' | 'contact';
 
 class Signing {
-  /** The guestbook being signed: the site's key, and who's waiting for the note. */
-  request = $state<{ site: string; done: (note: GuestbookNote | null) => void } | null>(null);
+  /** What's being written: on which site (and page, for comments), and who's waiting for it. */
+  request = $state<{ site: string; kind: WriteKind; path: string; done: (result: unknown) => void } | null>(null);
 
-  /** Show the box. Resolves with the new note, or null if they changed their mind. */
-  ask(site: string): Promise<GuestbookNote | null> {
+  /** Show the box. Resolves with what was posted, or null if they changed their mind. */
+  ask(site: string, kind: WriteKind = 'guestbook', path = '/'): Promise<unknown> {
     this.request?.done(null);
-    return new Promise((done) => (this.request = { site, done }));
+    return new Promise((done) => (this.request = { site, kind, path, done }));
   }
 
-  finish(note: GuestbookNote | null) {
+  finish(result: unknown) {
     const request = this.request;
     this.request = null;
-    request?.done(note);
+    request?.done(result);
   }
 }
 

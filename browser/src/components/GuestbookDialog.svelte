@@ -5,9 +5,18 @@
   import { overlays } from '../lib/overlays.svelte';
   import { signing, type GuestbookNote } from '../lib/signing.svelte';
   import { siteHost } from '../lib/url';
+  import { t } from '../lib/i18n.svelte';
 
-  const MAX = 500;
   const site = $derived(signing.request?.site ?? '');
+  const kind = $derived(signing.request?.kind ?? 'guestbook');
+  const MAX = $derived(kind === 'guestbook' ? 500 : kind === 'comment' ? 1000 : 2000);
+  const heading = $derived(
+    kind === 'guestbook'
+      ? t('Sign {site}’s guestbook', { site: siteHost(site) })
+      : kind === 'comment'
+        ? t('Comment on {page}', { page: siteHost(site) + (signing.request?.path === '/' ? '' : signing.request?.path) })
+        : t('Message the owner of {site}', { site: siteHost(site) }),
+  );
 
   let text = $state('');
   let sending = $state(false);
@@ -26,9 +35,13 @@
     sending = true;
     error = '';
     try {
-      const { note } = await api<{ note: GuestbookNote }>('POST', `/api/sites/${encodeURIComponent(site)}/guestbook`, { body: text });
+      const at = `/api/sites/${encodeURIComponent(site)}`;
+      let result: unknown;
+      if (kind === 'guestbook') result = (await api<{ note: GuestbookNote }>('POST', `${at}/guestbook`, { body: text })).note;
+      else if (kind === 'comment') result = (await api<{ comment: unknown }>('POST', `${at}/comments`, { body: text, path: signing.request?.path })).comment;
+      else result = await api('POST', `${at}/contact`, { body: text });
       text = '';
-      signing.finish(note);
+      signing.finish(result);
     } catch (err) {
       error = errorText(err);
     } finally {
@@ -38,15 +51,21 @@
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && signing.finish(null)}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Sign the guestbook" tabindex="-1" onkeydown={(e) => e.key === 'Escape' && signing.finish(null)}>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={heading} tabindex="-1" onkeydown={(e) => e.key === 'Escape' && signing.finish(null)}>
     <form onsubmit={send}>
-      <h2>Sign {siteHost(site)}’s guestbook</h2>
-      <p class="muted">Everyone who visits can read it, signed <strong>{account.user?.username}</strong>.</p>
-      <textarea bind:this={box} bind:value={text} rows="4" maxlength={MAX} placeholder="Say hi, leave a compliment…" aria-label="Your note"></textarea>
+      <h2>{heading}</h2>
+      <p class="muted">
+        {#if kind === 'contact'}
+          {t('They’ll get it from {name}, in a chat if you’re friends or in their notifications.', { name: account.user?.username ?? '' })}
+        {:else}
+          {t('Everyone who visits can read it, signed {name}.', { name: account.user?.username ?? '' })}
+        {/if}
+      </p>
+      <textarea bind:this={box} bind:value={text} rows="4" maxlength={MAX} placeholder={kind === 'contact' ? t('Write your message…') : kind === 'comment' ? t('What do you think?') : t('Say hi, leave a compliment…')} aria-label={t('Your note')}></textarea>
       <div class="foot">
         <span class="count" class:near={text.length > MAX - 50}>{text.length}/{MAX}</span>
-        <button type="button" class="ghost" onclick={() => signing.finish(null)}>Cancel</button>
-        <button class="primary" disabled={!text.trim() || sending}>{sending ? 'Signing…' : 'Sign it'}</button>
+        <button type="button" class="ghost" onclick={() => signing.finish(null)}>{t('Cancel')}</button>
+        <button class="primary" disabled={!text.trim() || sending}>{sending ? t('Sending…') : kind === 'guestbook' ? t('Sign it') : kind === 'comment' ? t('Post comment') : t('Send')}</button>
       </div>
       {#if error}<p class="error" role="alert">{error}</p>{/if}
     </form>

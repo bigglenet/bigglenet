@@ -7,6 +7,7 @@
   import { sites, type MySite } from '../lib/sites.svelte';
   import { unzip } from '../lib/unzip';
   import { NAME_RE, siteHome, siteHost } from '../lib/url';
+  import { i18n, plural, t } from '../lib/i18n.svelte';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
@@ -177,12 +178,18 @@
           {#each sites.mine as site (site.name)}
             <li>
               <div class="site-main">
-                <strong>{siteHost(site.name, site.tld)}</strong>
+                <strong>
+                  {siteHost(site.name, site.tld)}
+                  {#if site.role === 'editor'}<span class="role">{t('Editor')}</span>{/if}
+                </strong>
                 <span class="muted">{site.title}</span>
                 {#if site.status === 'live' && site.visits !== undefined}
-                  <span class="visits">
-                    {site.visits.toLocaleString()} {site.visits === 1 ? 'visit' : 'visits'} · {(site.week ?? 0).toLocaleString()} this week
-                  </span>
+                  <button class="visits" title={t('See the stats')} onclick={() => browser.go(tab, `biggle://sites/${site.name}#stats`)}>
+                    {plural(site.visits, '{n} visit', '{n} visits')} · {t('{n} this week', { n: (site.week ?? 0).toLocaleString(i18n.locale) })}
+                  </button>
+                {/if}
+                {#if site.drafts}
+                  <span class="drafts">{plural(site.drafts, '{n} unpublished change', '{n} unpublished changes')}</span>
                 {/if}
                 {#if site.status === 'rejected' && site.note}
                   <span class="note">“{site.note}”</span>
@@ -456,9 +463,34 @@
     color: var(--danger);
   }
   .visits {
+    align-self: flex-start;
     margin-top: 2px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
     font-size: 12.5px;
     color: var(--muted);
+    cursor: pointer;
+  }
+  .visits:hover {
+    color: var(--text);
+    text-decoration: underline;
+  }
+  .drafts {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .role {
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    font-size: 11.5px;
+    font-weight: 700;
+    vertical-align: 2px;
   }
   .pill {
     padding: 3px 10px;

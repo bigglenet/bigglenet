@@ -80,6 +80,14 @@
     });
   }
 
+  // For the Bigglenet tags (page-widgets.js, in the same closure, out of the page's reach).
+  const pushes = new Set();
+  __kit.call = call;
+  __kit.post = post;
+  __kit.init = init;
+  __kit.user = () => user;
+  __kit.onPush = (fn) => pushes.add(fn);
+
   // biggle.storage: kept by the browser, one store per site.
   const storage = Object.freeze({
     async get(key) {
@@ -465,6 +473,8 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       finder.clear();
     } else if (msg.type === 'command') {
       command(msg);
+    } else if (msg.type === 'room') {
+      for (const fn of pushes) fn(msg);
     }
   });
   const finder = createFinder(() => document.body);
@@ -691,6 +701,22 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       // This site's visit counts: { visits, visitors, today, week }.
       visits: () => getVisits().then((c) => ({ ...c })),
       storage,
+      // A live room with everyone else on this site in it (multiplayer games, chat rooms).
+      room: (name) => __kit.room(String(name)),
+      // Game leaderboards: each person's best score on each board.
+      scores: Object.freeze({
+        submit: (board, score, opts = {}) =>
+          call('scores.submit', String(board), Number(score), { order: opts.order === 'asc' ? 'asc' : 'desc' }).then((r) => {
+            // <biggle-leaderboard>s on the page catch up straight away.
+            dispatchEvent(new CustomEvent('biggle:scores', { detail: { board: String(board) } }));
+            return r;
+          }),
+        top: (board, opts = {}) => call('scores.top', String(board), { order: opts.order === 'asc' ? 'asc' : 'desc', limit: opts.limit }),
+      }),
+      // Give the visitor an achievement (shown on their profile). Resolves { new }.
+      achieve: (key, title, description) => call('achieve', String(key), String(title ?? ''), description == null ? null : String(description)),
+      // How many people are on the Bigglenet right now.
+      online: () => call('online').then((r) => r.online),
     }),
   });
 })();

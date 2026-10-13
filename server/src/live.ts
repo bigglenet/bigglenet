@@ -43,6 +43,7 @@ export function isOnline(env: Env, userId: number): Promise<boolean> {
 }
 
 async function announcePresence(env: Env, a: Attachment, online: boolean) {
+  await env.DB.prepare('UPDATE users SET online = ? WHERE id = ?').bind(online ? 1 : 0, a.userId).run();
   const { results } = await env.DB.prepare("SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'friends'")
     .bind(a.userId)
     .all<{ friend_id: number }>();

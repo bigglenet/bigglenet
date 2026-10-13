@@ -4,16 +4,32 @@
   import { browser, type Tab } from '../lib/browser.svelte';
   import { SERVER } from '../lib/config';
   import type { EasySite } from '../lib/easysite';
+  import { readHead, writeHead, type HeadMeta } from '../lib/headmeta';
+  import { plural, t } from '../lib/i18n.svelte';
+  import { RoomLink, type RoomEvent } from '../lib/rooms';
   import { sites, type MySite } from '../lib/sites.svelte';
   import { siteHome, siteHost } from '../lib/url';
+  import Avatar from './Avatar.svelte';
   import EasyEditor from './EasyEditor.svelte';
   import Icon from './Icon.svelte';
   import PreviewPane from './PreviewPane.svelte';
+  import SiteManage from './SiteManage.svelte';
 
   let { tab, name }: { tab: Tab; name: string } = $props();
 
   type FileInfo = { path: string; type: string; size: number; updatedAt: number };
-  type Info = { site: MySite; files: FileInfo[]; limits: { file: number; site: number; files: number } };
+  type Info = {
+    site: MySite;
+    files: FileInfo[];
+    limits: { file: number; site: number; files: number };
+    /** Changes not live yet. Live sites keep changes as drafts until someone presses Publish. */
+    changes: { path: string; kind: 'added' | 'changed' | 'deleted' }[];
+    drafts: boolean;
+    owner: string | null;
+    editors: string[];
+    /** The owner (or an admin): may add editors, change the address, delete the site. */
+    canManage: boolean;
+  };
 
   const TEXT = /\.(bhtml|css|js|json|txt|svg)$/i;
   const AUTOSAVE_MS = 900;
@@ -39,6 +55,10 @@
   let easy = $state<EasySite | null>(null);
   let mode = $state<'easy' | 'code'>('code');
   let easyState = $state({ saving: false, error: '', dirty: false });
+  // Site settings (people, stats, sharing), and publishing drafts.
+  let manage = $state<null | 'people' | 'stats' | 'sharing'>(null);
+  let publishing = $state(false);
+  let confirmDiscard = $state(false);
 
   const dirty = $derived(Object.keys(contents).filter((p) => contents[p] !== saved[p]));
   const used = $derived(info?.files.reduce((n, f) => n + f.size, 0) ?? 0);
@@ -76,6 +96,8 @@
     refresh().then(async () => {
       await loadEasy();
       await select('index.bhtml');
+      // biggle://sites/name#stats opens the site's stats (from My sites).
+      if (tab.url.endsWith('#stats') && info) openManage('stats');
     });
     freshBase().catch(() => {});
     // Preview links last an hour; renew them while the editor is open.
@@ -108,6 +130,7 @@
       saved[path] = text;
       previewVersion++;
       refresh();
+      tell({ kind: 'saved', path, text: text.length <= SEND_MAX ? text : undefined });
     } catch (e) {
       saveError = errorText(e);
     } finally {
@@ -120,9 +143,225 @@
     const path = selected;
     const text = contents[path];
     if (text === undefined || text === saved[path]) return;
+    typingIn(path);
     const timer = setTimeout(() => save(path), AUTOSAVE_MS);
     return () => clearTimeout(timer);
   });
+
+  // --- Editing together ---
+  // Everyone with the site open in the editor shares a room (server/src/rooms.ts). You see who's
+  // here; when someone saves a file, everyone else gets it (unless they're changing it too); and
+  // a file someone is typing in is read-only for the others until they stop, so two people
+  // never overwrite each other's work.
+  type Said =
+    | { kind: 'typing'; path: string }
+    | { kind: 'saved'; path: string; text?: string }
+    | { kind: 'easy'; json?: string }
+    | { kind: 'files'; reload?: boolean };
+  const SEND_MAX = 12_000;
+  const TYPING_MS = 2500;
+
+  let room: RoomLink | null = null;
+  let me = '';
+  let present = $state<string[]>([]);
+  let typing = $state<Record<string, string>>({});
+  let easyLock = $state('');
+  let easyRemote = $state<{ json: string; n: number } | null>(null);
+  const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  let lastTyping = 0;
+
+  $effect(() => {
+    const site = name;
+    if (!account.token) return;
+    let alive = true;
+    const link = new RoomLink(site, 'editor', (e) => alive && heard(e));
+    room = link;
+    link
+      .open()
+      .then(({ you }) => {
+        me = you;
+        if (alive) present = link.members.filter((m) => m !== me);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      link.close();
+      room = null;
+      present = [];
+      typing = {};
+      easyLock = '';
+    };
+  });
+
+  function tell(data: Said) {
+    room?.send(data);
+  }
+
+  /** You're changing this file: say so, at most once a second. */
+  function typingIn(path: string) {
+    const now = Date.now();
+    if (now - lastTyping < 1000) return;
+    lastTyping = now;
+    tell({ kind: 'typing', path });
+  }
+
+  /** Someone else is changing `path` (site.json is the easy editor). */
+  function lock(path: string, user: string) {
+    if (path === 'site.json' && easy) easyLock = user;
+    else typing[path] = user;
+    clearTimeout(typingTimers.get(path));
+    typingTimers.set(
+      path,
+      setTimeout(() => {
+        delete typing[path];
+        if (path === 'site.json') easyLock = '';
+      }, TYPING_MS),
+    );
+  }
+
+  function unlock(path: string) {
+    clearTimeout(typingTimers.get(path));
+    delete typing[path];
+    if (path === 'site.json') easyLock = '';
+  }
+
+  async function heard(e: RoomEvent) {
+    if (e.type !== 'message') {
+      present = (room?.members ?? []).filter((m) => m !== me);
+      return;
+    }
+    const said = e.data as Said;
+    if (!said || typeof said !== 'object') return;
+    if (said.kind === 'typing' && typeof said.path === 'string') {
+      lock(said.path, e.from);
+    } else if (said.kind === 'saved' && typeof said.path === 'string') {
+      unlock(said.path);
+      // Take their version, unless you've changed it too (then yours saves over theirs).
+      if (contents[said.path] !== undefined && contents[said.path] === saved[said.path]) {
+        const text = typeof said.text === 'string' ? said.text : await fetchText(said.path);
+        if (text !== null && contents[said.path] === saved[said.path]) {
+          contents[said.path] = text;
+          saved[said.path] = text;
+        }
+      }
+      previewVersion++;
+      refresh();
+    } else if (said.kind === 'easy') {
+      unlock('site.json');
+      if (easy && !easyState.dirty) {
+        const json = typeof said.json === 'string' ? said.json : await fetchText('site.json');
+        if (json) easyRemote = { json, n: (easyRemote?.n ?? 0) + 1 };
+      }
+      previewVersion++;
+      refresh();
+    } else if (said.kind === 'files') {
+      if (said.reload) await reloadAll();
+      else await refresh();
+      previewVersion++;
+    }
+  }
+
+  async function fetchText(path: string): Promise<string | null> {
+    try {
+      return await (await apiFetch('GET', filePath(path))).text();
+    } catch {
+      return null;
+    }
+  }
+
+  /** Load every file again (drafts were thrown away), keeping what you're still changing. */
+  async function reloadAll() {
+    await refresh();
+    for (const path of Object.keys(contents)) {
+      if (contents[path] !== saved[path]) continue;
+      if (!info?.files.some((f) => f.path === path)) {
+        delete contents[path];
+        delete saved[path];
+        continue;
+      }
+      const text = await fetchText(path);
+      if (text !== null && contents[path] === saved[path]) {
+        contents[path] = text;
+        saved[path] = text;
+      }
+    }
+    if (easy && !easyState.dirty) {
+      const json = await fetchText('site.json');
+      if (json) easyRemote = { json, n: (easyRemote?.n ?? 0) + 1 };
+    }
+    if (!info?.files.some((f) => f.path === selected)) await select('index.bhtml');
+  }
+
+  // --- Publishing (live sites) ---
+  const busy = $derived(saving || dirty.length > 0 || easyState.saving || easyState.dirty);
+
+  async function publish() {
+    if (publishing) return;
+    publishing = true;
+    saveError = '';
+    try {
+      for (const path of dirty) await save(path);
+      await api('POST', `/api/sites/${enc(name)}/publish`);
+      await refresh();
+      sites.refreshMine();
+      tell({ kind: 'files' });
+      browser.say(t('Published. Visitors see the new version now.'));
+    } catch (e) {
+      saveError = errorText(e);
+    } finally {
+      publishing = false;
+    }
+  }
+
+  async function discard() {
+    confirmDiscard = false;
+    saveError = '';
+    try {
+      await api('POST', `/api/sites/${enc(name)}/discard`);
+      contents = {};
+      saved = {};
+      easy = null;
+      await refresh();
+      await loadEasy();
+      await select(info?.files.some((f) => f.path === selected) ? selected : 'index.bhtml');
+      previewVersion++;
+      sites.refreshMine();
+      tell({ kind: 'files', reload: true });
+    } catch (e) {
+      saveError = errorText(e);
+    }
+  }
+
+  const changeOf = (path: string) => info?.changes.find((c) => c.path === path)?.kind;
+
+  // --- Site settings ---
+  const images = $derived(info?.files.filter((f) => /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(f.path)).map((f) => f.path) ?? []);
+  const head = $derived<HeadMeta | null>(!easy && contents['index.bhtml'] !== undefined ? readHead(contents['index.bhtml']) : null);
+
+  async function openManage(section: 'people' | 'stats' | 'sharing' = 'people') {
+    if (!easy && contents['index.bhtml'] === undefined) {
+      const text = await fetchText('index.bhtml');
+      if (text !== null) {
+        contents['index.bhtml'] = text;
+        saved['index.bhtml'] = text;
+      }
+    }
+    manage = section;
+  }
+
+  async function setHead(meta: HeadMeta) {
+    const html = contents['index.bhtml'];
+    if (html === undefined) return;
+    contents['index.bhtml'] = writeHead(html, meta);
+    manage = null;
+    await save('index.bhtml');
+  }
+
+  function leftSite() {
+    manage = null;
+    sites.refreshMine();
+    browser.go(tab, 'biggle://sites');
+  }
 
   async function toMode(next: 'easy' | 'code') {
     if (next === 'code') {
@@ -169,6 +408,7 @@
       newFile = '';
       await refresh();
       await select(path);
+      tell({ kind: 'files' });
     } catch (err) {
       fileError = errorText(err);
     }
@@ -189,6 +429,7 @@
     if (upload) upload.value = '';
     await refresh();
     previewVersion++;
+    tell({ kind: 'files' });
   }
 
   async function deleteFile(path: string) {
@@ -200,6 +441,7 @@
       if (selected === path) await select('index.bhtml');
       await refresh();
       previewVersion++;
+      tell({ kind: 'files' });
     } catch (err) {
       fileError = errorText(err);
     }
@@ -260,7 +502,7 @@
       <Icon name="back" />
     </button>
     <div class="who">
-      {#if canShort}
+      {#if canShort && info?.canManage}
         <strong class="address"
           >{bare}<select bind:this={tldPick} value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label="Address ending" title="Address ending">
             <option value="biggle">.biggle</option>
@@ -276,17 +518,30 @@
         {:else if saving}Saving…{:else if saveError}<span class="bad">{saveError}</span>{:else if dirty.length}Unsaved changes{:else}All changes saved{/if}
       </span>
     </div>
+    {#if present.length}
+      <div class="present" title={t('Also editing: {names}', { names: present.join(', ') })}>
+        {#each present.slice(0, 4) as who (who)}<Avatar name={who} user={who} size={26} />{/each}
+        {#if present.length > 4}<span class="more">+{present.length - 4}</span>{/if}
+      </div>
+    {/if}
     {#if easy}
       <button class="ghost" onclick={() => toMode(mode === 'easy' ? 'code' : 'easy')}>{mode === 'easy' ? 'Code' : 'Easy editor'}</button>
     {/if}
     <button class="ghost" onclick={visit}>{info?.site.status === 'live' ? 'Visit' : 'Preview'}</button>
-    {#if confirmSite}
-      <button class="danger" onclick={deleteSite}>Delete site</button>
-      <button class="ghost" onclick={() => (confirmSite = false)}>Keep</button>
-    {:else}
-      <button class="icon" aria-label="Delete this site" title="Delete this site" onclick={() => (confirmSite = true)}>
-        <Icon name="trash" size={16} />
+    {#if info}
+      <button class="icon" aria-label={t('Site settings')} title={t('People, stats and sharing')} onclick={() => openManage()}>
+        <Icon name="settings" size={17} />
       </button>
+    {/if}
+    {#if info?.canManage}
+      {#if confirmSite}
+        <button class="danger" onclick={deleteSite}>Delete site</button>
+        <button class="ghost" onclick={() => (confirmSite = false)}>Keep</button>
+      {:else}
+        <button class="icon" aria-label="Delete this site" title="Delete this site" onclick={() => (confirmSite = true)}>
+          <Icon name="trash" size={16} />
+        </button>
+      {/if}
     {/if}
   </header>
 
@@ -300,13 +555,56 @@
         Not approved{info.site.note ? `: “${info.site.note}”` : '.'} Make some changes, then
         <button class="link" onclick={askAgain}>ask again</button>.
       </p>
+    {:else if info.changes.length}
+      <p class="banner draft">
+        <span>
+          {plural(info.changes.length, '{n} unpublished change.', '{n} unpublished changes.')}
+          {t('Visitors see the site as it was until you publish.')}
+        </span>
+        {#if confirmDiscard}
+          <button class="danger compact" onclick={discard}>{t('Throw them away')}</button>
+          <button class="ghost compact" onclick={() => (confirmDiscard = false)}>{t('Keep')}</button>
+        {:else}
+          <button class="ghost compact" onclick={() => (confirmDiscard = true)}>{t('Discard')}</button>
+          <button class="primary compact" disabled={publishing || busy} onclick={publish}>{publishing ? t('Publishing…') : t('Publish')}</button>
+        {/if}
+      </p>
     {:else}
-      <p class="banner ok">Live at {siteHost(name, tld)}. Changes go live when they save.</p>
+      <p class="banner ok">{t('Live at {site}. Your changes wait here until you publish them.', { site: siteHost(name, tld) })}</p>
     {/if}
   {/if}
 
+  {#if manage && info}
+    <SiteManage
+      {name}
+      owner={info.owner}
+      editors={info.editors}
+      canManage={info.canManage}
+      {head}
+      {images}
+      start={manage}
+      onhead={setHead}
+      onchange={refresh}
+      onleave={leftSite}
+      onclose={() => (manage = null)}
+    />
+  {/if}
+
   {#if mode === 'easy' && easy && base}
-    <EasyEditor {name} bind:site={easy} {base} onsaving={(s) => (easyState = s)} />
+    <EasyEditor
+      {name}
+      bind:site={easy}
+      {base}
+      remote={easyRemote}
+      locked={easyLock}
+      onsaving={(s) => (easyState = s)}
+      onedit={() => typingIn('site.json')}
+      onsaved={(json) => {
+        previewVersion++;
+        refresh();
+        tell({ kind: 'easy', json: json.length <= SEND_MAX ? json : undefined });
+      }}
+    />
   {:else}
   {#if easy}
     <p class="banner">This site uses the easy editor. If you change index.bhtml or style.css here, the easy editor will replace them next time you use it.</p>
@@ -324,7 +622,9 @@
           <li class:on={file.path === selected}>
             <button class="file" onclick={() => select(file.path)}>
               <span class="file-name">{file.path}</span>
-              {#if dirty.includes(file.path)}<span class="dot" title="Unsaved"></span>{/if}
+              {#if typing[file.path]}<Avatar name={typing[file.path]} user={typing[file.path]} size={16} />{/if}
+              {#if dirty.includes(file.path)}<span class="dot" title="Unsaved"></span>
+              {:else if changeOf(file.path)}<span class="change" title={t('Not published yet')}>{changeOf(file.path) === 'added' ? t('new') : t('edited')}</span>{/if}
               <span class="size">{kb(file.size)}</span>
             </button>
             {#if file.path !== 'index.bhtml'}
@@ -354,9 +654,14 @@
     <section class="code">
       {#if TEXT.test(selected)}
         {#if contents[selected] !== undefined}
+          {@const lockedBy = !dirty.includes(selected) ? typing[selected] : undefined}
+          {#if lockedBy}
+            <p class="lock"><Avatar name={lockedBy} user={lockedBy} size={18} /> {t('{who} is changing this file. You can type again when they stop.', { who: lockedBy })}</p>
+          {/if}
           <textarea
             bind:this={editor}
             bind:value={contents[selected]}
+            readonly={!!lockedBy}
             {onkeydown}
             spellcheck="false"
             autocapitalize="off"
@@ -600,7 +905,67 @@
   .code {
     min-height: 0;
     display: flex;
+    flex-direction: column;
     border-right: 1px solid var(--border);
+  }
+  .lock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: var(--accent-soft);
+  }
+  textarea[readonly] {
+    opacity: 0.7;
+  }
+  .present {
+    display: flex;
+    align-items: center;
+  }
+  .present :global(.avatar) {
+    margin-left: -6px;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  .more {
+    margin-left: 4px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .change {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .banner.draft {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .banner.draft span {
+    flex: 1;
+    min-width: 200px;
+  }
+  .primary {
+    border: 0;
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .primary:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .compact {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
   }
   textarea {
     flex: 1;

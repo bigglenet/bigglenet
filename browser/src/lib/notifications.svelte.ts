@@ -98,6 +98,12 @@ export function describe(n: Notification): { text: string; href: string | null; 
         href: `biggle://${siteHost(site)}${s(d.path) || '/'}`,
         icon: 'chat',
       };
+    case 'contact':
+      return {
+        text: t('{who} sent you a message from {site}: “{body}”', { who: s(d.from), site: siteHost(site), body: s(d.body) }),
+        href: `biggle://u/${s(d.from)}`,
+        icon: 'chat',
+      };
     case 'site-updated':
       return { text: t('{site} was updated', { site: siteHost(site) }), href: siteHome(site), icon: 'globe' };
     case 'event-invite':

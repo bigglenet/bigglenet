@@ -13,19 +13,39 @@
     type BlockType,
     type EasySite,
   } from '../lib/easysite';
-  import { answerCall } from '../lib/frame';
+  import { answerCall, closeScope, newScope, roomSend } from '../lib/frame';
   import { renderPage } from '../lib/loader';
   import { parse, type SiteUrl } from '../lib/url';
+  import { t } from '../lib/i18n.svelte';
+  import { untrack } from 'svelte';
   import Icon from './Icon.svelte';
 
   let {
     name,
     site = $bindable(),
     base,
+    remote = null,
+    locked = '',
     onsaving,
-  }: { name: string; site: EasySite; base: string; onsaving: (state: { saving: boolean; error: string; dirty: boolean }) => void } = $props();
+    onedit,
+    onsaved,
+  }: {
+    name: string;
+    site: EasySite;
+    base: string;
+    /** Someone else's saved version, editing together: taken unless you've changed something. */
+    remote?: { json: string; n: number } | null;
+    /** Who else is changing the site right now: until they stop, it's their turn. */
+    locked?: string;
+    onsaving: (state: { saving: boolean; error: string; dirty: boolean }) => void;
+    onedit?: () => void;
+    onsaved?: (json: string) => void;
+  } = $props();
 
-  const ADD: BlockType[] = ['heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter', 'visits', 'guestbook'];
+  const ADD: BlockType[] = [
+    'heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter', 'visits', 'guestbook',
+    'poll', 'comments', 'like', 'contact', 'wall', 'leaderboard', 'online', 'newsites', 'embed',
+  ];
   const AUTOSAVE_MS = 800;
 
   let savedJson = $state(JSON.stringify(site));
@@ -35,6 +55,8 @@
   let iframe = $state<HTMLIFrameElement>();
 
   const json = $derived(JSON.stringify(site));
+  // Pictures uploaded to the site, for the preview picture and icon.
+  const images = $derived([...new Set(site.blocks.flatMap((b) => (b.type === 'image' && b.src ? [b.src] : [])))]);
   const dirty = $derived(json !== savedJson);
   const enc = encodeURIComponent;
 
@@ -59,11 +81,24 @@
   $effect(() => {
     const snapshot = json;
     if (snapshot === savedJson) return;
+    untrack(() => onedit?.());
     const timer = setTimeout(() => save(snapshot), AUTOSAVE_MS);
     return () => clearTimeout(timer);
   });
 
   $effect(() => onsaving({ saving: false, error: '', dirty }));
+
+  // Someone else saved: take their version, unless you're in the middle of a change.
+  $effect(() => {
+    const r = remote;
+    if (!r) return;
+    untrack(() => {
+      if (json !== savedJson) return;
+      const next = JSON.parse(r.json) as EasySite;
+      savedJson = JSON.stringify(next);
+      site = next;
+    });
+  });
 
   async function save(snapshot: string) {
     onsaving({ saving: true, error: '', dirty: true });
@@ -74,6 +109,7 @@
       }
       savedJson = snapshot;
       onsaving({ saving: false, error: '', dirty: JSON.stringify(site) !== snapshot });
+      onsaved?.(snapshot);
     } catch (e) {
       onsaving({ saving: false, error: errorText(e), dirty: true });
     }
@@ -117,20 +153,25 @@
   }
 
   // Let the preview's own scripts (like the visit counter) work.
+  const scope = $derived(newScope(name, '/', (m) => iframe?.contentWindow?.postMessage({ biggle: 1, ...m }, '*'), { preview: true }));
+  $effect(() => {
+    const s = scope;
+    return () => closeScope(s);
+  });
   $effect(() => {
     const onmessage = (e: MessageEvent) => {
       if (!iframe || e.source !== iframe.contentWindow) return;
       const msg = e.data;
-      if (msg?.biggle !== 1 || msg.type !== 'call') return;
+      if (msg?.biggle !== 1) return;
+      if (msg.type === 'room-send') return roomSend(scope, msg.id, msg.data);
+      if (msg.type !== 'call') return;
       const reply = (m: Record<string, unknown>) => iframe?.contentWindow?.postMessage({ biggle: 1, ...m }, '*');
       // The preview gets an empty, throwaway biggle.storage, so it shows what a first-time
-      // visitor sees and doesn't count your edits as visits.
+      // visitor sees and doesn't count your edits as visits. It can't post anything either.
       if (String(msg.method).startsWith('storage.')) {
         reply({ type: 'result', id: msg.id, value: msg.method === 'storage.keys' ? [] : undefined });
-      } else if (msg.method === 'guestbook.sign' || msg.method === 'guestbook.delete') {
-        reply({ type: 'result', id: msg.id, error: 'This is a preview. Use the guestbook on your site itself.' });
       } else {
-        answerCall(name, msg, reply);
+        answerCall(scope, msg, reply);
       }
     };
     window.addEventListener('message', onmessage);
@@ -144,7 +185,10 @@
 </div>
 
 <div class="easy" data-pane={pane}>
-  <div class="controls">
+  <div class="controls" inert={!!locked && !dirty}>
+    {#if locked && !dirty}
+      <p class="lock">{t('{who} is changing the site. You can edit again when they stop.', { who: locked })}</p>
+    {/if}
     <section>
       <h3>Look</h3>
       <div class="themes">
@@ -179,6 +223,22 @@
     </section>
 
     <section>
+      <h3>{t('Link preview and icon')}</h3>
+      <textarea bind:value={site.description} rows="2" maxlength="200" placeholder={t('A line about your site, shown when someone shares a link to it')} aria-label={t('Description')}></textarea>
+      <div class="image-row">
+        <select bind:value={site.previewImage} aria-label={t('Picture for link previews')}>
+          <option value={undefined}>{t('No preview picture')}</option>
+          {#each images as path (path)}<option value={path}>{path}</option>{/each}
+        </select>
+        <select bind:value={site.icon} aria-label={t('Tab icon')}>
+          <option value={undefined}>{t('Icon: the emoji')} {site.emoji}</option>
+          {#each images as path (path)}<option value={path}>{t('Icon: {file}', { file: path })}</option>{/each}
+        </select>
+      </div>
+      {#if !images.length}<p class="hint">{t('Add a picture block to upload pictures you can use here.')}</p>{/if}
+    </section>
+
+    <section>
       <h3>Blocks</h3>
       {#each site.blocks as b, i (b.id)}
         <div class="block">
@@ -210,6 +270,34 @@
             <p class="hint">Shows how many visits your site has had from everyone (each person counts once a day).</p>
           {:else if b.type === 'guestbook'}
             <p class="hint">Visitors can leave you a note. You can take down any note on your site.</p>
+          {:else if b.type === 'poll'}
+            <input bind:value={b.question} placeholder={t('The question')} aria-label={t('Poll question')} />
+            <textarea
+              rows="3"
+              aria-label={t('Answers, one per line')}
+              placeholder={t('Answers, one per line')}
+              value={b.options.join('\n')}
+              oninput={(e) => (b.options = e.currentTarget.value.split('\n').slice(0, 12))}
+            ></textarea>
+          {:else if b.type === 'comments'}
+            <p class="hint">{t('Visitors can comment on the page. You can take down any comment.')}</p>
+          {:else if b.type === 'like'}
+            <p class="hint">{t('A heart visitors can tap, with how many people like your site.')}</p>
+          {:else if b.type === 'contact'}
+            <p class="hint">{t('Visitors can send you a message. It arrives in your chats or notifications.')}</p>
+          {:else if b.type === 'wall'}
+            <p class="hint">{t('A drawing everyone adds to, live. You can clear it.')}</p>
+          {:else if b.type === 'leaderboard'}
+            <input bind:value={b.title} placeholder={t('Title')} aria-label={t('Leaderboard title')} />
+            <input bind:value={b.board} placeholder="main" aria-label={t('Leaderboard name (your game uses it)')} />
+            <p class="hint">{t('Shows the best scores your game sends with biggle.scores.submit("{board}", score).', { board: b.board || 'main' })}</p>
+          {:else if b.type === 'online'}
+            <p class="hint">{t('How many people are on the Bigglenet right now.')}</p>
+          {:else if b.type === 'newsites'}
+            <p class="hint">{t('The five newest sites on the Bigglenet.')}</p>
+          {:else if b.type === 'embed'}
+            <input bind:value={b.url} placeholder="friend.biggle/page" aria-label={t('Page to show')} />
+            <p class="hint">{t('Shows another .biggle page inside yours.')}</p>
           {:else}
             <p class="hint">A line between sections.</p>
           {/if}
@@ -308,7 +396,8 @@
     border-style: dashed;
   }
   input,
-  textarea {
+  textarea,
+  select {
     width: 100%;
     margin-bottom: 8px;
     padding: 10px 12px;
@@ -320,7 +409,8 @@
     font-size: 15px;
   }
   input:focus,
-  textarea:focus {
+  textarea:focus,
+  select:focus {
     outline: 0;
     border-color: var(--accent);
   }
@@ -430,5 +520,18 @@
     .controls {
       border: 0;
     }
+  }
+  .lock {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    font-size: 13px;
+  }
+  .controls[inert] section {
+    opacity: 0.6;
   }
 </style>

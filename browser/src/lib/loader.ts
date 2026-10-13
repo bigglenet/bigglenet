@@ -1,6 +1,7 @@
 import findCore from './find-core.js?raw';
 import runtime from './page-runtime.js?raw';
 import readerCore from './reader-core.js?raw';
+import widgets from './page-widgets.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { isApp } from './platform';
 import { offlineCopy } from './offline.svelte';
@@ -128,7 +129,7 @@ const BASE_CSS =
 // The page runtime, with find in page (find-core.js) and reader mode (reader-core.js) in scope
 // but out of the page's way.
 const plain = (source: string) => source.replace(/^export function/m, 'function');
-const PAGE_SCRIPT = `(function(){${plain(findCore)}\n${plain(readerCore)}\n${runtime}})();`;
+const PAGE_SCRIPT = `(function(){const __kit={};${plain(findCore)}\n${plain(readerCore)}\n${runtime}\n${widgets}})();`;
 
 const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const html = (s: string) => attr(s).replace(/>/g, '&gt;');
@@ -137,7 +138,7 @@ function head(u: SiteUrl, base?: string): string {
   return `<!DOCTYPE html><meta http-equiv="Content-Security-Policy" content="${attr(CSP)}"><base href="${attr(toGateway(u, base))}">`;
 }
 
-function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, priv = false): string {
+function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, priv = false, embedded = false): string {
   const init = {
     url: u.href,
     site: siteKey(u),
@@ -150,6 +151,7 @@ function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, 
     local: readLocal(siteKey(u), priv),
     app: isApp,
     dark: siteSettings.dark(siteKey(u)),
+    embedded,
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');
   return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${PAGE_SCRIPT}</script>${body}`;
@@ -173,4 +175,17 @@ function textViewer(u: SiteUrl, text: string, base?: string): string {
   return `${head(u, base)}<title>${html(fileName(u))}</title>
 <style>:root{color-scheme:light dark}body{margin:0;padding:16px}pre{margin:0;font:13px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word}</style>
 <pre>${html(text)}</pre>`;
+}
+
+/** A page shown inside another one (<biggle-embed>): links work, but it can't ask the browser for anything. */
+export async function renderEmbed(u: SiteUrl): Promise<string | null> {
+  try {
+    const res = await fetch(toGateway(u), { credentials: 'omit', referrerPolicy: 'no-referrer' });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const header = HEADER_RE.exec(text);
+    return header ? page(u, text.slice(header[0].length), null, undefined, true, true) : null;
+  } catch {
+    return null;
+  }
 }

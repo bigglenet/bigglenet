@@ -1,9 +1,10 @@
 // Who comes by a site: visit counts (one per person per day) and the site's guestbook.
 // Pages show them with <biggle-visits> and <biggle-guestbook>; owners see the counts in My sites.
 import { requireUser, type User } from './auth';
-import { HttpError, json, readJson, siteAddress, str } from './http';
+import { HttpError, json, readJson, SITE_KEY_RE, siteAddress, str } from './http';
 import { addNotification } from './notifications';
 import { blockedBetween, blockedIds } from './people';
+import { countView } from './sitekit';
 
 const GUESTBOOK_PAGE = 30;
 const MAX_NOTE = 500;
@@ -21,13 +22,19 @@ async function findSite(env: Env, key: string): Promise<Site> {
 
 const runs = (site: Site, user: User) => site.owner_id === user.id || !!user.is_admin;
 
-/** The browser opened one of the site's pages. Counts once per person per day. */
+/**
+ * The browser opened one of the site's pages ({ path, from }: which page, and the site whose link
+ * led here). A visit counts once per person per day; page views count every time.
+ */
 export async function visit(req: Request, env: Env, key: string): Promise<Response> {
   const user = await requireUser(req, env);
   const site = await findSite(env, key);
+  const input = await readJson(req);
   // Sites waiting for approval are only seen by their owner and admins.
   if (site.status === 'live') {
     await env.DB.prepare('INSERT OR IGNORE INTO site_visits (site, day, user_id) VALUES (?, ?, ?)').bind(site.name, today(), user.id).run();
+    const from = typeof input.from === 'string' && SITE_KEY_RE.test(input.from) ? input.from : null;
+    await countView(env, site.name, str(input.path), from);
   }
   return json({});
 }

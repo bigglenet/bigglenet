@@ -7,6 +7,8 @@
   import { perf } from '../lib/perf.svelte';
   import { desktop } from '../lib/platform';
   import { cleanReader } from '../lib/reader';
+  import { answerCall, closeScope, newScope, roomSend } from '../lib/frame';
+  import { parse } from '../lib/url';
   import { siteSettings } from '../lib/sitesettings.svelte';
   import { frameZoom, zoom } from '../lib/zoom.svelte';
 
@@ -16,6 +18,17 @@
   let iframe = $state<HTMLIFrameElement>();
   let loaded = $state(0);
   const send = (msg: Record<string, unknown>) => iframe?.contentWindow?.postMessage({ biggle: 1, ...msg }, '*');
+
+  // What the page asks the browser for (storage, rooms, comments…), for this page of its site.
+  // A new page (a new `view`) gets a new scope; leaving it leaves its rooms.
+  const scope = $derived.by(() => {
+    const u = parse(tab.url);
+    return newScope(view.site, u?.kind === 'site' ? u.path : '/', send, { private: tab.private, say: (text) => browser.say(text) });
+  });
+  $effect(() => {
+    const s = scope;
+    return () => closeScope(s);
+  });
 
   // Questions to the page (find, reader mode, picture-in-picture), answered by id.
   let nextAsk = 0;
@@ -48,6 +61,8 @@
         return;
       }
       if (msg.type === 'context') return openMenu(msg);
+      if (msg.type === 'call') return answerCall(scope, msg, send);
+      if (msg.type === 'room-send') return roomSend(scope, msg.id, msg.data);
       browser.onPageMessage(tab, msg, (reply) => send(reply));
     };
     window.addEventListener('message', onmessage);
