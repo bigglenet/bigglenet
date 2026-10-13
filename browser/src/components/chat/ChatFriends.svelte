@@ -45,7 +45,7 @@
     await act(async () => {
       await social.addFriend(username);
       name = '';
-      note = social.friends.some((f) => f.username === username) ? `You and ${username} are friends now.` : `Friend request sent to ${username}.`;
+      note = social.friends.some((f) => f.username === username) ? t('You and {username} are friends now.', { username }) : t('Friend request sent to {username}.', { username });
     });
     busy = false;
   }
@@ -67,57 +67,57 @@
 </script>
 
 <header class="bar">
-  <button class="icon" aria-label="Back" onclick={onback}><Icon name="back" /></button>
-  <h2>Friends</h2>
+  <button class="icon" aria-label={t('Back')} onclick={onback}><Icon name="back" /></button>
+  <h2>{t('Friends')}</h2>
 </header>
 
 <div class="scroll body">
   <form class="add" onsubmit={add}>
-    <input class="field" bind:value={name} placeholder="Add a friend by username" aria-label="Username to add" autocapitalize="off" spellcheck="false" />
-    <button class="icon solid" aria-label="Send friend request" disabled={busy || !name.trim()}><Icon name="userPlus" size={17} /></button>
+    <input class="field" bind:value={name} placeholder={t('Add a friend by username')} aria-label={t('Username to add')} autocapitalize="off" spellcheck="false" />
+    <button class="icon solid" aria-label={t('Send friend request')} disabled={busy || !name.trim()}><Icon name="userPlus" size={17} /></button>
   </form>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if note}<p class="note">{note}</p>{/if}
 
   {#if social.incoming.length}
-    <p class="label">Requests</p>
+    <p class="label">{t('Requests')}</p>
     {#each social.incoming as u (u)}
       <div class="person">
         <Avatar name={u} user={u} size={36} />
-        <span class="names"><strong>{u}</strong><span>wants to be friends</span></span>
-        <button class="btn small primary" onclick={() => act(() => social.accept(u))}>Accept</button>
-        <button class="btn small" onclick={() => act(() => social.remove(u))}>Decline</button>
+        <span class="names"><strong>{u}</strong><span>{t('wants to be friends')}</span></span>
+        <button class="btn small primary" onclick={() => act(() => social.accept(u))}>{t('Accept')}</button>
+        <button class="btn small" onclick={() => act(() => social.remove(u))}>{t('Decline')}</button>
       </div>
     {/each}
   {/if}
 
   {#if social.outgoing.length}
-    <p class="label">Sent</p>
+    <p class="label">{t('Sent')}</p>
     {#each social.outgoing as u (u)}
       <div class="person">
         <Avatar name={u} user={u} size={36} />
-        <span class="names"><strong>{u}</strong><span>Waiting for them to accept</span></span>
-        <button class="btn small" onclick={() => act(() => social.remove(u))}>Cancel</button>
+        <span class="names"><strong>{u}</strong><span>{t('Waiting for them to accept')}</span></span>
+        <button class="btn small" onclick={() => act(() => social.remove(u))}>{t('Cancel')}</button>
       </div>
     {/each}
   {/if}
 
-  <p class="label">Friends{friends.length ? ` · ${friends.length}` : ''}</p>
+  <p class="label">{t('Friends')}{friends.length ? ` · ${friends.length}` : ''}</p>
   {#each friends as f (f.username)}
     {#if renaming === f.username}
       <form class="person rename" onsubmit={saveNickname}>
         <Avatar name={nickname.trim() || f.username} user={f.username} size={36} />
         <!-- svelte-ignore a11y_autofocus -->
-        <input class="field" bind:value={nickname} maxlength="30" placeholder={f.username} aria-label="Nickname for {f.username}" autofocus />
-        <button class="btn small primary">Save</button>
-        <button type="button" class="btn small" onclick={() => (renaming = null)}>Cancel</button>
+        <input class="field" bind:value={nickname} maxlength="30" placeholder={f.username} aria-label={t('Nickname for {username}', { username: f.username })} autofocus />
+        <button class="btn small primary">{t('Save')}</button>
+        <button type="button" class="btn small" onclick={() => (renaming = null)}>{t('Cancel')}</button>
       </form>
     {:else if removing === f.username}
       <div class="person">
         <Avatar name={f.nickname || f.username} user={f.username} size={36} />
-        <span class="names"><strong>Unfriend {f.nickname || f.username}?</strong><span>You won't be able to message each other.</span></span>
-        <button class="btn small danger" onclick={() => act(async () => { await social.remove(f.username); removing = null; })}>Unfriend</button>
-        <button class="btn small" onclick={() => (removing = null)}>Keep</button>
+        <span class="names"><strong>{t('Unfriend {username}?', { username: f.nickname || f.username })}</strong><span>{t("You won't be able to message each other.")}</span></span>
+        <button class="btn small danger" onclick={() => act(async () => { await social.remove(f.username); removing = null; })}>{t('Unfriend')}</button>
+        <button class="btn small" onclick={() => (removing = null)}>{t('Keep')}</button>
       </div>
     {:else}
       {@const line = people.statusLine(f.username)}
@@ -129,13 +129,13 @@
             <span>{f.nickname ? `@${f.username} · ` : ''}{line || (f.online ? t('Online') : t('Offline'))}</span>
           </span>
         </button>
-        <button class="icon" aria-label="Message {f.username}" title="Message" onclick={() => onmessage(f.username)}><Icon name="chat" size={16} /></button>
-        <button class="icon" aria-label="Nickname for {f.username}" title="Nickname" onclick={() => rename(f.username)}><Icon name="edit" size={16} /></button>
-        <button class="icon" aria-label="Unfriend {f.username}" title="Unfriend" onclick={() => (removing = f.username)}><Icon name="trash" size={16} /></button>
+        <button class="icon" aria-label={t('Message {username}', { username: f.username })} title={t('Message')} onclick={() => onmessage(f.username)}><Icon name="chat" size={16} /></button>
+        <button class="icon" aria-label={t('Nickname for {username}', { username: f.username })} title={t('Nickname')} onclick={() => rename(f.username)}><Icon name="edit" size={16} /></button>
+        <button class="icon" aria-label={t('Unfriend {username}', { username: f.username })} title={t('Unfriend')} onclick={() => (removing = f.username)}><Icon name="trash" size={16} /></button>
       </div>
     {/if}
   {:else}
-    <p class="muted empty">{social.friendsLoaded ? 'No friends yet. Add someone by their username.' : 'Loading…'}</p>
+    <p class="muted empty">{social.friendsLoaded ? t('No friends yet. Add someone by their username.') : t('Loading…')}</p>
   {/each}
 </div>
 

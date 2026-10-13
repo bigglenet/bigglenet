@@ -1,9 +1,13 @@
 // Notifications while Bigglenet is closed, on phones and in browsers that allow it (web push;
 // server/src/push.ts). public/sw.js shows them. The desktop app keeps running in the background
 // instead (desktop/main), so this is for the web.
+import { untrack } from 'svelte';
 import { api } from './api';
-import { i18n } from './i18n.svelte';
+import { i18n, t } from './i18n.svelte';
 import { desktop } from './platform';
+
+// The language this device's notifications were last asked in.
+const LANG_KEY = 'biggle:push-lang';
 
 const b64 = (buf: ArrayBuffer | null) =>
   buf
@@ -32,13 +36,30 @@ class Push {
     const { key } = await api<{ key: string | null }>('GET', '/api/push');
     if (!key) {
       this.available = false;
-      throw new Error('This server can’t send notifications while Bigglenet is closed.');
+      throw new Error(t('This server can’t send notifications while Bigglenet is closed.'));
     }
-    if ((await Notification.requestPermission()) !== 'granted') throw new Error('Your browser is blocking Bigglenet’s notifications. Allow them in its site settings.');
+    if ((await Notification.requestPermission()) !== 'granted') throw new Error(t('Your browser is blocking Bigglenet’s notifications. Allow them in its site settings.'));
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes(key) }));
-    await api('POST', '/api/push', { endpoint: sub.endpoint, keys: { p256dh: b64(sub.getKey('p256dh')), auth: b64(sub.getKey('auth')) }, lang: i18n.lang });
+    await this.send(sub);
     this.on = true;
+  }
+
+  private async send(sub: PushSubscription) {
+    await api('POST', '/api/push', { endpoint: sub.endpoint, keys: { p256dh: b64(sub.getKey('p256dh')), auth: b64(sub.getKey('auth')) }, lang: i18n.lang });
+    try {
+      localStorage.setItem(LANG_KEY, i18n.lang);
+    } catch {}
+  }
+
+  /** After the language changes, ask for notifications in the new one. */
+  async followLanguage(lang: string) {
+    if (!this.supported) return;
+    try {
+      if ((localStorage.getItem(LANG_KEY) ?? lang) === lang) return;
+      const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+      if (sub) await this.send(sub);
+    } catch {}
   }
 
   async disable() {
@@ -53,3 +74,12 @@ class Push {
 }
 
 export const push = new Push();
+
+if (push.supported) {
+  $effect.root(() => {
+    $effect(() => {
+      const lang = i18n.lang;
+      untrack(() => push.followLanguage(lang));
+    });
+  });
+}

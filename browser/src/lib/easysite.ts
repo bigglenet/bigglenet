@@ -1,3 +1,4 @@
+import { i18n, t } from './i18n.svelte';
 // The easy editor's sites: a list of blocks and a look, saved as site.json and turned into
 // index.bhtml and style.css whenever they change.
 
@@ -86,17 +87,17 @@ export function newBlock(type: BlockType): Block {
   const id = newId();
   switch (type) {
     case 'heading':
-      return { id, type, text: 'A new section' };
+      return { id, type, text: t('A new section') };
     case 'text':
-      return { id, type, text: 'Write something here.' };
+      return { id, type, text: t('Write something here.') };
     case 'image':
       return { id, type, src: '', alt: '' };
     case 'button':
-      return { id, type, label: 'Visit hello.biggle', url: 'hello.biggle' };
+      return { id, type, label: t('Visit hello.biggle'), url: 'hello.biggle' };
     case 'poll':
-      return { id, type, question: 'What should I make next?', options: ['A game', 'A blog', 'Art'] };
+      return { id, type, question: t('What should I make next?'), options: ['A game', 'A blog', 'Art'] };
     case 'leaderboard':
-      return { id, type, board: 'main', title: 'High scores' };
+      return { id, type, board: 'main', title: t('High scores') };
     case 'embed':
       return { id, type, url: 'hello.biggle' };
     case 'webring':
@@ -111,13 +112,13 @@ export function starterSite(title: string, theme: Theme): EasySite {
     version: 1,
     emoji: '👋',
     title,
-    tagline: 'Welcome to my corner of the Bigglenet.',
+    tagline: t('Welcome to my corner of the Bigglenet.'),
     theme,
     font: 'sans',
     blocks: [
       { id: newId(), type: 'greeting' },
-      { id: newId(), type: 'text', text: 'This is my site. I made it with the Biggle site editor.\nChange anything here, add pictures and buttons, and pick a look you like.' },
-      { id: newId(), type: 'button', label: 'Explore the Bigglenet', url: 'home.biggle' },
+      { id: newId(), type: 'text', text: t('This is my site. I made it with the Biggle site editor.\nChange anything here, add pictures and buttons, and pick a look you like.') },
+      { id: newId(), type: 'button', label: t('Explore the Bigglenet'), url: 'home.biggle' },
       { id: newId(), type: 'counter' },
     ],
   };
@@ -144,15 +145,18 @@ function block(b: Block): string {
     case 'image':
       return b.src ? `<img src="${esc(b.src)}" alt="${esc(b.alt)}">` : '';
     case 'button':
-      return `<a class="button" href="${esc(linkTarget(b.url))}">${esc(b.label || 'Link')}</a>`;
+      return `<a class="button" href="${esc(linkTarget(b.url))}">${esc(b.label || t('Link'))}</a>`;
     case 'divider':
       return '<hr>';
     case 'greeting':
-      return '<p class="greeting">Hi, <biggle-me>there</biggle-me>! Thanks for stopping by.</p>';
+      // In the language of whoever made the site; the parts in braces are filled in here.
+      return `<p class="greeting">${esc(t('Hi, {name}! Thanks for stopping by.')).replace('{name}', `<biggle-me>${esc(t('there'))}</biggle-me>`)}</p>`;
     case 'counter':
-      return `<p class="counter">You've been here <strong data-visits>1</strong> <span data-times>time</span>.</p>`;
+      return `<p class="counter">${esc(t('You’ve been here {count} {times}.'))
+        .replace('{count}', '<strong data-visits>1</strong>')
+        .replace('{times}', `<span data-times>${esc(t('time'))}</span>`)}</p>`;
     case 'visits':
-      return '<p class="counter">Visits so far: <strong><biggle-visits></biggle-visits></strong></p>';
+      return `<p class="counter">${esc(t('Visits so far: {count}')).replace('{count}', '<strong><biggle-visits></biggle-visits></strong>')}</p>`;
     case 'guestbook':
       return '<biggle-guestbook></biggle-guestbook>';
     case 'poll': {
@@ -170,9 +174,9 @@ function block(b: Block): string {
     case 'leaderboard':
       return `<biggle-leaderboard board="${esc(b.board.replace(/[^a-z0-9_-]/gi, '') || 'main')}" heading="${esc(b.title)}"></biggle-leaderboard>`;
     case 'online':
-      return '<p class="counter">On the Bigglenet right now: <strong><biggle-online></biggle-online></strong></p>';
+      return `<p class="counter">${esc(t('On the Bigglenet right now: {count}')).replace('{count}', '<strong><biggle-online></biggle-online></strong>')}</p>`;
     case 'newsites':
-      return '<h2>New on the Bigglenet</h2><biggle-new-sites></biggle-new-sites>';
+      return `<h2>${esc(t('New on the Bigglenet'))}</h2><biggle-new-sites></biggle-new-sites>`;
     case 'embed': {
       const target = linkTarget(b.url);
       return target.startsWith('biggle://') ? `<biggle-embed src="${esc(target)}"></biggle-embed>` : '';
@@ -186,7 +190,7 @@ export function renderIndex(site: EasySite): string {
   const counter = site.blocks.some((b) => b.type === 'counter');
   return `<!bhtml 1>
 <!-- Made with the Biggle site editor. It rewrites this file when you change the site there. -->
-<html lang="en">
+<html lang="${i18n.lang}">
 <head>
   <title>${esc(site.title)}</title>
   ${site.description ? `<meta name="description" content="${esc(site.description)}">` : ''}
@@ -211,7 +215,7 @@ export function renderIndex(site: EasySite): string {
       const visits = (n ?? 0) + 1;
       await biggle.storage.set('visits', visits);
       document.querySelectorAll('[data-visits]').forEach((el) => (el.textContent = visits));
-      document.querySelectorAll('[data-times]').forEach((el) => (el.textContent = visits === 1 ? 'time' : 'times'));
+      document.querySelectorAll('[data-times]').forEach((el) => (el.textContent = visits === 1 ? ${JSON.stringify(t('time'))} : ${JSON.stringify(t('times'))}));
     });
   </script>`
       : ''

@@ -1,5 +1,6 @@
 <script lang="ts">
   // Find in page (⌘F / Ctrl+F): a strip above the page, so it never covers what it finds.
+  import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { find } from '../lib/find.svelte';
   import Icon from './Icon.svelte';
@@ -41,11 +42,11 @@
 
   const status = $derived(
     find.unsupported
-      ? 'Can’t search this page'
+      ? t('Can’t search this page')
       : !find.text || !find.result
         ? ''
         : find.result.count === 0
-          ? 'No matches'
+          ? t('No matches')
           : `${find.result.index + 1} of ${find.result.count}${find.result.count >= 1000 ? '+' : ''}`,
   );
 </script>
@@ -57,20 +58,20 @@
     bind:value={find.text}
     {oninput}
     {onkeydown}
-    placeholder="Find in page"
-    aria-label="Find in page"
+    placeholder={t('Find in page')}
+    aria-label={t('Find in page')}
     spellcheck="false"
     autocomplete="off"
     autocapitalize="off"
   />
   <span class="status" class:none={find.result?.count === 0} role="status">{status}</span>
-  <button aria-label="Previous match" title="Previous (Shift+Enter)" disabled={!find.result?.count} onclick={() => find.prev()}>
+  <button aria-label={t('Previous match')} title={t('Previous (Shift+Enter)')} disabled={!find.result?.count} onclick={() => find.prev()}>
     <Icon name="up" size={16} />
   </button>
-  <button aria-label="Next match" title="Next (Enter)" disabled={!find.result?.count} onclick={() => find.next()}>
+  <button aria-label={t('Next match')} title={t('Next (Enter)')} disabled={!find.result?.count} onclick={() => find.next()}>
     <Icon name="down" size={16} />
   </button>
-  <button aria-label="Close find" title="Close (Esc)" onclick={() => find.close()}>
+  <button aria-label={t('Close find')} title={t('Close (Esc)')} onclick={() => find.close()}>
     <Icon name="close" size={16} />
   </button>
 </div>

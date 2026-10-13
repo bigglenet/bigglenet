@@ -10,6 +10,7 @@
 // (the private key as a JWK, JSON). See README.
 import { requireUser } from './auth';
 import { HttpError, json, readJson, str } from './http';
+import { translate } from './i18n';
 
 const enc = new TextEncoder();
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -62,7 +63,9 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
 
 // --- Sending ---
 
-export type PushMessage = { title: string; body: string; tag?: string; href?: string; chatId?: number };
+/** `ours`: the body is the Bigglenet's own text (not someone's message), so it's translated for each device. */
+export type PushMessage = { title: string; body: string; tag?: string; href?: string; chatId?: number; ours?: boolean };
+type Subscription = { endpoint: string; p256dh: string; auth: string; lang: string };
 
 /** Our signature for a push service (a JWT, ES256). */
 async function vapid(env: Env, endpoint: string): Promise<string> {
@@ -104,14 +107,15 @@ async function encrypt(p256dh: string, auth: string, payload: Uint8Array): Promi
 }
 
 /** Send to every device that asked; forget the ones the push service says are gone. */
-export async function sendPush(env: Env, userId: number, message: PushMessage, subs?: { endpoint: string; p256dh: string; auth: string }[]) {
+export async function sendPush(env: Env, userId: number, message: PushMessage, subs?: Subscription[]) {
   if (!configured(env)) return;
   const list =
     subs ??
-    (await env.DB.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?').bind(userId).all<{ endpoint: string; p256dh: string; auth: string }>())
-      .results;
-  const payload = enc.encode(JSON.stringify(message));
+    (await env.DB.prepare('SELECT endpoint, p256dh, auth, lang FROM push_subscriptions WHERE user_id = ?').bind(userId).all<Subscription>()).results;
+  const { ours, ...rest } = message;
   for (const s of list) {
+    const lang = s.lang === 'tr' ? 'tr' : 'en';
+    const payload = enc.encode(JSON.stringify(ours ? { ...rest, body: translate(rest.body, lang) } : rest));
     try {
       const res = await fetch(s.endpoint, {
         method: 'POST',

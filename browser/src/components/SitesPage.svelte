@@ -38,7 +38,6 @@
   // Admins and people they trust can pick the shorter .b ending.
   const canShort = $derived(!!account.user?.admin || !!account.user?.trusted);
   let tld = $state<'biggle' | 'b'>('biggle');
-  const atLimit = $derived(sites.limit !== null && (sites.mine?.length ?? 0) >= sites.limit);
 
   $effect(() => {
     if (account.token) sites.refreshMine();
@@ -98,7 +97,7 @@
       const files = zip ? await unzip(list[0]) : pickedFiles(list);
       const first = list[0];
       const label = zip ? first.name : first.webkitRelativePath ? first.webkitRelativePath.split('/')[0] : `${list.length} files`;
-      picked = { files, label: `${label} (${files.size} file${files.size === 1 ? '' : 's'})` };
+      picked = { files, label: `${label} (${plural(files.size, '{n} file', '{n} files')})` };
       suggest(label.replace(/\.zip$/i, ''));
     } catch (e) {
       error = errorText(e);
@@ -132,7 +131,7 @@
       }
       if (from === 'link') source = webSource(link);
       else if (picked) source = filesSource(picked.files);
-      else throw new Error('Choose a folder or a .zip first.');
+      else throw new Error(t('Choose a folder or a .zip first.'));
       const site = await importSite(source, (text) => (progress = text));
       await uploadSite(clean, title.trim() || site.title || clean, site, (text) => (progress = text), tld);
       await sites.refreshMine();
@@ -166,12 +165,12 @@
 <div class="page">
   <div class="inner">
     <header>
-      <h1>My sites</h1>
-      <p class="muted">Make a .biggle site right here. No hosting, no setup.</p>
+      <h1>{t('My sites')}</h1>
+      <p class="muted">{t('Make a .biggle site right here. No hosting, no setup.')}</p>
     </header>
 
     {#if !account.user}
-      <div class="empty"><p>Sign in to make your own .biggle site.</p></div>
+      <div class="empty"><p>{t('Sign in to make your own .biggle site.')}</p></div>
     {:else}
       {#if sites.mine?.length}
         <ul class="sites">
@@ -195,9 +194,9 @@
                   <span class="note">“{site.note}”</span>
                 {/if}
               </div>
-              <span class="pill {site.status}">{STATUS[site.status]}</span>
-              <button class="ghost" onclick={() => open(site)}>{site.status === 'live' ? 'Visit' : 'Preview'}</button>
-              <button class="solid" onclick={() => browser.go(tab, `biggle://sites/${site.name}`)}>Edit</button>
+              <span class="pill {site.status}">{t(STATUS[site.status])}</span>
+              <button class="ghost" onclick={() => open(site)}>{site.status === 'live' ? t('Visit') : t('Preview')}</button>
+              <button class="solid" onclick={() => browser.go(tab, `biggle://sites/${site.name}`)}>{t('Edit')}</button>
             </li>
           {/each}
         </ul>
@@ -205,24 +204,23 @@
 
       {#if imported}
         <div class="create done">
-          <h2>{siteHost(imported.name, imported.tld)} is ready</h2>
+          <h2>{t('{site} is ready', { site: siteHost(imported.name, imported.tld) })}</h2>
           {#if imported.live === 'direct'}
-            <p class="muted">It's live for everyone and loads straight from the original website, at full speed.</p>
+            <p class="muted">{t("It's live for everyone and loads straight from the original website, at full speed.")}</p>
           {:else if imported.live === 'window'}
             <p class="muted">
-              It's live for everyone and loads straight from the original website. It needs things a page shown inside another
-              can't have (like cross-origin isolation), so it runs as a page of its own.
+              {t("It's live for everyone and loads straight from the original website. It needs things a page shown inside another can't have (like cross-origin isolation), so it runs as a page of its own.")}
             </p>
           {:else if imported.live}
-            <p class="muted">It's live for everyone, straight from the original site.</p>
+            <p class="muted">{t("It's live for everyone, straight from the original site.")}</p>
           {:else}
             <p class="muted">
-              Copied {imported.count} file{imported.count === 1 ? '' : 's'}. An admin checks it before anyone else can see it, but you can look at it and edit it now.
+              {plural(imported.count, 'Copied {n} file. An admin checks it before anyone else can see it, but you can look at it and edit it now.', 'Copied {n} files. An admin checks it before anyone else can see it, but you can look at it and edit it now.')}
             </p>
           {/if}
           {#if imported.skipped.length}
             <details>
-              <summary>{imported.skipped.length} thing{imported.skipped.length === 1 ? '' : 's'} didn't come along</summary>
+              <summary>{plural(imported.skipped.length, '{n} thing didn’t come along', '{n} things didn’t come along')}</summary>
               <ul class="skipped">
                 {#each imported.skipped as s, i (i)}
                   <li><code>{s.what}</code> <span class="muted">{s.why}</span></li>
@@ -232,10 +230,10 @@
           {/if}
           <div class="actions">
             {#if imported.live}
-              <button class="primary" onclick={() => browser.newTab(siteHome(imported!.name, imported!.tld), { after: tab.id })}>Open it</button>
+              <button class="primary" onclick={() => browser.newTab(siteHome(imported!.name, imported!.tld), { after: tab.id })}>{t('Open it')}</button>
             {:else}
-              <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>Preview</button>
-              <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>Open in the editor</button>
+              <button class="ghost" onclick={() => browser.openPreview(imported!.name)}>{t('Preview')}</button>
+              <button class="primary" onclick={() => browser.go(tab, `biggle://sites/${imported!.name}`)}>{t('Open in the editor')}</button>
             {/if}
           </div>
         </div>
@@ -243,109 +241,108 @@
 
       {#if mode}
         <form class="create" onsubmit={mode === 'create' ? create : importIt}>
-          <h2>{mode === 'create' ? 'Make a new site' : 'Import a website'}</h2>
+          <h2>{mode === 'create' ? t('Make a new site') : t('Import a website')}</h2>
 
           {#if mode === 'import'}
-            <div class="from" role="radiogroup" aria-label="Import from">
-              <button type="button" role="radio" aria-checked={from === 'link'} class:on={from === 'link'} onclick={() => (from = 'link')}>From a link</button>
-              <button type="button" role="radio" aria-checked={from === 'files'} class:on={from === 'files'} onclick={() => (from = 'files')}>From my files</button>
+            <div class="from" role="radiogroup" aria-label={t('Import from')}>
+              <button type="button" role="radio" aria-checked={from === 'link'} class:on={from === 'link'} onclick={() => (from = 'link')}>{t('From a link')}</button>
+              <button type="button" role="radio" aria-checked={from === 'files'} class:on={from === 'files'} onclick={() => (from = 'files')}>{t('From my files')}</button>
             </div>
             {#if from === 'link'}
               <label class="field">
-                <span>Website address</span>
+                <span>{t('Website address')}</span>
                 <input
                   bind:value={link}
                   oninput={linkTyped}
-                  placeholder="https://example.com"
+                  placeholder={t('https://example.com')}
                   inputmode="url"
                   autocapitalize="off"
                   spellcheck="false"
                   required
                 />
-                <span class="hint">{how === 'copy' ? 'Its pages, pictures and styles get copied here. ' : ''}It has to be a public website.</span>
+                <span class="hint">{how === 'copy' ? t('Its pages, pictures and styles get copied here. It has to be a public website.') : t('It has to be a public website.')}</span>
               </label>
               {#if account.user?.admin}
                 <fieldset class="how">
-                  <legend>How should it work?</legend>
+                  <legend>{t('How should it work?')}</legend>
                   <label class="check">
                     <input type="radio" name="how" value="copy" bind:group={how} />
-                    <span><strong>Copy it here</strong> — its pages, pictures and styles become a Bigglenet site.</span>
+                    <span><strong>{t('Copy it here')}</strong> {t('— its pages, pictures and styles become a Bigglenet site.')}</span>
                   </label>
                   <label class="check">
                     <input type="radio" name="how" value="live" bind:group={how} />
-                    <span><strong>Keep it live</strong> — loads from the original site through the Bigglenet every time. Good for apps.</span>
+                    <span><strong>{t('Keep it live')}</strong> {t('— loads from the original site through the Bigglenet every time. Good for apps.')}</span>
                   </label>
                   <label class="check">
                     <input type="radio" name="how" value="direct" bind:group={how} />
                     <span
-                      ><strong>Straight from the internet</strong> — the real website, like in any browser. Fastest: best for games and
-                      WebAssembly ports.</span
+                      ><strong>{t('Straight from the internet')}</strong> {t('— the real website, like in any browser. Fastest: best for games and WebAssembly ports.')}</span
                     >
                   </label>
                 </fieldset>
               {/if}
             {:else}
               <div class="field">
-                <span>Your site's files</span>
+                <span>{t("Your site's files")}</span>
                 <div class="pick">
-                  <button type="button" class="ghost" onclick={() => folderInput?.click()}>Choose a folder</button>
-                  <button type="button" class="ghost" onclick={() => zipInput?.click()}>Choose a .zip</button>
+                  <button type="button" class="ghost" onclick={() => folderInput?.click()}>{t('Choose a folder')}</button>
+                  <button type="button" class="ghost" onclick={() => zipInput?.click()}>{t('Choose a .zip')}</button>
                 </div>
                 <input bind:this={folderInput} type="file" webkitdirectory multiple hidden onchange={() => pick(folderInput, false)} />
                 <input bind:this={zipInput} type="file" accept=".zip,application/zip" hidden onchange={() => pick(zipInput, true)} />
-                <span class="hint" class:ok={picked}>{picked ? picked.label : 'The folder with your index.html in it, or a .zip of it.'}</span>
+                <span class="hint" class:ok={picked}>{picked ? picked.label : t('The folder with your index.html in it, or a .zip of it.')}</span>
               </div>
             {/if}
           {/if}
 
           <label class="field">
-            <span>Address</span>
+            <span>{t('Address')}</span>
             <span class="address">
               <input
                 bind:value={name}
                 oninput={() => (nameEdited = true)}
-                placeholder="yourname"
+                placeholder={t('yourname')}
                 required
                 autocapitalize="off"
                 spellcheck="false"
                 aria-describedby="name-hint"
               />
               {#if canShort}
-                <select class="suffix-pick" bind:value={tld} aria-label="Address ending">
-                  <option value="biggle">.biggle</option>
+                <select class="suffix-pick" bind:value={tld} aria-label={t('Address ending')}>
+                  <option value="biggle">{t('.biggle')}</option>
                   <option value="b">.b</option>
                 </select>
               {:else}
-                <span class="suffix">.biggle</span>
+                <span class="suffix">{t('.biggle')}</span>
               {/if}
             </span>
             <span id="name-hint" class="hint" class:ok={availability?.ok} class:bad={availability && !availability.ok}>
               {#if availability}
                 {availability.ok ? `${siteHost(availability.name, tld)} is free` : availability.reason}
               {:else}
-                Letters, numbers and dashes.
+                {t('Letters, numbers and dashes.')}
               {/if}
             </span>
           </label>
 
           <label class="field">
-            <span>Title</span>
+            <span>{t('Title')}</span>
             <input
               bind:value={title}
-              placeholder={mode === 'import' ? "Leave empty to use the site's own title" : 'My corner of the Bigglenet'}
+              placeholder={mode === 'import' ? t("Leave empty to use the site's own title") : t('My corner of the Bigglenet')}
               maxlength="80"
             />
           </label>
 
           {#if mode === 'create'}
           <fieldset>
-            <legend>Pick a look <em>(you can change it any time)</em></legend>
+            <legend>{t('Pick a look')} <em>{t('(you can change it any time)')}</em></legend>
             <div class="themes">
-              {#each THEMES as t (t.id)}
-                <label class="theme" class:picked={theme === t.id} title={t.name}>
-                  <input type="radio" name="theme" value={t.id} bind:group={theme} aria-label="{t.name} theme" />
-                  <span class="swatch" style:background={t.bg}><i style:background={t.accent}></i></span>
-                  <span>{t.name}</span>
+              {#each THEMES as look (look.id)}
+                <label class="theme" class:picked={theme === look.id} title={look.name}>
+                  <input type="radio" name="theme" value={look.id} bind:group={theme} aria-label={t('{x} theme', { x: look.name })} />
+                  <span class="swatch" style:background={look.bg}><i style:background={look.accent}></i></span>
+                  <span>{look.name}</span>
                 </label>
               {/each}
             </div>
@@ -353,7 +350,7 @@
 
           <label class="check">
             <input type="checkbox" bind:checked={withCode} />
-            I know HTML and want to start with code instead
+            {t('I know HTML and want to start with code instead')}
           </label>
           {/if}
 
@@ -363,30 +360,28 @@
           {#if progress}
             <p class="muted" aria-live="polite">{progress}</p>
           {/if}
-          <p class="muted small">New sites are checked by an admin before anyone else can see them. You can edit yours straight away.</p>
+          <p class="muted small">{t('New sites are checked by an admin before anyone else can see them. You can edit yours straight away.')}</p>
           <div class="actions">
-            <button type="button" class="ghost" disabled={busy} onclick={() => (mode = null)}>Cancel</button>
+            <button type="button" class="ghost" disabled={busy} onclick={() => (mode = null)}>{t('Cancel')}</button>
             <button class="primary" disabled={busy || availability?.ok === false}>
-              {#if mode === 'create'}{busy ? 'Making it…' : 'Make my site'}{:else}{busy ? 'Importing…' : 'Import'}{/if}
+              {#if mode === 'create'}{busy ? t('Making it…') : t('Make my site')}{:else}{busy ? t('Importing…') : t('Import')}{/if}
             </button>
           </div>
         </form>
-      {:else if atLimit}
-        <p class="muted">You've made {sites.limit} sites, which is the most you can have.</p>
       {:else}
         <div class="starts">
           <button class="new" onclick={() => start('create')}>
             <Icon name="plus" size={20} />
             <span>
-              <strong>Make a new site</strong>
-              <span class="muted">Pick a name and a look. It takes a minute.</span>
+              <strong>{t('Make a new site')}</strong>
+              <span class="muted">{t('Pick a name and a look. It takes a minute.')}</span>
             </span>
           </button>
           <button class="new" onclick={() => start('import')}>
             <Icon name="import" size={20} />
             <span>
-              <strong>Import a website</strong>
-              <span class="muted">Bring a site you already have, from its link or its files.</span>
+              <strong>{t('Import a website')}</strong>
+              <span class="muted">{t('Bring a site you already have, from its link or its files.')}</span>
             </span>
           </button>
         </div>

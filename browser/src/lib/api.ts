@@ -1,5 +1,5 @@
 import { SERVER } from './config';
-import { i18n } from './i18n.svelte';
+import { i18n, t } from './i18n.svelte';
 
 export class ApiError extends Error {
   constructor(
@@ -41,12 +41,12 @@ export async function api<T = Record<string, never>>(method: string, path: strin
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(0, 'offline', "Can't reach the Bigglenet. Check your connection.");
+    throw new ApiError(0, 'offline', t("Can't reach the Bigglenet. Check your connection."));
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401 && token) onSignedOut?.();
-    throw new ApiError(res.status, data.error ?? 'http', data.message ?? `Something went wrong (HTTP ${res.status}).`);
+    throw new ApiError(res.status, data.error ?? 'http', data.message ?? t('Something went wrong (HTTP {status}).', { status: res.status }));
   }
   return data as T;
 }
@@ -63,14 +63,14 @@ export async function apiFetch(method: string, path: string, body?: BodyInit, ty
       body,
     });
   } catch {
-    throw new ApiError(0, 'offline', "Can't reach the Bigglenet. Check your connection.");
+    throw new ApiError(0, 'offline', t("Can't reach the Bigglenet. Check your connection."));
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     if (res.status === 401 && token) onSignedOut?.();
-    throw new ApiError(res.status, data.error ?? 'http', data.message ?? `Something went wrong (HTTP ${res.status}).`);
+    throw new ApiError(res.status, data.error ?? 'http', data.message ?? t('Something went wrong (HTTP {status}).', { status: res.status }));
   }
   return res;
 }
 
-export const errorText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');
+export const errorText = (e: unknown) => (e instanceof Error ? e.message : t('Something went wrong.'));

@@ -2,6 +2,7 @@
   // Telling admins about something that shouldn't be on the Bigglenet.
   import { api, errorText } from '../lib/api';
   import { browser } from '../lib/browser.svelte';
+  import { dialog } from '../lib/dialog';
   import { t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { report } from '../lib/report.svelte';
@@ -38,7 +39,7 @@
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && report.close()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label={t('Report')} tabindex="-1" bind:this={box} onkeydown={(e) => e.key === 'Escape' && report.close()}>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t('Report')} tabindex="-1" bind:this={box} use:dialog onkeydown={(e) => e.key === 'Escape' && report.close()}>
     <form onsubmit={send}>
       <h2>{t('Report {what}', { what: report.request?.label ?? '' })}</h2>
       <p class="muted">{t('Admins will see it and what you say. The person you report won’t know it was you.')}</p>

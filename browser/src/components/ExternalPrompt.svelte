@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { openExternal } from '../lib/platform';
@@ -23,12 +24,12 @@
 
 <dialog bind:this={dialog} onclose={() => (browser.external = null)} aria-labelledby="external-title">
   <div class="icon"><Icon name="external" size={22} /></div>
-  <h2 id="external-title">Leave the Bigglenet?</h2>
-  <p>This link goes to the normal web. It'll open in your regular browser, where ads and trackers aren't blocked.</p>
+  <h2 id="external-title">{t('Leave the Bigglenet?')}</h2>
+  <p>{t("This link goes to the normal web. It'll open in your regular browser, where ads and trackers aren't blocked.")}</p>
   <p class="url">{url}</p>
   <form method="dialog" class="actions">
-    <button value="cancel">Cancel</button>
-    <button type="button" class="primary" onclick={open}>Open</button>
+    <button value="cancel">{t('Cancel')}</button>
+    <button type="button" class="primary" onclick={open}>{t('Open')}</button>
   </form>
 </dialog>
 

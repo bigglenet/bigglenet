@@ -6,7 +6,7 @@
   import { loadDirectory } from '../lib/directory';
   import { downloads } from '../lib/downloads.svelte';
   import { pageHistory } from '../lib/history.svelte';
-  import { t } from '../lib/i18n.svelte';
+  import { plural, t } from '../lib/i18n.svelte';
   import { offline } from '../lib/offline.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { perf } from '../lib/perf.svelte';
@@ -153,8 +153,8 @@
 <div class="toolbar">
   <div class="nav">
     <button
-      aria-label="Back"
-      title="Back"
+      aria-label={t('Back')}
+      title={t('Back')}
       disabled={!tab || tab.index <= 0}
       onclick={() => tab && browser.back(tab)}
     >
@@ -162,22 +162,22 @@
     </button>
     <button
       class="wide-only"
-      aria-label="Forward"
-      title="Forward"
+      aria-label={t('Forward')}
+      title={t('Forward')}
       disabled={!tab || tab.index >= tab.history.length - 1}
       onclick={() => tab && browser.forward(tab)}
     >
       <Icon name="forward" />
     </button>
     {#if tab?.loading}
-      <button class="wide-only" aria-label="Stop" title="Stop" onclick={() => tab && browser.stop(tab)}>
+      <button class="wide-only" aria-label={t('Stop')} title={t('Stop')} onclick={() => tab && browser.stop(tab)}>
         <Icon name="close" />
       </button>
     {:else}
       <button
         class="wide-only"
-        aria-label="Reload"
-        title="Reload"
+        aria-label={t('Reload')}
+        title={t('Reload')}
         disabled={!site}
         onclick={() => tab && browser.reload(tab)}
       >
@@ -223,13 +223,13 @@
       {/if}
     </div>
     {#if tab?.preview && site}
-      <span class="preview" title="This site is waiting for approval. Only its owner and admins can see it.">Preview</span>
+      <span class="preview" title={t('This site is waiting for approval. Only its owner and admins can see it.')}>{t('Preview')}</span>
     {/if}
     {#if zoomed !== 1 && !editing}
       <button
         type="button"
         class="zoom"
-        title="Zoomed to {Math.round(zoomed * 100)}%. Click to go back to 100%."
+        title={t('Zoomed to {zoomed}%. Click to go back to 100%.', { zoomed: Math.round(zoomed * 100) })}
         onclick={() => tab && zoom.reset(tab.url)}>{Math.round(zoomed * 100)}%</button
       >
     {/if}
@@ -258,8 +258,8 @@
   <div class="side">
     <button
       class="tabs-button narrow-only"
-      aria-label="{browser.tabs.length} {browser.tabs.length === 1 ? 'tab' : 'tabs'}"
-      title="Tabs"
+      aria-label={plural(browser.tabs.length, '{n} tab', '{n} tabs')}
+      title={t('Tabs')}
       onclick={() => (browser.switcher = true)}
     >
       {browser.tabs.length}
@@ -267,8 +267,8 @@
     <button
       class="friends"
       class:on={social.open}
-      aria-label={social.unread ? `Chats, ${social.unread} new` : 'Chats'}
-      title="Chats"
+      aria-label={social.unread ? t('Chats, {n} new', { n: social.unread }) : t('Chats')}
+      title={t('Chats')}
       aria-pressed={social.open}
       onclick={() => (social.open = !social.open)}
     >

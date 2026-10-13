@@ -1,5 +1,6 @@
 <script lang="ts">
   // biggle://bookmarks: every bookmark, to open, rename, reorder or remove.
+  import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { bookmarks, type Bookmark } from '../lib/bookmarks.svelte';
   import { isMac } from '../lib/platform';
@@ -38,31 +39,31 @@
 <div class="page">
   <div class="inner">
     <header>
-      <h1>Bookmarks</h1>
+      <h1>{t('Bookmarks')}</h1>
       <label class="bar-toggle">
         <input type="checkbox" checked={bookmarks.bar} onchange={(e) => bookmarks.showBar(e.currentTarget.checked)} />
-        Show the bookmarks bar
+        {t('Show the bookmarks bar')}
       </label>
     </header>
 
     {#if bookmarks.list.length === 0}
       <div class="empty">
         <Icon name="star" size={28} />
-        <p>No bookmarks yet.</p>
-        <p class="muted">Press {isMac ? '⌘D' : 'Ctrl+D'} on any page, or click the star in the address bar.</p>
+        <p>{t('No bookmarks yet.')}</p>
+        <p class="muted">{t('Press {isMac} on any page, or click the star in the address bar.', { isMac: isMac ? '⌘D' : 'Ctrl+D' })}</p>
       </div>
     {:else}
-      <input class="search" bind:value={query} placeholder="Search bookmarks" aria-label="Search bookmarks" spellcheck="false" />
+      <input class="search" bind:value={query} placeholder={t('Search bookmarks')} aria-label={t('Search bookmarks')} spellcheck="false" />
       <ul>
         {#each shown as b, i (b.id)}
           <li>
             {#if editing === b.id}
               <form class="edit" onsubmit={(e) => save(e, b)}>
-                <input bind:value={title} aria-label="Name" maxlength="120" />
-                <input bind:value={url} aria-label="Address" spellcheck="false" />
+                <input bind:value={title} aria-label={t('Name')} maxlength="120" />
+                <input bind:value={url} aria-label={t('Address')} spellcheck="false" />
                 <div class="edit-actions">
-                  <button type="button" class="ghost" onclick={() => (editing = null)}>Cancel</button>
-                  <button class="primary">Save</button>
+                  <button type="button" class="ghost" onclick={() => (editing = null)}>{t('Cancel')}</button>
+                  <button class="primary">{t('Save')}</button>
                 </div>
               </form>
             {:else}
@@ -74,22 +75,22 @@
                 </span>
               </button>
               {#if !query}
-                <button class="icon" aria-label="Move up" title="Move up" disabled={i === 0} onclick={() => bookmarks.move(b.id, -1)}>
+                <button class="icon" aria-label={t('Move up')} title={t('Move up')} disabled={i === 0} onclick={() => bookmarks.move(b.id, -1)}>
                   <Icon name="up" size={15} />
                 </button>
-                <button class="icon" aria-label="Move down" title="Move down" disabled={i === shown.length - 1} onclick={() => bookmarks.move(b.id, 1)}>
+                <button class="icon" aria-label={t('Move down')} title={t('Move down')} disabled={i === shown.length - 1} onclick={() => bookmarks.move(b.id, 1)}>
                   <Icon name="down" size={15} />
                 </button>
               {/if}
-              <button class="icon" aria-label="Edit {b.title}" title="Edit" onclick={() => edit(b)}><Icon name="edit" size={15} /></button>
-              <button class="icon" aria-label="Remove {b.title}" title="Remove" onclick={() => bookmarks.remove(b.id)}>
+              <button class="icon" aria-label={t('Edit {title}', { title: b.title })} title={t('Edit')} onclick={() => edit(b)}><Icon name="edit" size={15} /></button>
+              <button class="icon" aria-label={t('Remove {title}', { title: b.title })} title={t('Remove')} onclick={() => bookmarks.remove(b.id)}>
                 <Icon name="trash" size={15} />
               </button>
             {/if}
           </li>
         {/each}
       </ul>
-      {#if shown.length === 0}<p class="muted none">No bookmarks match “{query}”.</p>{/if}
+      {#if shown.length === 0}<p class="muted none">{t('No bookmarks match “{query}”.', { query })}</p>{/if}
     {/if}
   </div>
 </div>

@@ -13,7 +13,7 @@
   import TogetherPlayer from './TogetherPlayer.svelte';
 
   const chat = $derived(calls.chat);
-  const title = $derived(chat ? chats.title(chat) : 'Call');
+  const title = $derived(chat ? chats.title(chat) : t('Call'));
   const me = $derived(account.user?.username ?? '');
 
   let now = $state(Date.now());
@@ -24,7 +24,7 @@
   const started = $derived(chat?.callStarted ?? calls.joinedAt);
   const connected = $derived(calls.remotes.some((r) => r.state === 'connected'));
   const status = $derived(
-    calls.remotes.length === 0 ? (chat?.kind === 'group' ? 'Waiting for people to join…' : 'Ringing…') : connected ? duration(now - started) : 'Connecting…',
+    calls.remotes.length === 0 ? (chat?.kind === 'group' ? t('Waiting for people to join…') : t('Ringing…')) : connected ? duration(now - started) : t('Connecting…'),
   );
 
   const hasVideo = (r: Remote) => r.video && !!r.stream?.getVideoTracks().length;
@@ -39,7 +39,7 @@
   function share(e: SubmitEvent) {
     e.preventDefault();
     linkError = together.start(link) ?? '';
-    if (linkError) return void (linkError = t(linkError));
+    if (linkError) return;
     picking = false;
     link = '';
     calls.expanded = true;
@@ -70,19 +70,19 @@
     {/if}
     <span class="tag">
       {#if opts.muted}<Icon name="micOff" size={12} />{/if}
-      {opts.mine ? 'You' : name}
+      {opts.mine ? t('You') : name}
     </span>
     {#if opts.note}<span class="note">{opts.note}</span>{/if}
   </div>
 {/snippet}
 
-<div class="call" class:big={calls.expanded} role="dialog" aria-label="Call in {title}">
+<div class="call" class:big={calls.expanded} role="dialog" aria-label={t('Call in {title}', { title })}>
   <header>
-    <button class="what" onclick={openChat} title="Open the chat">
+    <button class="what" onclick={openChat} title={t('Open the chat')}>
       <strong>{title}</strong>
       <span>{status}</span>
     </button>
-    <button class="icon" aria-label={calls.expanded ? 'Make smaller' : 'Make bigger'} title={calls.expanded ? 'Smaller' : 'Bigger'} onclick={() => (calls.expanded = !calls.expanded)}>
+    <button class="icon" aria-label={calls.expanded ? t('Make smaller') : t('Make bigger')} title={calls.expanded ? 'Smaller' : 'Bigger'} onclick={() => (calls.expanded = !calls.expanded)}>
       <Icon name={calls.expanded ? 'shrink' : 'expand'} size={16} />
     </button>
   </header>
@@ -107,7 +107,7 @@
         screen: r.screen,
         muted: !r.audio,
         speaking: r.speaking,
-        note: r.state === 'connecting' ? 'Connecting…' : r.state === 'lost' ? 'Reconnecting…' : '',
+        note: r.state === 'connecting' ? t('Connecting…') : r.state === 'lost' ? t('Reconnecting…') : '',
       })}
     {/each}
     {@render tile(me, calls.preview, calls.cameraOn || calls.sharing, { user: account.user?.username, mine: true, muted: !calls.micOn, speaking: calls.speaking, screen: calls.sharing })}
@@ -119,10 +119,10 @@
   {/each}
 
   <footer>
-    <button class="round" class:off={!calls.micOn} aria-pressed={!calls.micOn} aria-label={calls.micOn ? 'Mute' : 'Unmute'} title={calls.micOn ? 'Mute' : 'Unmute'} onclick={() => calls.toggleMic()}>
+    <button class="round" class:off={!calls.micOn} aria-pressed={!calls.micOn} aria-label={calls.micOn ? t('Mute') : t('Unmute')} title={calls.micOn ? t('Mute') : t('Unmute')} onclick={() => calls.toggleMic()}>
       <Icon name={calls.micOn ? 'mic' : 'micOff'} size={19} />
     </button>
-    <button class="round" class:off={!calls.cameraOn} aria-pressed={calls.cameraOn} aria-label={calls.cameraOn ? 'Turn camera off' : 'Turn camera on'} title={calls.cameraOn ? 'Camera off' : 'Camera on'} onclick={() => calls.toggleCamera()}>
+    <button class="round" class:off={!calls.cameraOn} aria-pressed={calls.cameraOn} aria-label={calls.cameraOn ? t('Turn camera off') : t('Turn camera on')} title={calls.cameraOn ? t('Camera off') : t('Camera on')} onclick={() => calls.toggleCamera()}>
       <Icon name={calls.cameraOn ? 'video' : 'videoOff'} size={19} />
     </button>
     <button
@@ -144,7 +144,7 @@
     >
       <Icon name="play" size={19} />
     </button>
-    <button class="round end" aria-label="Leave call" title="Leave" onclick={() => calls.leave()}>
+    <button class="round end" aria-label={t('Leave call')} title={t('Leave')} onclick={() => calls.leave()}>
       <Icon name="hangUp" size={20} />
     </button>
   </footer>

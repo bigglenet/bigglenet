@@ -1,5 +1,6 @@
 // Menus: the menu bar on macOS, and the right-click menu in text fields.
 import { app, clipboard, Menu, shell } from 'electron';
+import { t } from './language.js';
 
 /**
  * macOS needs a menu bar for ⌘C, ⌘V, ⌘Q and the like. It leaves out Reload (⌘R) and Close (⌘W):
@@ -35,7 +36,7 @@ export function setupMenu(getMain, newWindow) {
         label: app.name,
         submenu: [
           { role: 'about' },
-          { label: 'Check for Updates…', click: checkForUpdates },
+          { label: t('Check for Updates…'), click: checkForUpdates },
           { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },
@@ -47,52 +48,52 @@ export function setupMenu(getMain, newWindow) {
         ],
       },
       {
-        label: 'File',
+        label: t('File'),
         submenu: [
-          command('New Tab', 't', 'Cmd+T'),
-          { label: 'New Window', accelerator: 'Cmd+N', click: () => newWindow(null) },
-          command('New Private Tab', 'shift+n', 'Shift+Cmd+N'),
+          command(t('New Tab'), 't', 'Cmd+T'),
+          { label: t('New Window'), accelerator: 'Cmd+N', click: () => newWindow(null) },
+          command(t('New Private Tab'), 'shift+n', 'Shift+Cmd+N'),
           { type: 'separator' },
-          command('Print…', 'p', 'Cmd+P'),
-          command('Take a Screenshot', 'shift+s', 'Shift+Cmd+S'),
+          command(t('Print…'), 'p', 'Cmd+P'),
+          command(t('Take a Screenshot'), 'shift+s', 'Shift+Cmd+S'),
           { type: 'separator' },
-          command('Close Tab', 'w', 'Cmd+W'),
+          command(t('Close Tab'), 'w', 'Cmd+W'),
         ],
       },
       { role: 'editMenu' },
       {
-        label: 'View',
+        label: t('View'),
         submenu: [
-          command('Find…', 'f', 'Cmd+F'),
-          command('Find Next', 'g', 'Cmd+G'),
-          command('Find Previous', 'shift+g', 'Shift+Cmd+G'),
+          command(t('Find…'), 'f', 'Cmd+F'),
+          command(t('Find Next'), 'g', 'Cmd+G'),
+          command(t('Find Previous'), 'shift+g', 'Shift+Cmd+G'),
           { type: 'separator' },
-          command('Actual Size', '0', 'Cmd+0'),
-          command('Zoom In', '=', 'Cmd+Plus'),
-          command('Zoom Out', '-', 'Cmd+-'),
+          command(t('Actual Size'), '0', 'Cmd+0'),
+          command(t('Zoom In'), '=', 'Cmd+Plus'),
+          command(t('Zoom Out'), '-', 'Cmd+-'),
           { type: 'separator' },
-          command('Command Palette…', 'k', 'Cmd+K'),
-          command('Search Tabs…', 'shift+a', 'Shift+Cmd+A'),
-          command('Reader Mode', 'shift+r', 'Shift+Cmd+R'),
-          command('Game Mode', 'shift+f', 'Shift+Cmd+F'),
-          command('Downloads', 'shift+j', 'Shift+Cmd+J'),
+          command(t('Command Palette…'), 'k', 'Cmd+K'),
+          command(t('Search Tabs…'), 'shift+a', 'Shift+Cmd+A'),
+          command(t('Reader Mode'), 'shift+r', 'Shift+Cmd+R'),
+          command(t('Game Mode'), 'shift+f', 'Shift+Cmd+F'),
+          command(t('Downloads'), 'shift+j', 'Shift+Cmd+J'),
           { type: 'separator' },
           { role: 'togglefullscreen' },
         ],
       },
       {
-        label: 'History',
-        submenu: [command('Show All History', 'y', 'Cmd+Y'), command('Reopen Closed Tab', 'shift+t', 'Shift+Cmd+T')],
+        label: t('History'),
+        submenu: [command(t('Show All History'), 'y', 'Cmd+Y'), command(t('Reopen Closed Tab'), 'shift+t', 'Shift+Cmd+T')],
       },
       {
-        label: 'Bookmarks',
+        label: t('Bookmarks'),
         submenu: [
-          command('Bookmark This Page…', 'd', 'Cmd+D'),
-          command('Show All Bookmarks', 'bookmarks'),
-          command('Show or Hide the Bookmarks Bar', 'shift+b', 'Shift+Cmd+B'),
+          command(t('Bookmark This Page…'), 'd', 'Cmd+D'),
+          command(t('Show All Bookmarks'), 'bookmarks'),
+          command(t('Show or Hide the Bookmarks Bar'), 'shift+b', 'Shift+Cmd+B'),
         ],
       },
-      { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }] },
+      { label: t('Window'), submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }] },
     ]),
   );
   app.setAboutPanelOptions({ applicationName: 'Bigglenet', copyright: 'Copyright (c) 2026 bigglenet' });
@@ -113,17 +114,17 @@ export function attachContextMenu(contents, { site = false } = {}) {
     if (site && /^https?:/i.test(params.linkURL)) {
       if (items.length) items.push({ type: 'separator' });
       items.push(
-        { label: 'Open Link in Your Browser', click: () => shell.openExternal(params.linkURL) },
-        { label: 'Copy Link Address', click: () => clipboard.writeText(params.linkURL) },
-        { label: 'Download Linked File', click: () => contents.downloadURL(params.linkURL) },
+        { label: t('Open Link in Your Browser'), click: () => shell.openExternal(params.linkURL) },
+        { label: t('Copy Link Address'), click: () => clipboard.writeText(params.linkURL) },
+        { label: t('Download Linked File'), click: () => contents.downloadURL(params.linkURL) },
       );
     }
     if (site && params.mediaType === 'image' && /^(https?|data):/i.test(params.srcURL)) {
       if (items.length) items.push({ type: 'separator' });
       items.push(
-        { label: 'Copy Image', click: () => contents.copyImageAt(params.x, params.y) },
-        { label: 'Copy Image Address', click: () => clipboard.writeText(params.srcURL) },
-        { label: 'Save Image', click: () => contents.downloadURL(params.srcURL) },
+        { label: t('Copy Image'), click: () => contents.copyImageAt(params.x, params.y) },
+        { label: t('Copy Image Address'), click: () => clipboard.writeText(params.srcURL) },
+        { label: t('Save Image'), click: () => contents.downloadURL(params.srcURL) },
       );
     }
     if (items.length) Menu.buildFromTemplate(items).popup();

@@ -1,5 +1,6 @@
 <script lang="ts">
   // Desktop app: pick a screen or window to share in a call (where the system has no picker).
+  import { dialog } from '../lib/dialog';
   import { t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { desktop, type ScreenSource } from '../lib/platform';
@@ -23,7 +24,7 @@
 
 {#if request}
   <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && choose(null)}>
-    <div class="dialog" role="dialog" aria-label={t('Share your screen')} tabindex="-1" onkeydown={(e) => e.key === 'Escape' && choose(null)}>
+    <div class="dialog" role="dialog" aria-label={t('Share your screen')} tabindex="-1" use:dialog onkeydown={(e) => e.key === 'Escape' && choose(null)}>
       <h2>{t('What do you want to share?')}</h2>
       {#each [{ label: t('Screens'), list: screens }, { label: t('Windows'), list: windows }] as group (group.label)}
         {#if group.list.length}

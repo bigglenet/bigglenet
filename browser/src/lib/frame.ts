@@ -78,7 +78,7 @@ export function answerCall(scope: PageScope, msg: Record<string, unknown>, reply
   } else if (method === 'copy') {
     navigator.clipboard.writeText(String(args[0] ?? '')).then(
       () => done({}),
-      () => done({ error: "Couldn't copy that." }),
+      () => done({ error: t("Couldn't copy that.") }),
     );
   } else if (method === 'idToken') {
     // Signed out: null. The token only works for this page's own site.
@@ -93,7 +93,7 @@ export function answerCall(scope: PageScope, msg: Record<string, unknown>, reply
         if (method === 'newSites') list = list.sort((a, b) => (b.created ?? 0) - (a.created ?? 0)).slice(0, Math.min(20, Number(args[0]) || 5));
         done({ value: list });
       },
-      () => done({ error: "Can't reach the Bigglenet right now." }),
+      () => done({ error: t("Can't reach the Bigglenet right now.") }),
     );
   } else if (method === 'visits') {
     ask(api('GET', `${at}/visits`));

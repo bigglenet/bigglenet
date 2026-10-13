@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { plural, t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import Icon from './Icon.svelte';
 
@@ -13,10 +14,10 @@
   }
 </script>
 
-<div class="switcher" role="dialog" aria-modal="true" aria-label="Tabs">
+<div class="switcher" role="dialog" aria-modal="true" aria-label={t('Tabs')}>
   <header>
-    <h2>{browser.tabs.length} {browser.tabs.length === 1 ? 'tab' : 'tabs'}</h2>
-    <button class="done" onclick={() => (browser.switcher = false)}>Done</button>
+    <h2>{plural(browser.tabs.length, '{n} tab', '{n} tabs')}</h2>
+    <button class="done" onclick={() => (browser.switcher = false)}>{t('Done')}</button>
   </header>
   <ul>
     {#each browser.tabs as tab (tab.id)}
@@ -32,13 +33,13 @@
             <span class="url">{tab.view.type === 'internal' ? '' : tab.url.replace(/^biggle:\/\//, '')}</span>
           </span>
         </button>
-        <button class="close" aria-label="Close {tab.title}" onclick={() => browser.closeTab(tab.id)}>
+        <button class="close" aria-label={t('Close {title}', { title: tab.title })} onclick={() => browser.closeTab(tab.id)}>
           <Icon name="close" size={16} />
         </button>
       </li>
     {/each}
   </ul>
-  <button class="new" onclick={newTab}><Icon name="plus" size={18} /> New tab</button>
+  <button class="new" onclick={newTab}><Icon name="plus" size={18} /> {t('New tab')}</button>
 </div>
 
 <style>

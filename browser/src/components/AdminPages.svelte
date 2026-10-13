@@ -2,6 +2,8 @@
   // biggle://admin/pages: every .biggle site, and what admins can do to each one. Sites made in
   // the editor open in the editor (code view included) for their source; linked sites show the
   // page their host sends.
+  import { dialog } from '../lib/dialog';
+  import { i18n, plural, t } from '../lib/i18n.svelte';
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
@@ -95,7 +97,7 @@
     }),
   );
   const count = (status: Status | 'all') => (status === 'all' ? list.length : list.filter((s) => s.status === status).length);
-  const date = (s: number) => new Date(s * 1000).toLocaleDateString([], { dateStyle: 'medium' });
+  const date = (s: number) => new Date(s * 1000).toLocaleDateString(i18n.locale, { dateStyle: 'medium' });
   const kb = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
   function openSite(site: Site) {
@@ -108,16 +110,16 @@
     try {
       const res = await fetch(`${SERVER}/site/${enc(site.name)}/`, { credentials: 'omit', cache: 'no-store' });
       const text = await res.text();
-      if (source?.name === site.name) source = { name: site.name, text: res.ok ? text : null, error: res.ok ? '' : `Its host answered ${res.status}.` };
+      if (source?.name === site.name) source = { name: site.name, text: res.ok ? text : null, error: res.ok ? '' : t('Its host answered {status}.', { status: res.status }) };
     } catch {
-      if (source?.name === site.name) source = { name: site.name, text: null, error: "Couldn't reach its host." };
+      if (source?.name === site.name) source = { name: site.name, text: null, error: t("Couldn't reach its host.") };
     }
   }
 
   function editLink(site: Site) {
     form = { name: site.name.replace(/\.b$/, ''), url: site.url ?? '', title: site.title ?? '', how: howOf(site), tld: site.tld };
     linkOpen = true;
-    document.querySelector('.admin-pages')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.admin-pages')?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
 
   async function saveLink(e: SubmitEvent) {
@@ -152,75 +154,71 @@
 <div class="frame">
   <div class="admin-pages">
     <div class="inner">
-      <button class="back" onclick={() => browser.go(tab, 'biggle://admin')}><Icon name="back" size={16} /> Admin</button>
-      <h1>All sites</h1>
+      <button class="back" onclick={() => browser.go(tab, 'biggle://admin')}><Icon name="back" size={16} /> {t('Admin')}</button>
+      <h1>{t('All sites')}</h1>
 
       {#if !isAdmin}
-        <p class="muted">This page is only for Bigglenet admins.</p>
+        <p class="muted">{t('This page is only for Bigglenet admins.')}</p>
       {:else}
         <div class="tools">
-          <input class="search" bind:value={search} placeholder="Find a site, title, owner or host" aria-label="Find a site" spellcheck="false" />
+          <input class="search" bind:value={search} placeholder={t('Find a site, title, owner or host')} aria-label={t('Find a site')} spellcheck="false" />
           <button class="primary" onclick={() => (linkOpen = !linkOpen)} aria-expanded={linkOpen}>
-            <Icon name="plus" size={16} /> Link a site
+            <Icon name="plus" size={16} /> {t('Link a site')}
           </button>
         </div>
 
         {#if linkOpen}
           <form class="link-form" onsubmit={saveLink}>
-            <p class="muted small">Point a .biggle or .b name at a site hosted somewhere else.</p>
+            <p class="muted small">{t('Point a .biggle or .b name at a site hosted somewhere else.')}</p>
             <div class="fields">
               <label class="field">
-                <span>Name</span>
+                <span>{t('Name')}</span>
                 <span class="suffixed">
                   <input bind:value={form.name} placeholder="ethem" required autocapitalize="off" spellcheck="false" />
-                  <select class="suffix-pick" bind:value={form.tld} aria-label="Address ending">
-                    <option value="biggle">.biggle</option>
+                  <select class="suffix-pick" bind:value={form.tld} aria-label={t('Address ending')}>
+                    <option value="biggle">{t('.biggle')}</option>
                     <option value="b">.b</option>
                   </select>
                 </span>
               </label>
               <label class="field grow">
-                <span>Host URL</span>
-                <input bind:value={form.url} placeholder="https://ethem.pages.dev/" required type="url" />
+                <span>{t('Host URL')}</span>
+                <input bind:value={form.url} placeholder={t('https://ethem.pages.dev/')} required type="url" />
               </label>
               <label class="field">
-                <span>Title</span>
-                <input bind:value={form.title} placeholder="Optional" />
+                <span>{t('Title')}</span>
+                <input bind:value={form.title} placeholder={t('Optional')} />
               </label>
               <label class="field">
-                <span>How it loads</span>
+                <span>{t('How it loads')}</span>
                 <select bind:value={form.how} aria-describedby="how-hint">
-                  <option value="site">.bhtml site</option>
-                  <option value="live">Live app, through the Bigglenet</option>
-                  <option value="direct">Straight from the internet</option>
-                  <option value="window">Straight from the internet, as its own page</option>
+                  <option value="site">{t('.bhtml site')}</option>
+                  <option value="live">{t('Live app, through the Bigglenet')}</option>
+                  <option value="direct">{t('Straight from the internet')}</option>
+                  <option value="window">{t('Straight from the internet, as its own page')}</option>
                 </select>
               </label>
-              <button class="primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button class="primary" disabled={saving}>{saving ? t('Saving…') : 'Save'}</button>
             </div>
             <p id="how-hint" class="muted small">
               {#if form.how === 'direct'}
-                The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports.
-                Bigglenet pages features (sign-in, biggle.* calls) aren't available to it. Games that need cross-origin isolation,
-                and sites that won't be shown inside other apps, run as their own page automatically.
+                {t("The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports. Bigglenet pages features (sign-in, biggle.* calls) aren't available to it. Games that need cross-origin isolation, and sites that won't be shown inside other apps, run as their own page automatically.")}
               {:else if form.how === 'window'}
-                The real website runs as a page of its own, straight from its host: in its tab in the desktop app (people can pop
-                it out into a window), and in a browser tab on phones. For games that need cross-origin isolation (threads) and
-                sites that won't be shown inside other apps.
+                {t("The real website runs as a page of its own, straight from its host: in its tab in the desktop app (people can pop it out into a window), and in a browser tab on phones. For games that need cross-origin isolation (threads) and sites that won't be shown inside other apps.")}
               {:else if form.how === 'live'}
-                A normal website (an app or a game) shown through the Bigglenet, without needing .bhtml pages.
+                {t('A normal website (an app or a game) shown through the Bigglenet, without needing .bhtml pages.')}
               {:else}
-                A site made of .bhtml pages, hosted somewhere else.
+                {t('A site made of .bhtml pages, hosted somewhere else.')}
               {/if}
             </p>
             {#if formError}<p class="error" role="alert">{formError}</p>{/if}
           </form>
         {/if}
 
-        <div class="filters" role="radiogroup" aria-label="Show">
+        <div class="filters" role="radiogroup" aria-label={t('Show')}>
           {#each [['all', 'All'], ['live', 'Live'], ['pending', 'Waiting'], ['rejected', 'Taken down']] as [id, label] (id)}
             <button role="radio" aria-checked={filter === id} class:on={filter === id} onclick={() => (filter = id as Status | 'all')}>
-              {label} <span class="count">{count(id as Status | 'all')}</span>
+              {t(label)} <span class="count">{count(id as Status | 'all')}</span>
             </button>
           {/each}
         </div>
@@ -234,45 +232,45 @@
                 <div class="main">
                   <div class="name-line">
                     <strong>{siteHost(site.name, site.tld)}</strong>
-                    <span class="pill {site.status}">{STATUS[site.status]}</span>
-                    {#if site.url && howOf(site) !== 'site'}<span class="pill">{HOW[howOf(site)]}</span>{/if}
+                    <span class="pill {site.status}">{t(STATUS[site.status])}</span>
+                    {#if site.url && howOf(site) !== 'site'}<span class="pill">{t(HOW[howOf(site)])}</span>{/if}
                   </div>
                   {#if site.title}<span class="title">{site.title}</span>{/if}
                   <span class="muted small">
                     {#if site.url}
-                      Linked to {site.url}
+                      {t('Linked to {url}', { url: site.url })}
                     {:else}
-                      Made in the editor by {site.owner ?? 'a deleted account'} · {site.files} file{site.files === 1 ? '' : 's'} · {kb(site.size)}
+                      {t('Made in the editor by {owner}', { owner: site.owner ?? t('a deleted account') })} · {plural(site.files, '{n} file', '{n} files')} · {kb(site.size)}
                     {/if}
-                    · since {date(site.created_at)}
-                    {#if site.visits}· {site.visits.toLocaleString()} {site.visits === 1 ? 'visit' : 'visits'}{/if}
+                    · {t('since {date}', { date: date(site.created_at) })}
+                    {#if site.visits}· {plural(site.visits, '{n} visit', '{n} visits')}{/if}
                   </span>
                   {#if site.note && site.status === 'rejected'}<span class="small note">“{site.note}”</span>{/if}
                 </div>
                 <div class="actions">
-                  <button class="ghost" onclick={() => openSite(site)}>{site.status === 'live' ? 'Open' : 'Preview'}</button>
+                  <button class="ghost" onclick={() => openSite(site)}>{site.status === 'live' ? t('Open') : t('Preview')}</button>
                   {#if site.url}
-                    <button class="ghost" onclick={() => viewSource(site)}>View source</button>
-                    <button class="ghost" onclick={() => editLink(site)}>Edit link</button>
+                    <button class="ghost" onclick={() => viewSource(site)}>{t('View source')}</button>
+                    <button class="ghost" onclick={() => editLink(site)}>{t('Edit link')}</button>
                   {:else}
-                    <button class="ghost" onclick={() => browser.newTab(`biggle://sites/${site.name}`, { after: tab.id })}>Edit source</button>
+                    <button class="ghost" onclick={() => browser.newTab(`biggle://sites/${site.name}`, { after: tab.id })}>{t('Edit source')}</button>
                   {/if}
-                  <button class="ghost" onclick={() => (renaming = { name: site.name, title: site.title ?? '' })}>Rename</button>
+                  <button class="ghost" onclick={() => (renaming = { name: site.name, title: site.title ?? '' })}>{t('Rename')}</button>
                   <button
                     class="ghost"
-                    title={site.tld === 'b' ? `Change the address to ${site.name}.biggle` : `Change the address to ${site.name}.b`}
+                    title={site.tld === 'b' ? t('Change the address to {name}.biggle', { name: site.name }) : t('Change the address to {name}.b', { name: site.name })}
                     onclick={() => run(() => api('PATCH', `/api/admin/names/${enc(site.name)}`, { tld: site.tld === 'b' ? 'biggle' : 'b' }))}
-                    >Make it .{site.tld === 'b' ? 'biggle' : 'b'}</button
+                    >{t('Make it .{b}', { b: site.tld === 'b' ? 'biggle' : 'b' })}</button
                   >
                   {#if site.status === 'live'}
-                    <button class="ghost" onclick={() => ((takingDown = site.name), (note = ''))}>Take down</button>
+                    <button class="ghost" onclick={() => ((takingDown = site.name), (note = ''))}>{t('Take down')}</button>
                   {:else}
-                    <button class="primary" onclick={() => run(() => api('POST', `/api/admin/sites/${enc(site.name)}/approve`))}>Approve</button>
+                    <button class="primary" onclick={() => run(() => api('POST', `/api/admin/sites/${enc(site.name)}/approve`))}>{t('Approve')}</button>
                   {/if}
                   <button
                     class="ghost icon"
-                    aria-label="Delete {siteHost(site.name, site.tld)}"
-                    title="Delete"
+                    aria-label={t('Delete {site}', { site: siteHost(site.name, site.tld) })}
+                    title={t('Delete')}
                     onclick={() => (deleting = site.name)}
                   >
                     <Icon name="trash" size={16} />
@@ -283,29 +281,29 @@
               {#if deleting === site.name}
                 <div class="inline">
                   <span class="confirm-text"
-                    >Delete {siteHost(site.name, site.tld)}{site.url ? '' : ' and all its files'}? This can't be undone.</span
+                    >{site.url ? t("Delete {site}? This can't be undone.", { site: siteHost(site.name, site.tld) }) : t("Delete {site} and all its files? This can't be undone.", { site: siteHost(site.name, site.tld) })}</span
                   >
                   <button
                     class="danger"
                     onclick={async () => {
                       await run(() => api('DELETE', `/api/admin/names/${enc(site.name)}`));
                       deleting = null;
-                    }}>Delete</button
+                    }}>{t('Delete')}</button
                   >
-                  <button class="ghost" onclick={() => (deleting = null)}>Cancel</button>
+                  <button class="ghost" onclick={() => (deleting = null)}>{t('Cancel')}</button>
                 </div>
               {/if}
               {#if takingDown === site.name}
                 <div class="inline">
-                  <input bind:value={note} placeholder="Why? The owner sees this (optional)" maxlength="300" />
+                  <input bind:value={note} placeholder={t('Why? The owner sees this (optional)')} aria-label={t('Why? The owner sees this (optional)')} maxlength="300" />
                   <button
                     class="danger"
                     onclick={async () => {
                       await run(() => api('POST', `/api/admin/sites/${enc(site.name)}/reject`, { note }));
                       takingDown = null;
-                    }}>Take down</button
+                    }}>{t('Take down')}</button
                   >
-                  <button class="ghost" onclick={() => (takingDown = null)}>Cancel</button>
+                  <button class="ghost" onclick={() => (takingDown = null)}>{t('Cancel')}</button>
                 </div>
               {/if}
               {#if renaming?.name === site.name}
@@ -316,14 +314,14 @@
                     saveTitle(site, renaming!.title);
                   }}
                 >
-                  <input bind:value={renaming.title} placeholder="Title" maxlength="80" aria-label="Title for {site.name}.biggle" />
-                  <button class="primary">Save</button>
-                  <button type="button" class="ghost" onclick={() => (renaming = null)}>Cancel</button>
+                  <input bind:value={renaming.title} placeholder={t('Title')} maxlength="80" aria-label={t('Title for {site}.biggle', { site: site.name })} />
+                  <button class="primary">{t('Save')}</button>
+                  <button type="button" class="ghost" onclick={() => (renaming = null)}>{t('Cancel')}</button>
                 </form>
               {/if}
             </li>
           {:else}
-            <li class="muted">{loaded ? 'No sites match.' : 'Loading…'}</li>
+            <li class="muted">{loaded ? t('No sites match.') : t('Loading…')}</li>
           {/each}
         </ul>
       {/if}
@@ -331,19 +329,19 @@
   </div>
 
   {#if source}
-    <div class="source" role="dialog" aria-label="Source of {source.name}.biggle">
+    <div class="source" role="dialog" aria-modal="true" aria-label={t('Source of {source}.biggle', { source: source.name })} tabindex="-1" use:dialog>
       <header>
         <strong>{source.name}.biggle</strong>
-        <span class="muted small">The page its host sends, read-only</span>
+        <span class="muted small">{t('The page its host sends, read-only')}</span>
         {#if source.text}
-          <button class="ghost" onclick={() => navigator.clipboard.writeText(source!.text ?? '')}><Icon name="copy" size={15} /> Copy</button>
+          <button class="ghost" onclick={() => navigator.clipboard.writeText(source!.text ?? '')}><Icon name="copy" size={15} /> {t('Copy')}</button>
         {/if}
-        <button class="ghost icon" aria-label="Close" onclick={() => (source = null)}><Icon name="close" size={16} /></button>
+        <button class="ghost icon" aria-label={t('Close')} onclick={() => (source = null)}><Icon name="close" size={16} /></button>
       </header>
       {#if source.error}
         <p class="error">{source.error}</p>
       {:else if source.text === null}
-        <p class="muted">Loading…</p>
+        <p class="muted">{t('Loading…')}</p>
       {:else}
         <pre>{source.text}</pre>
       {/if}

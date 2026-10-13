@@ -4,7 +4,7 @@
   import { api, errorText } from '../../lib/api';
   import { browser, type Tab } from '../../lib/browser.svelte';
   import { fromLocalInput, toLocalInput, when } from '../../lib/community';
-  import { plural, t } from '../../lib/i18n.svelte';
+  import { i18n, plural, t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
   import { parse } from '../../lib/url';
   import Avatar from '../Avatar.svelte';
@@ -338,7 +338,7 @@
             <button class="item" onclick={() => browser.go(tab, `biggle://events/${e.id}`)}>
               <span class="date">
                 <span class="day">{new Date(e.startsAt * 1000).getDate()}</span>
-                <span class="month">{new Date(e.startsAt * 1000).toLocaleDateString(undefined, { month: 'short' })}</span>
+                <span class="month">{new Date(e.startsAt * 1000).toLocaleDateString(i18n.locale, { month: 'short' })}</span>
               </span>
               <span class="text">
                 <span class="name">{e.title}</span>

@@ -7,6 +7,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSyn
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { t } from './language.js';
 import { verifySignature } from './minisign.js';
 import { currentVersion, downloadBundle, findBundle, useBundle } from './webbundle.js';
 
@@ -52,7 +53,7 @@ async function check() {
   if (!app.isPackaged) return null;
   if (ready) return { version: ready.version, downloaded: true };
   const res = await net.fetch(FEED, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`The update server answered ${res.status}.`);
+  if (!res.ok) throw new Error(t('The update server answered {status}.', { status: res.status }));
   const feed = await res.json();
   // Newer than the browser files in use (which may be newer than the app, from a smaller update).
   if (typeof feed.version !== 'string' || !newer(feed.version, currentVersion())) return null;
@@ -73,7 +74,7 @@ async function check() {
 /** Download the newer version found by check(), and check its signature. */
 async function download() {
   if (ready) return { version: ready.version };
-  if (!found) throw new Error('There’s no update to download.');
+  if (!found) throw new Error(t('There’s no update to download.'));
   if (found.bundle) {
     await downloadBundle(found.bundle);
     ready = { version: found.version, bundle: true };
@@ -82,9 +83,9 @@ async function download() {
   const { version, entry } = found;
   // GitHub's API links only give the file to requests that ask for it as bytes.
   const download = await net.fetch(entry.url, { headers: { Accept: 'application/octet-stream' } });
-  if (!download.ok) throw new Error(`The download failed (${download.status}).`);
+  if (!download.ok) throw new Error(t('The download failed ({status}).', { status: download.status }));
   const data = Buffer.from(await download.arrayBuffer());
-  if (!verifySignature(data, entry.signature, PUBLIC_KEY)) throw new Error("The update's signature doesn't match. Not installing it.");
+  if (!verifySignature(data, entry.signature, PUBLIC_KEY)) throw new Error(t("The update's signature doesn't match. Not installing it."));
 
   const dir = join(tmpdir(), 'bigglenet-update');
   mkdirSync(dir, { recursive: true });
@@ -112,7 +113,7 @@ async function install() {
     const dir = mkdtempSync(join(tmpdir(), 'bigglenet-new-'));
     await run('tar', ['-xzf', file, '-C', dir]);
     const unpacked = readdirSync(dir).find((n) => n.endsWith('.app'));
-    if (!unpacked) throw new Error("The update didn't contain the app.");
+    if (!unpacked) throw new Error(t("The update didn't contain the app."));
     const old = `${bundle}.old`;
     rmSync(old, { recursive: true, force: true });
     renameSync(bundle, old);

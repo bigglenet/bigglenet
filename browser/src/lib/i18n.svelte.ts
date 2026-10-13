@@ -55,9 +55,9 @@ if (typeof document !== 'undefined') document.documentElement.lang = i18n.lang;
  * Text in the visitor's language. `{name}` in the text is filled from `params`:
  * t('Hi, {name}!', { name: 'ethem' }).
  */
-export function t(text: string, params?: Record<string, string | number>): string {
+export function t(text: string, params?: Record<string, string | number | null | undefined>): string {
   const out = DICTIONARIES[i18n.lang][text] ?? text;
-  return params ? out.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m)) : out;
+  return params ? out.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k] ?? '') : m)) : out;
 }
 
 /** "1 visit" / "3 visits" (Turkish doesn't change the word after a number). */

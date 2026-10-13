@@ -1,5 +1,6 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
+  import Trans from './Trans.svelte';
   import { api, apiFetch, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { SERVER } from '../lib/config';
@@ -501,14 +502,14 @@
 
 <div class="editor">
   <header class="bar">
-    <button class="icon" aria-label="Back to my sites" title="My sites" onclick={() => browser.go(tab, 'biggle://sites')}>
+    <button class="icon" aria-label={t('Back to my sites')} title={t('My sites')} onclick={() => browser.go(tab, 'biggle://sites')}>
       <Icon name="back" />
     </button>
     <div class="who">
       {#if canShort && info?.canManage}
         <strong class="address"
-          >{bare}<select bind:this={tldPick} value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label="Address ending" title="Address ending">
-            <option value="biggle">.biggle</option>
+          >{bare}<select bind:this={tldPick} value={tld} onchange={(e) => setTld(e.currentTarget.value)} aria-label={t('Address ending')} title={t('Address ending')}>
+            <option value="biggle">{t('.biggle')}</option>
             <option value="b">.b</option>
           </select></strong
         >
@@ -517,8 +518,8 @@
       {/if}
       <span class="state">
         {#if mode === 'easy'}
-          {#if saveError}<span class="bad">{saveError}</span>{:else if easyState.saving}Saving…{:else if easyState.error}<span class="bad">{easyState.error}</span>{:else if easyState.dirty}Unsaved changes{:else}All changes saved{/if}
-        {:else if saving}Saving…{:else if saveError}<span class="bad">{saveError}</span>{:else if dirty.length}Unsaved changes{:else}All changes saved{/if}
+          {#if saveError}<span class="bad">{saveError}</span>{:else if easyState.saving}{t('Saving…')}{:else if easyState.error}<span class="bad">{easyState.error}</span>{:else if easyState.dirty}{t('Unsaved changes')}{:else}{t('All changes saved')}{/if}
+        {:else if saving}{t('Saving…')}{:else if saveError}<span class="bad">{saveError}</span>{:else if dirty.length}{t('Unsaved changes')}{:else}{t('All changes saved')}{/if}
       </span>
     </div>
     {#if present.length}
@@ -528,9 +529,9 @@
       </div>
     {/if}
     {#if easy}
-      <button class="ghost" onclick={() => toMode(mode === 'easy' ? 'code' : 'easy')}>{mode === 'easy' ? 'Code' : 'Easy editor'}</button>
+      <button class="ghost" onclick={() => toMode(mode === 'easy' ? 'code' : 'easy')}>{mode === 'easy' ? 'Code' : t('Easy editor')}</button>
     {/if}
-    <button class="ghost" onclick={visit}>{info?.site.status === 'live' ? 'Visit' : 'Preview'}</button>
+    <button class="ghost" onclick={visit}>{info?.site.status === 'live' ? t('Visit') : t('Preview')}</button>
     {#if info}
       <button class="icon" aria-label={t('Site settings')} title={t('People, stats and sharing')} onclick={() => openManage()}>
         <Icon name="settings" size={17} />
@@ -538,10 +539,10 @@
     {/if}
     {#if info?.canManage}
       {#if confirmSite}
-        <button class="danger" onclick={deleteSite}>Delete site</button>
-        <button class="ghost" onclick={() => (confirmSite = false)}>Keep</button>
+        <button class="danger" onclick={deleteSite}>{t('Delete site')}</button>
+        <button class="ghost" onclick={() => (confirmSite = false)}>{t('Keep')}</button>
       {:else}
-        <button class="icon" aria-label="Delete this site" title="Delete this site" onclick={() => (confirmSite = true)}>
+        <button class="icon" aria-label={t('Delete this site')} title={t('Delete this site')} onclick={() => (confirmSite = true)}>
           <Icon name="trash" size={16} />
         </button>
       {/if}
@@ -552,11 +553,11 @@
     <p class="banner bad">{loadError}</p>
   {:else if info}
     {#if info.site.status === 'pending'}
-      <p class="banner">Waiting for an admin to approve it. Until then, only you and admins can see this site.</p>
+      <p class="banner">{t('Waiting for an admin to approve it. Until then, only you and admins can see this site.')}</p>
     {:else if info.site.status === 'rejected'}
       <p class="banner bad">
-        Not approved{info.site.note ? `: “${info.site.note}”` : '.'} Make some changes, then
-        <button class="link" onclick={askAgain}>ask again</button>.
+        {info.site.note ? t('Not approved: “{note}”', { note: info.site.note }) : t('Not approved.')}
+        <Trans text={t('Make some changes, then {ask}.')}>{#snippet ask()}<button class="link" onclick={askAgain}>{t('ask again')}</button>{/snippet}</Trans>
       </p>
     {:else if info.changes.length}
       <p class="banner draft">
@@ -613,12 +614,12 @@
     />
   {:else}
   {#if easy}
-    <p class="banner">This site uses the easy editor. If you change index.bhtml or style.css here, the easy editor will replace them next time you use it.</p>
+    <p class="banner">{t('This site uses the easy editor. If you change index.bhtml or style.css here, the easy editor will replace them next time you use it.')}</p>
   {/if}
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected={pane === 'files'} onclick={() => (pane = 'files')}>Files</button>
-    <button role="tab" aria-selected={pane === 'code'} onclick={() => (pane = 'code')}>Code</button>
-    <button role="tab" aria-selected={pane === 'preview'} onclick={() => (pane = 'preview')}>Preview</button>
+    <button role="tab" aria-selected={pane === 'files'} onclick={() => (pane = 'files')}>{t('Files')}</button>
+    <button role="tab" aria-selected={pane === 'code'} onclick={() => (pane = 'code')}>{t('Code')}</button>
+    <button role="tab" aria-selected={pane === 'preview'} onclick={() => (pane = 'preview')}>{t('Preview')}</button>
   </div>
 
   <div class="panes" data-pane={pane}>
@@ -629,15 +630,15 @@
             <button class="file" onclick={() => select(file.path)}>
               <span class="file-name">{file.path}</span>
               {#if typing[file.path]}<Avatar name={typing[file.path]} user={typing[file.path]} size={16} />{/if}
-              {#if dirty.includes(file.path)}<span class="dot" title="Unsaved"></span>
+              {#if dirty.includes(file.path)}<span class="dot" title={t('Unsaved')}></span>
               {:else if changeOf(file.path)}<span class="change" title={t('Not published yet')}>{changeOf(file.path) === 'added' ? t('new') : t('edited')}</span>{/if}
               <span class="size">{kb(file.size)}</span>
             </button>
             {#if file.path !== 'index.bhtml'}
               {#if confirmDelete === file.path}
-                <button class="mini danger" onclick={() => deleteFile(file.path)}>Delete</button>
+                <button class="mini danger" onclick={() => deleteFile(file.path)}>{t('Delete')}</button>
               {:else}
-                <button class="mini" aria-label="Delete {file.path}" onclick={() => (confirmDelete = file.path)}>
+                <button class="mini" aria-label={t('Delete {path}', { path: file.path })} onclick={() => (confirmDelete = file.path)}>
                   <Icon name="close" size={13} />
                 </button>
               {/if}
@@ -646,14 +647,14 @@
         {/each}
       </ul>
       <form class="new-file" onsubmit={createFile}>
-        <input bind:value={newFile} placeholder="new-page.bhtml" aria-label="New file name" spellcheck="false" autocapitalize="off" />
-        <button class="mini solid" aria-label="Add file"><Icon name="plus" size={15} /></button>
+        <input bind:value={newFile} placeholder={t('new-page.bhtml')} aria-label={t('New file name')} spellcheck="false" autocapitalize="off" />
+        <button class="mini solid" aria-label={t('Add file')}><Icon name="plus" size={15} /></button>
       </form>
-      <button class="upload" onclick={() => upload?.click()}>Upload images</button>
+      <button class="upload" onclick={() => upload?.click()}>{t('Upload images')}</button>
       <input bind:this={upload} type="file" accept="image/*,.svg,.woff2" multiple hidden onchange={uploadFiles} />
       {#if fileError}<p class="small bad">{fileError}</p>{/if}
       {#if info}
-        <p class="small muted">{kb(used)} of {kb(info.limits.site)} used</p>
+        <p class="small muted">{t('{used} of {site} used', { used: kb(used), site: kb(info.limits.site) })}</p>
       {/if}
     </aside>
 
@@ -672,13 +673,13 @@
             spellcheck="false"
             autocapitalize="off"
             autocomplete="off"
-            aria-label="Code for {selected}"
+            aria-label={t('Code for {selected}', { selected })}
           ></textarea>
         {/if}
       {:else}
         <div class="image">
           {#if base}<img src={imageUrl(selected)} alt={selected} />{/if}
-          <p class="muted small">Use it in a page with <code>&lt;img src="{selected}"&gt;</code></p>
+          <p class="muted small"><Trans text={t('Use it in a page with {code}')}>{#snippet code()}<code>{`<img src="${selected}">`}</code>{/snippet}</Trans></p>
         </div>
       {/if}
     </section>

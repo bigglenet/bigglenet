@@ -2,6 +2,7 @@
   // A direct site that has to be a top-level page (a game that needs cross-origin isolation, or a
   // site that won't be shown inside other apps), outside the desktop app: it opens in a normal
   // browser tab. (The desktop app shows it in the tab instead, see SiteView.svelte.)
+  import { t } from '../lib/i18n.svelte';
   import { untrack } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import Icon from './Icon.svelte';
@@ -26,8 +27,8 @@
   <div class="card">
     <span class="badge"><Icon name="external" size={22} /></span>
     <h1>{tab.title}</h1>
-    <p class="muted">It runs on its own, straight from {host}, so it opens in a new browser tab.</p>
-    <div class="actions"><button class="primary" onclick={() => window.open(view.url, '_blank', 'noopener')}>Open it</button></div>
+    <p class="muted">{t('It runs on its own, straight from {host}, so it opens in a new browser tab.', { host })}</p>
+    <div class="actions"><button class="primary" onclick={() => window.open(view.url, '_blank', 'noopener')}>{t('Open it')}</button></div>
   </div>
 </div>
 

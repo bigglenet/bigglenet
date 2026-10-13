@@ -1,9 +1,11 @@
+import { untrack } from 'svelte';
 import { account } from './account.svelte';
 import { api } from './api';
 import { bookmarks } from './bookmarks.svelte';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { find } from './find.svelte';
 import { pageHistory } from './history.svelte';
+import { i18n, t } from './i18n.svelte';
 import { load, type PageError } from './loader';
 import { closeWindow, desktop, isApp, isMac } from './platform';
 import { startSettings } from './startpage.svelte';
@@ -149,7 +151,7 @@ class Browser {
     const raw: Tab = {
       id,
       url: href,
-      title: 'New tab',
+      title: t('New tab'),
       icon: null,
       history: [],
       index: -1,
@@ -287,7 +289,7 @@ class Browser {
     if (i === -1) return;
     const tab = this.tabs[i];
     if (tab.pinned && !opts.force) {
-      this.say('Pinned tabs stay open. Unpin it to close it.');
+      this.say(t('Pinned tabs stay open. Unpin it to close it.'));
       return;
     }
     if (!tab.private && tab.history.some((url) => url !== START)) {
@@ -495,6 +497,7 @@ class Browser {
       tab.preview = null;
       tab.view = { type: 'internal', page, path };
       tab.title = internalTitle(page, path);
+      autoTitles.set(tab.id, tab.title);
       tab.icon = null;
       return;
     }
@@ -734,31 +737,35 @@ class Browser {
     tab.loadId++;
     tab.url = href;
     tab.loading = false;
-    tab.title = "Can't open";
+    tab.title = t("Can't open");
     tab.icon = null;
     tab.view = { type: 'error', error };
   }
 }
 
+// The titles built-in pages get, so they can follow a change of language. (Pages that name their
+// tab after what's in it, like an event, keep theirs.)
+const autoTitles = new Map<number, string>();
+
 function internalTitle(page: InternalPage, path: string): string {
-  if (page === 'start') return 'New tab';
-  if (page === 'admin') return path === 'pages' ? 'All sites' : 'Admin';
+  if (page === 'start') return t('New tab');
+  if (page === 'admin') return path === 'pages' ? t('All sites') : t('Admin');
   if (page === 'nox') return 'Nox';
-  if (page === 'requests') return 'Feature requests';
-  if (page === 'chat') return 'Chat';
-  if (page === 'board') return path.startsWith('thread/') ? 'Board' : path ? 'Board' : 'The board';
-  if (page === 'feed') return 'Feed';
-  if (page === 'clubs') return path ? 'Club' : 'Clubs';
-  if (page === 'events') return path === 'new' ? 'New event' : path ? 'Event' : 'Events';
-  if (page === 'collections') return path ? 'Collection' : 'Collections';
-  if (page === 'invite') return 'Invite';
-  if (page === 'status') return 'Status';
-  if (page === 'settings') return 'Settings';
-  if (page === 'bookmarks') return 'Bookmarks';
-  if (page === 'history') return 'History';
-  if (page === 'downloads') return 'Downloads';
-  if (page === 'profile') return path || 'Profile';
-  return path ? `Editing ${path}` : 'My sites';
+  if (page === 'requests') return t('Feature requests');
+  if (page === 'chat') return t('Chats');
+  if (page === 'board') return t('The board');
+  if (page === 'feed') return t('Feed');
+  if (page === 'clubs') return path ? t('Club') : t('Clubs');
+  if (page === 'events') return path === 'new' ? t('New event') : path ? t('Event') : t('Events');
+  if (page === 'collections') return path ? t('Collection') : t('Collections');
+  if (page === 'invite') return t('Invite');
+  if (page === 'status') return t('Status');
+  if (page === 'settings') return t('Settings');
+  if (page === 'bookmarks') return t('Bookmarks');
+  if (page === 'history') return t('History');
+  if (page === 'downloads') return t('Downloads');
+  if (page === 'profile') return path || t('Profile');
+  return path ? t('Editing {site}', { site: path }) : t('My sites');
 }
 
 async function previewBase(site: string): Promise<string> {
@@ -767,3 +774,16 @@ async function previewBase(site: string): Promise<string> {
 }
 
 export const browser = new Browser();
+
+$effect.root(() => {
+  $effect(() => {
+    void i18n.lang;
+    untrack(() => {
+      for (const tab of browser.tabs) {
+        if (tab.view.type !== 'internal' || autoTitles.get(tab.id) !== tab.title) continue;
+        tab.title = internalTitle(tab.view.page, tab.view.path);
+        autoTitles.set(tab.id, tab.title);
+      }
+    });
+  });
+});

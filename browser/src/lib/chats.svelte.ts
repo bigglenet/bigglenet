@@ -113,7 +113,7 @@ class Chats {
     if (chat.kind === 'direct') return social.nameOf(this.other(chat));
     if (chat.name) return chat.name;
     const others = chat.members.filter((m) => m !== account.user?.username).map((m) => social.nameOf(m));
-    return others.length ? others.join(', ') : 'Just you';
+    return others.length ? others.join(', ') : t('Just you');
   }
 
   /** The one-to-one chat with someone, if it exists yet. */

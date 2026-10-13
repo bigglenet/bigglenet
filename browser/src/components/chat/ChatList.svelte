@@ -2,6 +2,7 @@
   // Every chat, newest first. Searching also finds friends you haven't messaged yet.
   import { account } from '../../lib/account.svelte';
   import { calls } from '../../lib/calls.svelte';
+  import { eventText } from '../../lib/chatevents';
   import { shortTime } from '../../lib/chatformat';
   import { chats, fileLabel, type Chat } from '../../lib/chats.svelte';
   import { t } from '../../lib/i18n.svelte';
@@ -31,7 +32,7 @@
     const l = c.last;
     if (!l) return c.kind === 'group' ? t('New group') : t('Say hi');
     const who = (u: string | null) => (u === me ? t('You') : social.nameOf(u));
-    if (l.kind === 'event') return l.from ? `${who(l.from)} ${l.body}` : l.body;
+    if (l.kind === 'event') return eventText(l.from ? who(l.from) : null, l.body);
     // What it was, when it wasn't just text.
     const what = l.deleted
       ? t('Message deleted')
@@ -45,7 +46,7 @@
 
 <div class="search">
   <Icon name="search" size={15} />
-  <input bind:value={query} placeholder="Search chats and friends" aria-label="Search chats and friends" />
+  <input bind:value={query} placeholder={t('Search chats and friends')} aria-label={t('Search chats and friends')} />
 </div>
 
 <div class="scroll list">
@@ -63,10 +64,10 @@
         </span>
         <span class="bottom">
           {#if c.call.length}
-            <span class="live" title="Call in progress"><Icon name="phone" size={12} /> {calls.chatId === c.id ? 'In call' : 'Call'}</span>
+            <span class="live" title={t('Call in progress')}><Icon name="phone" size={12} /> {calls.chatId === c.id ? t('In call') : 'Call'}</span>
           {/if}
           <span class="preview">{preview(c)}</span>
-          {#if c.unread}<span class="badge" aria-label="{c.unread} unread">{c.unread > 99 ? '99+' : c.unread}</span>{/if}
+          {#if c.unread}<span class="badge" aria-label={t('{unread} unread', { unread: c.unread })}>{c.unread > 99 ? '99+' : c.unread}</span>{/if}
         </span>
       </span>
     </button>
@@ -77,7 +78,7 @@
       <Avatar name={f.nickname || f.username} user={f.username} size={42} online={f.online} />
       <span class="middle">
         <span class="top"><strong>{f.nickname || f.username}</strong></span>
-        <span class="bottom"><span class="preview">Start a chat</span></span>
+        <span class="bottom"><span class="preview">{t('Start a chat')}</span></span>
       </span>
     </button>
   {/each}
@@ -85,13 +86,13 @@
   {#if !shown.length && !newFriends.length}
     <div class="empty">
       {#if q}
-        <p class="muted">Nothing called “{query.trim()}”.</p>
+        <p class="muted">{t('Nothing called “{trim}”.', { trim: query.trim() })}</p>
       {:else if !chats.loaded}
-        <p class="muted">Loading…</p>
+        <p class="muted">{t('Loading…')}</p>
       {:else}
-        <p><strong>No chats yet</strong></p>
-        <p class="muted">Add friends, then message them or start a group.</p>
-        <button class="btn primary" onclick={onfriends}><Icon name="userPlus" size={16} /> Friends</button>
+        <p><strong>{t('No chats yet')}</strong></p>
+        <p class="muted">{t('Add friends, then message them or start a group.')}</p>
+        <button class="btn primary" onclick={onfriends}><Icon name="userPlus" size={16} /> {t('Friends')}</button>
       {/if}
     </div>
   {/if}

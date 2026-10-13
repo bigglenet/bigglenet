@@ -1,6 +1,7 @@
 <script lang="ts">
   // chat.biggle: chats with friends and groups, with voice and video calls. The chat sidebar is
   // the same app, narrower.
+  import { t } from '../../lib/i18n.svelte';
   import './chat.css';
   import { untrack } from 'svelte';
   import { errorText } from '../../lib/api';
@@ -42,7 +43,7 @@
     });
   });
   $effect(() => {
-    if (tab) tab.title = chats.unread ? `Chat (${chats.unread})` : 'Chat';
+    if (tab) tab.title = chats.unread ? `${t('Chats')} (${chats.unread})` : t('Chats');
   });
 
   // Something asked the sidebar to show a chat (an incoming call, say).
@@ -128,18 +129,18 @@
   {#if !narrow || (!chat && !panel)}
     <aside class="side">
       <header class="bar">
-        <h2>Chats</h2>
-        <button class="icon" aria-label="New group" title="New group" onclick={() => (panel = 'group')}><Icon name="plus" /></button>
-        <button class="icon" aria-label="Friends" title="Friends" onclick={() => (panel = 'friends')}>
+        <h2>{t('Chats')}</h2>
+        <button class="icon" aria-label={t('New group')} title={t('New group')} onclick={() => (panel = 'group')}><Icon name="plus" /></button>
+        <button class="icon" aria-label={t('Friends')} title={t('Friends')} onclick={() => (panel = 'friends')}>
           <Icon name="userPlus" />
           {#if social.incoming.length}<span class="dot-count">{social.incoming.length}</span>{/if}
         </button>
         {#if sidebar}
-          <button class="icon" aria-label="Open in a tab" title="Open chat.biggle in a tab" onclick={openInTab}><Icon name="external" size={17} /></button>
-          <button class="icon" aria-label="Close chats" title="Close" onclick={() => (social.open = false)}><Icon name="close" size={17} /></button>
+          <button class="icon" aria-label={t('Open in a tab')} title={t('Open chat.biggle in a tab')} onclick={openInTab}><Icon name="external" size={17} /></button>
+          <button class="icon" aria-label={t('Close chats')} title={t('Close')} onclick={() => (social.open = false)}><Icon name="close" size={17} /></button>
         {/if}
       </header>
-      {#if !social.connected}<p class="status muted">Connecting…</p>{/if}
+      {#if !social.connected}<p class="status muted">{t('Connecting…')}</p>{/if}
       {#if error && !panel}<p class="error pad" role="alert">{error}</p>{/if}
       <ChatList {selected} onselect={pick} onfriend={openFriend} onfriends={() => (panel = 'friends')} />
     </aside>
@@ -152,19 +153,19 @@
       {:else if panel === 'group'}
         <div class="pane">
           <header class="bar">
-            <button class="icon" aria-label="Back" onclick={() => (panel = null)}><Icon name="back" /></button>
-            <h2>New group</h2>
+            <button class="icon" aria-label={t('Back')} onclick={() => (panel = null)}><Icon name="back" /></button>
+            <h2>{t('New group')}</h2>
           </header>
           <div class="scroll group">
-            <p class="label">Name</p>
-            <input class="field" bind:value={groupName} maxlength="60" placeholder="Optional" aria-label="Group name" />
-            <p class="label">People{picked.length ? ` · ${picked.length}` : ''}</p>
+            <p class="label">{t('Name')}</p>
+            <input class="field" bind:value={groupName} maxlength="60" placeholder={t('Optional')} aria-label={t('Group name')} />
+            <p class="label">{t('People')}{picked.length ? ` · ${picked.length}` : ''}</p>
             <ChatPeoplePicker bind:picked />
           </div>
           <footer class="foot">
             {#if error}<p class="error" role="alert">{error}</p>{/if}
             <button class="btn primary" disabled={!picked.length || creating} onclick={createGroup}>
-              {creating ? 'Making the group…' : 'Make group'}
+              {creating ? t('Making the group…') : t('Make group')}
             </button>
           </footer>
         </div>
@@ -182,8 +183,8 @@
       {:else}
         <div class="pick">
           <Icon name="chat" size={40} />
-          <p><strong>Chat with your friends</strong></p>
-          <p class="muted">Pick a chat, or start a group. Call anyone with the phone and camera buttons.</p>
+          <p><strong>{t('Chat with your friends')}</strong></p>
+          <p class="muted">{t('Pick a chat, or start a group. Call anyone with the phone and camera buttons.')}</p>
         </div>
       {/if}
     </section>

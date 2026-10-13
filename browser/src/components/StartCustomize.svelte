@@ -1,6 +1,7 @@
 <script lang="ts">
   // The start page's Customize panel: what new tabs open, what the page shows, shortcuts and
   // a background. Everything is kept in this browser as soon as it changes.
+  import { t } from '../lib/i18n.svelte';
   import { BACKDROPS, MAX_SHORTCUTS, SECTIONS, startSettings as settings, toAddress } from '../lib/startpage.svelte';
   import Icon from './Icon.svelte';
 
@@ -30,11 +31,11 @@
     shortcutError = '';
     const url = toAddress(shortcutText);
     if (!url) {
-      shortcutError = "That isn't a Bigglenet address.";
+      shortcutError = t("That isn't a Bigglenet address.");
       return;
     }
     if (settings.shortcuts.length >= MAX_SHORTCUTS) {
-      shortcutError = `You can have up to ${MAX_SHORTCUTS} shortcuts.`;
+      shortcutError = t('You can have up to {n} shortcuts.', { n: MAX_SHORTCUTS });
       return;
     }
     settings.shortcuts.push({ name: shortcutName.trim().slice(0, 30) || nameFor(url), url });
@@ -50,21 +51,21 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onclose()} />
 
-<aside class="panel" aria-label="Customize the new tab page">
+<aside class="panel" aria-label={t('Customize the new tab page')}>
   <header>
-    <h2>Customize</h2>
-    <button class="icon" aria-label="Close" onclick={onclose}><Icon name="close" /></button>
+    <h2>{t('Customize')}</h2>
+    <button class="icon" aria-label={t('Close')} onclick={onclose}><Icon name="close" /></button>
   </header>
 
   <section>
-    <h3>New tabs open</h3>
+    <h3>{t('New tabs open')}</h3>
     <label class="choice">
       <input type="radio" name="newtab" checked={!ownPage} onchange={() => ((ownPage = false), setNewTab())} />
-      This start page
+      {t('This start page')}
     </label>
     <label class="choice">
       <input type="radio" name="newtab" checked={ownPage} onchange={() => (ownPage = true)} />
-      A page of my choice
+      {t('A page of my choice')}
     </label>
     {#if ownPage}
       <form
@@ -74,26 +75,26 @@
           setNewTab();
         }}
       >
-        <input bind:value={pageText} placeholder="home.biggle" aria-label="Page new tabs open" autocapitalize="off" spellcheck="false" />
-        <button class="small">Use it</button>
+        <input bind:value={pageText} placeholder={t('home.biggle')} aria-label={t('Page new tabs open')} autocapitalize="off" spellcheck="false" />
+        <button class="small">{t('Use it')}</button>
       </form>
       {#if pageError}<p class="error">{pageError}</p>{/if}
-      {#if settings.newTab}<p class="hint">New tabs open {settings.newTab}. This page is always at biggle://newtab.</p>{/if}
+      {#if settings.newTab}<p class="hint">{t('New tabs open {newTab}. This page is always at biggle://newtab.', { newTab: settings.newTab })}</p>{/if}
     {/if}
   </section>
 
   <section>
-    <h3>Show on this page</h3>
+    <h3>{t('Show on this page')}</h3>
     {#each SECTIONS as section (section.id)}
       <label class="choice">
         <input type="checkbox" bind:checked={settings.shown[section.id]} onchange={() => settings.save()} />
-        {section.label}
+        {t(section.label)}
       </label>
     {/each}
   </section>
 
   <section>
-    <h3>My shortcuts</h3>
+    <h3>{t('My shortcuts')}</h3>
     {#if settings.shortcuts.length}
       <ul class="shortcuts">
         {#each settings.shortcuts as shortcut, i (shortcut.url + i)}
@@ -102,32 +103,32 @@
               <strong>{shortcut.name}</strong>
               <span>{shortcut.url}</span>
             </span>
-            <button class="icon" aria-label="Remove {shortcut.name}" onclick={() => removeShortcut(i)}><Icon name="trash" size={15} /></button>
+            <button class="icon" aria-label={t('Remove {shortcut}', { shortcut: shortcut.name })} onclick={() => removeShortcut(i)}><Icon name="trash" size={15} /></button>
           </li>
         {/each}
       </ul>
     {:else}
-      <p class="hint">Add sites you visit a lot. They show as tiles on this page.</p>
+      <p class="hint">{t('Add sites you visit a lot. They show as tiles on this page.')}</p>
     {/if}
     <form class="add" onsubmit={addShortcut}>
-      <input bind:value={shortcutText} placeholder="Address, like stix.biggle" aria-label="Shortcut address" autocapitalize="off" spellcheck="false" required />
-      <input bind:value={shortcutName} placeholder="Name (optional)" aria-label="Shortcut name" maxlength="30" />
-      <button class="small">Add shortcut</button>
+      <input bind:value={shortcutText} placeholder={t('Address, like stix.biggle')} aria-label={t('Shortcut address')} autocapitalize="off" spellcheck="false" required />
+      <input bind:value={shortcutName} placeholder={t('Name (optional)')} aria-label={t('Shortcut name')} maxlength="30" />
+      <button class="small">{t('Add shortcut')}</button>
     </form>
     {#if shortcutError}<p class="error">{shortcutError}</p>{/if}
   </section>
 
   <section>
-    <h3>Background</h3>
+    <h3>{t('Background')}</h3>
     <div class="swatches">
       {#each BACKDROPS as backdrop (backdrop.id)}
         <button
           class="swatch"
           class:picked={settings.backdrop === backdrop.id}
           style:--swatch={backdrop.color ?? 'var(--surface)'}
-          aria-label={backdrop.name}
+          aria-label={t(backdrop.name)}
           aria-pressed={settings.backdrop === backdrop.id}
-          title={backdrop.name}
+          title={t(backdrop.name)}
           onclick={() => {
             settings.backdrop = backdrop.id;
             settings.save();
@@ -143,7 +144,7 @@
       settings.reset();
       ownPage = false;
       pageText = '';
-    }}>Reset to default</button
+    }}>{t('Reset to default')}</button
   >
 </aside>
 

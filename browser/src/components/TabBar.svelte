@@ -119,6 +119,7 @@
           <!-- svelte-ignore a11y_autofocus -->
           <input
             class="group-name group-{g.color}"
+            aria-label={t('Group name')}
             bind:value={groupName}
             autofocus
             maxlength="40"

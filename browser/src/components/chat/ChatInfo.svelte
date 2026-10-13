@@ -6,7 +6,7 @@
   import { calls } from '../../lib/calls.svelte';
   import { chats, type Chat } from '../../lib/chats.svelte';
   import { browser } from '../../lib/browser.svelte';
-  import { t } from '../../lib/i18n.svelte';
+  import { plural, t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
@@ -55,8 +55,8 @@
 </script>
 
 <header class="bar">
-  <h2>Details</h2>
-  <button class="icon" aria-label="Close details" onclick={onclose}><Icon name="close" size={17} /></button>
+  <h2>{t('Details')}</h2>
+  <button class="icon" aria-label={t('Close details')} onclick={onclose}><Icon name="close" size={17} /></button>
 </header>
 
 <div class="scroll body">
@@ -68,14 +68,14 @@
     {/if}
     <strong>{title}</strong>
     <span class="muted">
-      {#if chat.kind === 'group'}{chat.members.length} people{:else}@{other}{friend ? ` · ${friend.online ? 'Online' : 'Offline'}` : ''}{/if}
+      {#if chat.kind === 'group'}{plural(chat.members.length, '{n} person', '{n} people')}{:else}@{other}{friend ? ` · ${friend.online ? t('Online') : t('Offline')}` : ''}{/if}
     </span>
     <div class="calls">
       <button class="btn" disabled={calls.chatId === chat.id || (chat.kind === 'direct' && !friend)} onclick={() => calls.join(chat.id, false)}>
-        <Icon name="phone" size={15} /> Call
+        <Icon name="phone" size={15} /> {t('Call')}
       </button>
       <button class="btn" disabled={calls.chatId === chat.id || (chat.kind === 'direct' && !friend)} onclick={() => calls.join(chat.id, true)}>
-        <Icon name="video" size={16} /> Video
+        <Icon name="video" size={16} /> {t('Video')}
       </button>
     </div>
   </div>
@@ -85,27 +85,27 @@
 
   {#if chat.kind === 'direct'}
     {#if friend && other}
-      <p class="label">Nickname</p>
-      <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => social.setNickname(other, nickname), 'Nickname saved.'))}>
-        <input class="field" bind:value={nickname} maxlength="30" placeholder={other} aria-label="Nickname" />
-        <button class="btn" disabled={nickname.trim() === (friend.nickname ?? '')}>Save</button>
+      <p class="label">{t('Nickname')}</p>
+      <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => social.setNickname(other, nickname), t('Nickname saved.')))}>
+        <input class="field" bind:value={nickname} maxlength="30" placeholder={other} aria-label={t('Nickname')} />
+        <button class="btn" disabled={nickname.trim() === (friend.nickname ?? '')}>{t('Save')}</button>
       </form>
-      <p class="hint muted">Only you see it.</p>
+      <p class="hint muted">{t('Only you see it.')}</p>
 
-      <p class="label">Friend</p>
+      <p class="label">{t('Friend')}</p>
       {#if confirming}
         <div class="confirm">
-          <span>Unfriend {title}? You won't be able to message each other.</span>
+          <span>{t("Unfriend {title}? You won't be able to message each other.", { title })}</span>
           <div>
-            <button class="btn danger" onclick={() => act(async () => { await social.remove(other); confirming = false; })}>Unfriend</button>
-            <button class="btn" onclick={() => (confirming = false)}>Keep</button>
+            <button class="btn danger" onclick={() => act(async () => { await social.remove(other); confirming = false; })}>{t('Unfriend')}</button>
+            <button class="btn" onclick={() => (confirming = false)}>{t('Keep')}</button>
           </div>
         </div>
       {:else}
-        <button class="btn danger" onclick={() => (confirming = true)}><Icon name="trash" size={15} /> Unfriend</button>
+        <button class="btn danger" onclick={() => (confirming = true)}><Icon name="trash" size={15} /> {t('Unfriend')}</button>
       {/if}
     {:else}
-      <p class="muted hint">You're not friends with {other} any more.</p>
+      <p class="muted hint">{t("You're not friends with {other} any more.", { other })}</p>
     {/if}
   {:else}
     {#if chat.club}
@@ -115,30 +115,30 @@
         <Icon name="users" size={15} /> {t('Open the club')}
       </button>
     {:else}
-      <p class="label">Group name</p>
-      <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => chats.rename(chat.id, name), 'Name saved.'))}>
-        <input class="field" bind:value={name} maxlength="60" placeholder="Name this group" aria-label="Group name" />
-        <button class="btn" disabled={name.trim() === (chat.name ?? '')}>Save</button>
+      <p class="label">{t('Group name')}</p>
+      <form class="line" onsubmit={(e) => (e.preventDefault(), act(() => chats.rename(chat.id, name), t('Name saved.')))}>
+        <input class="field" bind:value={name} maxlength="60" placeholder={t('Name this group')} aria-label={t('Group name')} />
+        <button class="btn" disabled={name.trim() === (chat.name ?? '')}>{t('Save')}</button>
       </form>
     {/if}
 
-    <p class="label">People · {chat.members.length}</p>
+    <p class="label">{t('People · {members}', { members: chat.members.length })}</p>
     {#each members as u (u)}
       {@const f = social.friends.find((x) => x.username === u)}
       <div class="person">
         <Avatar name={social.nameOf(u)} user={u} size={34} online={f ? f.online : undefined} />
         <span class="names">
-          <strong>{u === me ? 'You' : social.nameOf(u)}</strong>
+          <strong>{u === me ? t('You') : social.nameOf(u)}</strong>
           {#if u !== me && social.nameOf(u) !== u}<span>@{u}</span>{/if}
         </span>
-        {#if chat.call.some((m) => m.username === u)}<span class="incall" title="In the call"><Icon name="phone" size={13} /></span>{/if}
+        {#if chat.call.some((m) => m.username === u)}<span class="incall" title={t('In the call')}><Icon name="phone" size={13} /></span>{/if}
       </div>
     {/each}
 
     {#if chat.club}
       <!-- Joining and leaving happen on the club's page. -->
     {:else if adding}
-      <p class="label">Add people</p>
+      <p class="label">{t('Add people')}</p>
       <ChatPeoplePicker bind:picked exclude={chat.members} />
       <div class="row-buttons">
         <button
@@ -149,28 +149,28 @@
               await chats.addMembers(chat.id, picked);
               picked = [];
               adding = false;
-            })}>Add {picked.length || ''}</button
+            })}>{t('Add {picked}', { picked: picked.length || '' })}</button
         >
-        <button class="btn" onclick={() => ((adding = false), (picked = []))}>Cancel</button>
+        <button class="btn" onclick={() => ((adding = false), (picked = []))}>{t('Cancel')}</button>
       </div>
     {:else}
-      <button class="btn add" onclick={() => (adding = true)}><Icon name="userPlus" size={15} /> Add people</button>
+      <button class="btn add" onclick={() => (adding = true)}><Icon name="userPlus" size={15} /> {t('Add people')}</button>
     {/if}
 
     {#if chat.club}
       <!-- Nothing to leave here: leave the club instead. -->
     {:else}
-    <p class="label">Leave</p>
+    <p class="label">{t('Leave')}</p>
     {#if confirming}
       <div class="confirm">
-        <span>Leave {title}? You'll stop getting its messages.</span>
+        <span>{t("Leave {title}? You'll stop getting its messages.", { title })}</span>
         <div>
-          <button class="btn danger" onclick={() => act(async () => { await chats.leave(chat.id); onleft(); })}>Leave group</button>
-          <button class="btn" onclick={() => (confirming = false)}>Stay</button>
+          <button class="btn danger" onclick={() => act(async () => { await chats.leave(chat.id); onleft(); })}>{t('Leave group')}</button>
+          <button class="btn" onclick={() => (confirming = false)}>{t('Stay')}</button>
         </div>
       </div>
     {:else}
-      <button class="btn danger" onclick={() => (confirming = true)}>Leave group</button>
+      <button class="btn danger" onclick={() => (confirming = true)}>{t('Leave group')}</button>
     {/if}
     {/if}
   {/if}

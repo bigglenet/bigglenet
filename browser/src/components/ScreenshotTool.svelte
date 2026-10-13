@@ -15,7 +15,7 @@
 <script lang="ts">
   import { browser } from '../lib/browser.svelte';
   import { chats } from '../lib/chats.svelte';
-  import { t } from '../lib/i18n.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { controlFor } from '../lib/pagecontrol';
   import { desktop } from '../lib/platform';
@@ -136,7 +136,7 @@
   }
 
   const blob = async () => (await fetch(result!)).blob();
-  const fileName = () => `Screenshot ${new Date().toLocaleString().replace(/[/:]/g, '-')}.png`;
+  const fileName = () => `${t('Screenshot')} ${new Date().toLocaleString(i18n.locale).replace(/[/:.]/g, '-')}.png`;
 
   async function copy() {
     try {

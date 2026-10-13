@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setupAdblock } from './adblock.js';
 import { setupDownloads } from './downloads.js';
+import { t } from './language.js';
 import { attachContextMenu } from './menus.js';
 import { READER_SCRIPT } from './reader.js';
 
@@ -202,7 +203,7 @@ export function setupSites() {
     const key = keyFor(event.sender, id);
     let entry = views.get(key);
     if (!entry) {
-      if (!/^https?:\/\//i.test(url)) throw new Error("That isn't a web address.");
+      if (!/^https?:\/\//i.test(url)) throw new Error(t("That isn't a web address."));
       const view = new WebContentsView({
         webPreferences: { partition: opts.private ? PRIVATE_PARTITION : PARTITION, sandbox: true, contextIsolation: true },
       });
@@ -324,7 +325,7 @@ export function setupSites() {
       existing.focus();
       return;
     }
-    if (!/^https?:\/\//i.test(url)) throw new Error("That isn't a web address.");
+    if (!/^https?:\/\//i.test(url)) throw new Error(t("That isn't a web address."));
     const win = new BrowserWindow({
       width: 1280,
       height: 760,

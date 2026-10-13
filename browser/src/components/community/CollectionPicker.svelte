@@ -3,6 +3,7 @@
   import { api, errorText } from '../../lib/api';
   import { browser } from '../../lib/browser.svelte';
   import { collect } from '../../lib/collect.svelte';
+  import { dialog } from '../../lib/dialog';
   import { t } from '../../lib/i18n.svelte';
   import { overlays } from '../../lib/overlays.svelte';
   import { siteHost } from '../../lib/url';
@@ -64,7 +65,7 @@
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && collect.close()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label={t('Add to collection')} tabindex="-1" bind:this={box} onkeydown={(e) => e.key === 'Escape' && collect.close()}>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t('Add to collection')} tabindex="-1" bind:this={box} use:dialog onkeydown={(e) => e.key === 'Escape' && collect.close()}>
     <header>
       <h2>{t('Add {site} to a collection', { site: siteHost(site) })}</h2>
       <button class="icon" aria-label={t('Close')} onclick={() => collect.close()}><Icon name="close" size={16} /></button>

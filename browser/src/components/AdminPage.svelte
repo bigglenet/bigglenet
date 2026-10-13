@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { i18n, plural, t } from '../lib/i18n.svelte';
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';
@@ -69,15 +70,15 @@
     }
   }
 
-  const date = (s: number) => new Date(s * 1000).toLocaleDateString([], { dateStyle: 'medium' });
+  const date = (s: number) => new Date(s * 1000).toLocaleDateString(i18n.locale, { dateStyle: 'medium' });
 </script>
 
 <div class="admin">
   <div class="inner">
-    <h1>Admin</h1>
+    <h1>{t('Admin')}</h1>
 
     {#if !isAdmin}
-      <p class="muted">This page is only for Bigglenet admins.</p>
+      <p class="muted">{t('This page is only for Bigglenet admins.')}</p>
     {:else}
       {#if error}
         <p class="error" role="alert">{error}</p>
@@ -86,58 +87,56 @@
       <AdminDashboard {tab} />
 
       <section>
-        <h2>Waiting for approval</h2>
-        <p class="muted">New sites made in the site editor. Nobody else can see them until you approve.</p>
+        <h2>{t('Waiting for approval')}</h2>
+        <p class="muted">{t('New sites made in the site editor. Nobody else can see them until you approve.')}</p>
         <ul class="list">
           {#each reviews as r (r.name)}
             <li class="review">
               <div class="main">
                 <strong>{siteHost(r.name, r.tld)}</strong>
                 <span class="muted small">
-                  {r.title ? `${r.title} · ` : ''}by {r.owner ?? 'a deleted account'} · {r.files} files · {Math.ceil(r.size / 1024)} KB
+                  {r.title ? `${r.title} · ` : ''}{t('by {account}', { account: r.owner ?? t('a deleted account') })} · {plural(r.files, '{n} file', '{n} files')} · {Math.ceil(r.size / 1024)} KB
                 </span>
               </div>
               {#if rejecting === r.name}
-                <input class="note" bind:value={note} placeholder="Why? (they'll see this)" maxlength="300" />
-                <button class="danger" onclick={() => reject(r.name)}>Reject</button>
-                <button class="ghost" onclick={() => (rejecting = null)}>Cancel</button>
+                <input class="note" bind:value={note} placeholder={t("Why? (they'll see this)")} aria-label={t("Why? (they'll see this)")} maxlength="300" />
+                <button class="danger" onclick={() => reject(r.name)}>{t('Reject')}</button>
+                <button class="ghost" onclick={() => (rejecting = null)}>{t('Cancel')}</button>
               {:else}
-                <button class="ghost" onclick={() => browser.openPreview(r.name, '/', r.tld)}>Preview</button>
-                <button class="ghost" onclick={() => ((rejecting = r.name), (note = ''))}>Reject</button>
-                <button class="primary" onclick={() => approve(r.name)}>Approve</button>
+                <button class="ghost" onclick={() => browser.openPreview(r.name, '/', r.tld)}>{t('Preview')}</button>
+                <button class="ghost" onclick={() => ((rejecting = r.name), (note = ''))}>{t('Reject')}</button>
+                <button class="primary" onclick={() => approve(r.name)}>{t('Approve')}</button>
               {/if}
             </li>
           {:else}
-            <li class="muted">Nothing waiting. Nice.</li>
+            <li class="muted">{t('Nothing waiting. Nice.')}</li>
           {/each}
         </ul>
       </section>
 
       <button class="all-sites" onclick={() => browser.go(tab, 'biggle://admin/pages')}>
         <span>
-          <strong>All sites</strong>
+          <strong>{t('All sites')}</strong>
           <span class="muted small">
-            {names.length} {names.length === 1 ? 'site' : 'sites'}{reviews.length ? `, ${reviews.length} waiting` : ''}. Open, approve, take down, rename, delete, link
-            sites hosted elsewhere, and see or edit their source.
+            {plural(names.length, '{n} site', '{n} sites')}{reviews.length ? `, ${t('{n} waiting', { n: reviews.length })}` : ''}. {t('Open, approve, take down, rename, delete, link sites hosted elsewhere, and see or edit their source.')}
           </span>
         </span>
         <Icon name="forward" />
       </button>
 
       <section>
-        <h2>People</h2>
+        <h2>{t('People')}</h2>
         <p class="muted">
-          {users.length} {users.length === 1 ? 'person has' : 'people have'} a Biggle ID. Admins and people you trust can give their sites a
-          short .b address.
+          {plural(users.length, '{n} person has a Biggle ID.', '{n} people have a Biggle ID.')} {t('Admins and people you trust can give their sites a short .b address.')}
         </p>
         <ul class="list">
           {#each users as u (u.username)}
             <li>
               <strong class="main">{u.username}</strong>
-              {#if u.admin}<span class="tag">Admin</span>{:else if u.trusted}<span class="tag">Trusted</span>{/if}
-              <span class="muted small">Joined {date(u.created_at)}</span>
+              {#if u.admin}<span class="tag">{t('Admin')}</span>{:else if u.trusted}<span class="tag">{t('Trusted')}</span>{/if}
+              <span class="muted small">{t('Joined {created_at}', { created_at: date(u.created_at) })}</span>
               {#if !u.admin}
-                <button class="trust" onclick={() => setTrusted(u, !u.trusted)}>{u.trusted ? 'Stop trusting' : 'Trust'}</button>
+                <button class="trust" onclick={() => setTrusted(u, !u.trusted)}>{u.trusted ? t('Stop trusting') : 'Trust'}</button>
               {/if}
             </li>
           {/each}

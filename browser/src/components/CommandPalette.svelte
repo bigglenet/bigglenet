@@ -17,7 +17,7 @@
   import { loadDirectory } from '../lib/directory';
   import { find } from '../lib/find.svelte';
   import { pageHistory } from '../lib/history.svelte';
-  import { t } from '../lib/i18n.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { perf } from '../lib/perf.svelte';
   import { isApp, isMac } from '../lib/platform';
@@ -146,9 +146,12 @@
       run: () => browser.activate(x.id),
     }));
 
+  /** Lower case for matching, so Turkish İ/I and ı/i match what people type. */
+  const fold = (text: string) => text.toLocaleLowerCase(i18n.locale).replace(/ı/g, 'i');
+
   /** Every word typed appears in it; earlier and at-the-start matches first. */
   function score(text: string, words: string[]): number {
-    const hay = text.toLowerCase();
+    const hay = fold(text);
     let total = 0;
     for (const w of words) {
       const i = hay.indexOf(w);
@@ -159,7 +162,7 @@
   }
 
   const results = $derived.by((): Entry[] => {
-    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const words = fold(query.trim()).split(/\s+/).filter(Boolean);
     const tabs = tabEntries(browser.tabs);
     if (palette.open === 'tabs') {
       if (!words.length) return tabs;

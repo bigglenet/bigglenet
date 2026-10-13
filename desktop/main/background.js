@@ -6,6 +6,7 @@ import { app, ipcMain, Menu, nativeImage, Tray } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { t } from './language.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const file = () => join(app.getPath('userData'), 'background.json');
@@ -13,6 +14,10 @@ const file = () => join(app.getPath('userData'), 'background.json');
 let on = false;
 let quitting = false;
 let tray = null;
+let relabel = () => {};
+
+/** After the language changes (language.js). */
+export const relabelTray = () => relabel();
 
 function load() {
   try {
@@ -39,6 +44,7 @@ export function setupBackground(getWindows, show) {
     return on;
   });
   app.whenReady().then(() => updateTray(show));
+  relabel = () => tray?.setContextMenu(trayMenu(show));
 
   /** Call for each new window: closing the last one hides it while running in the background. */
   return function watch(win) {
@@ -65,18 +71,20 @@ function updateTray(show) {
   if (image.isEmpty()) image = nativeImage.createEmpty();
   tray = new Tray(image);
   tray.setToolTip('Bigglenet');
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open Bigglenet', click: () => show() },
-      { type: 'separator' },
-      {
-        label: 'Quit Bigglenet',
-        click: () => {
-          quitting = true;
-          app.quit();
-        },
-      },
-    ]),
-  );
+  tray.setContextMenu(trayMenu(show));
   if (!isMac) tray.on('click', () => show());
+}
+
+function trayMenu(show) {
+  return Menu.buildFromTemplate([
+    { label: t('Open Bigglenet'), click: () => show() },
+    { type: 'separator' },
+    {
+      label: t('Quit Bigglenet'),
+      click: () => {
+        quitting = true;
+        app.quit();
+      },
+    },
+  ]);
 }

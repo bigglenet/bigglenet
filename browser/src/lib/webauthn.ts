@@ -1,3 +1,4 @@
+import { t } from './i18n.svelte';
 // Passkeys in this browser (server/src/passkeys.ts). The desktop app does them in the system
 // browser instead (account.svelte.ts), which knows about Touch ID, Windows Hello and phones.
 const b64 = (buf: ArrayBuffer) =>
@@ -24,7 +25,7 @@ type RegisterOptions = {
 /** Ask for a passkey, and what the server needs to check it. */
 export async function getPasskey(o: LoginOptions) {
   const c = (await navigator.credentials.get({ publicKey: { ...o, challenge: bytes(o.challenge) } })) as PublicKeyCredential | null;
-  if (!c) throw new Error('No passkey was chosen.');
+  if (!c) throw new Error(t('No passkey was chosen.'));
   const r = c.response as AuthenticatorAssertionResponse;
   return { id: c.id, clientDataJSON: b64(r.clientDataJSON), authenticatorData: b64(r.authenticatorData), signature: b64(r.signature) };
 }
@@ -34,9 +35,9 @@ export async function createPasskey(o: RegisterOptions) {
   const c = (await navigator.credentials.create({
     publicKey: { ...o, challenge: bytes(o.challenge), user: { ...o.user, id: bytes(o.user.id) }, excludeCredentials: o.excludeCredentials.map((x) => ({ ...x, id: bytes(x.id) })) },
   })) as PublicKeyCredential | null;
-  if (!c) throw new Error('No passkey was made.');
+  if (!c) throw new Error(t('No passkey was made.'));
   const r = c.response as AuthenticatorAttestationResponse;
   const key = r.getPublicKey();
-  if (!key) throw new Error('This browser can’t make passkeys Bigglenet can use.');
+  if (!key) throw new Error(t('This browser can’t make passkeys Bigglenet can use.'));
   return { id: c.id, clientDataJSON: b64(r.clientDataJSON), publicKey: b64(key), algorithm: r.getPublicKeyAlgorithm() };
 }

@@ -1,6 +1,7 @@
 // Notifications for new messages and calls while Bigglenet isn't the window you're using, and the
 // unread count on the app's icon (the Dock on a Mac, the taskbar on Windows, an installed PWA's
 // icon). Turn them off in Settings.
+import { t } from './i18n.svelte';
 import { desktop } from './platform';
 
 const KEY = 'biggle:notify';
@@ -38,12 +39,12 @@ class Notices {
 
   /** Someone is calling. */
   async call(from: string, video: boolean, chatId: number, onclick: () => void) {
-    await this.show(from, video ? 'Video call. Open Bigglenet to answer.' : 'Calling you. Open Bigglenet to answer.', `call-${chatId}`, { chatId }, onclick);
+    await this.show(from, video ? t('Video call. Open Bigglenet to answer.') : t('Calling you. Open Bigglenet to answer.'), `call-${chatId}`, { chatId }, onclick);
   }
 
   async test() {
     await this.allow();
-    await this.show('Bigglenet', 'Notifications are on. You’ll see one like this when a friend messages you.', 'test', {}, () => {}, true);
+    await this.show('Bigglenet', t('Notifications are on. You’ll see one like this when a friend messages you.'), 'test', {}, () => {}, true);
   }
 
   private async show(title: string, body: string, tag: string, data: Record<string, unknown>, onclick: () => void, always = false) {

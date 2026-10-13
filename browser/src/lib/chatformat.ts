@@ -1,4 +1,5 @@
 // Small helpers for showing chats: times, days and links in messages.
+import { i18n, t } from './i18n.svelte';
 import { fromInput } from './url';
 
 const DAY = 86_400_000;
@@ -7,23 +8,23 @@ const startOfDay = (t: number) => new Date(t).setHours(0, 0, 0, 0);
 /** "14:05" today, "Yesterday", "Mon" this week, or "12 Oct". */
 export function shortTime(at: number): string {
   const today = startOfDay(Date.now());
-  if (at >= today) return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (at >= today - DAY) return 'Yesterday';
-  if (at >= today - 6 * DAY) return new Date(at).toLocaleDateString([], { weekday: 'short' });
-  return new Date(at).toLocaleDateString([], { day: 'numeric', month: 'short' });
+  if (at >= today) return new Date(at).toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit' });
+  if (at >= today - DAY) return t('Yesterday');
+  if (at >= today - 6 * DAY) return new Date(at).toLocaleDateString(i18n.locale, { weekday: 'short' });
+  return new Date(at).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short' });
 }
 
-export const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-export const fullTime = (at: number) => new Date(at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+export const clock = (at: number) => new Date(at).toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit' });
+export const fullTime = (at: number) => new Date(at).toLocaleString(i18n.locale, { dateStyle: 'medium', timeStyle: 'short' });
 
 /** "Today", "Yesterday", or the date. */
 export function dayLabel(at: number): string {
   const today = startOfDay(Date.now());
   const day = startOfDay(at);
-  if (day === today) return 'Today';
-  if (day === today - DAY) return 'Yesterday';
+  if (day === today) return t('Today');
+  if (day === today - DAY) return t('Yesterday');
   const sameYear = new Date(at).getFullYear() === new Date().getFullYear();
-  return new Date(at).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', ...(sameYear ? {} : { year: 'numeric' }) });
+  return new Date(at).toLocaleDateString(i18n.locale, { weekday: 'long', day: 'numeric', month: 'long', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
 export const sameDay = (a: number, b: number) => startOfDay(a) === startOfDay(b);

@@ -1,6 +1,7 @@
 // Rooms (server/src/rooms.ts): live connections between everyone on a site. Pages use them
 // through biggle.room() (page-runtime.js asks, frame.ts answers); the site editor uses one to
 // edit together. The browser holds the connection, so pages never see the session token.
+import { t } from './i18n.svelte';
 import { account } from './account.svelte';
 import { SERVER } from './config';
 
@@ -27,7 +28,7 @@ export class RoomLink {
     return new Promise((resolve, reject) => {
       let first = true;
       const connect = () => {
-        if (this.closed || !account.token) return reject(new Error('Signed out.'));
+        if (this.closed || !account.token) return reject(new Error(t('Signed out.')));
         const ws = new WebSocket(`${SERVER.replace(/^http/, 'ws')}/api/rooms/${encodeURIComponent(this.site)}/${encodeURIComponent(this.name)}`, ['biggle', account.token]);
         this.ws = ws;
         ws.onmessage = (e) => {
@@ -59,7 +60,7 @@ export class RoomLink {
         ws.onclose = () => {
           clearInterval(this.ping);
           if (this.closed) return;
-          if (first) return reject(new Error('Couldn’t join that room.'));
+          if (first) return reject(new Error(t('Couldn’t join that room.')));
           // Lost the connection: try again, a little later each time.
           setTimeout(connect, Math.min(15_000, 1000 * 2 ** this.retries++));
         };

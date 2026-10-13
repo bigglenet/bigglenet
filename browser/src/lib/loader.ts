@@ -4,7 +4,9 @@ import readerCore from './reader-core.js?raw';
 import widgets from './page-widgets.js?raw';
 import { PREVIEW_PREFIX, SERVER, SITE_PREFIX } from './config';
 import { isApp } from './platform';
+import { i18n } from './i18n.svelte';
 import { offlineCopy } from './offline.svelte';
+import { pageWords } from './pagewords';
 import { siteSettings } from './sitesettings.svelte';
 import { readLocal } from './storage';
 import { fromGateway, parse, siteBase, siteHost, siteKey, toGateway, withHash, type SiteUrl } from './url';
@@ -152,6 +154,8 @@ function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, 
     app: isApp,
     dark: siteSettings.dark(siteKey(u)),
     embedded,
+    locale: i18n.locale ?? null,
+    words: pageWords(),
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');
   return `${head(u, base)}<style>${BASE_CSS}</style><script>window.__BIGGLE_INIT__=${initJson};${PAGE_SCRIPT}</script>${body}`;

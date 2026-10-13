@@ -4,7 +4,7 @@
 // colours (it picks up --accent), and can be styled with ::part().
 (() => {
   'use strict';
-  const { call, post, init } = __kit;
+  const { call, post, init, w } = __kit;
 
   const BASE = `
 :host{display:block;margin:20px 0;color:inherit;font:inherit}
@@ -57,7 +57,7 @@ h3{margin:0 0 .6em;font-size:1.15em}
   };
   const date = (at) => {
     const d = new Date(at * 1000);
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+    return d.toLocaleDateString(init.locale || undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
   };
 
   // --- Rooms: biggle.room('lobby') ---
@@ -109,12 +109,12 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
 .author{font-weight:700}.date{opacity:.6}.remove{margin-left:auto;border:0;background:none;color:inherit;opacity:.5;font-size:1.1em}
 .body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.empty{margin:0}.more{margin-top:10px}`,
     (host, root, showError) => {
-      const title = el('span', { textContent: host.getAttribute('heading') || 'Comments' });
+      const title = el('span', { textContent: host.getAttribute('heading') || w('Comments') });
       const count = el('span', { class: 'muted' });
-      const add = el('button', { class: 'btn', part: 'button', textContent: 'Add a comment' });
+      const add = el('button', { class: 'btn', part: 'button', textContent: w('Add a comment') });
       const list = el('ol', { part: 'list' });
-      const empty = el('p', { class: 'empty muted', textContent: 'No comments yet.' });
-      const more = el('button', { class: 'ghost more', textContent: 'Show older comments', hidden: true });
+      const empty = el('p', { class: 'empty muted', textContent: w('No comments yet.') });
+      const more = el('button', { class: 'ghost more', textContent: w('Show older comments'), hidden: true });
       root.append(el('div', { class: 'head' }, el('h3', { part: 'title' }, title, ' ', count), add), list, empty, more);
       let total = 0;
       let oldest = null;
@@ -126,13 +126,13 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
         const li = el('li', { class: 'card', part: 'comment' });
         const meta = el('div', { class: 'meta' }, el('span', { class: 'author', part: 'author', textContent: c.author }), el('time', { class: 'date', part: 'date', textContent: date(c.at) }));
         if (c.canDelete) {
-          const x = el('button', { class: 'remove', textContent: '×', title: 'Take this comment down', 'aria-label': 'Take this comment down' });
+          const x = el('button', { class: 'remove', textContent: '×', title: w('Take this comment down'), 'aria-label': w('Take this comment down') });
           x.onclick = () => call('comments.delete', c.id).then(() => (li.remove(), total--, update()), showError);
           meta.append(x);
         }
         // Someone else's comment: tell an admin about it (the browser asks why).
         if (__kit.user() && c.author !== __kit.user().username) {
-          const flag = el('button', { class: 'remove', textContent: '⚑', title: 'Report this comment', 'aria-label': 'Report this comment' });
+          const flag = el('button', { class: 'remove', textContent: '⚑', title: w('Report this comment'), 'aria-label': w('Report this comment') });
           flag.onclick = () => call('report', 'comment', c.id).catch(showError);
           meta.append(flag);
         }
@@ -175,7 +175,7 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
         .map((o) => o.trim())
         .filter(Boolean)
         .slice(0, 12);
-      if (!id || options.length < 2) return showError('A poll needs an id and at least two options.');
+      if (!id || options.length < 2) return showError(w('A poll needs an id and at least two options.'));
       const box = el('div', { class: 'card', part: 'poll' });
       if (question) box.append(el('p', { class: 'q', part: 'question', textContent: question }));
       const opts = el('div', { class: 'opts' });
@@ -197,7 +197,9 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
             return b;
           }),
         );
-        total.textContent = voted ? `${sum} ${sum === 1 ? 'vote' : 'votes'} · tap another answer to change yours` : 'Tap an answer to vote and see the results.';
+        total.textContent = voted
+          ? w(sum === 1 ? '{n} vote · tap another answer to change yours' : '{n} votes · tap another answer to change yours', { n: sum.toLocaleString(init.locale || undefined) })
+          : w('Tap an answer to vote and see the results.');
       };
       call('poll.get', id).then(draw, showError);
     },
@@ -218,7 +220,7 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
         b.classList.toggle('on', state.liked);
         b.replaceChildren(el('span', { class: 'heart', textContent: state.liked ? '♥' : '♡' }), ` ${state.count.toLocaleString()}`);
         b.setAttribute('aria-pressed', String(state.liked));
-        b.title = state.liked ? 'You like this site' : 'Like this site';
+        b.title = state.liked ? w('You like this site') : w('Like this site');
       };
       b.onclick = () => call('likes.set', !state.liked).then((s) => ((state = s), draw()), showError);
       call('likes.get').then((s) => ((state = s), draw()), showError);
@@ -237,7 +239,7 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
       const board = host.getAttribute('board') || 'main';
       const order = host.getAttribute('order') === 'asc' ? 'asc' : 'desc';
       const limit = Math.min(100, Number(host.getAttribute('limit')) || 10);
-      const title = el('h3', { part: 'title', textContent: host.getAttribute('heading') || 'Leaderboard' });
+      const title = el('h3', { part: 'title', textContent: host.getAttribute('heading') || w('Leaderboard') });
       const table = el('table', { part: 'table' });
       const mine = el('p', { class: 'mine muted' });
       root.append(el('div', { class: 'card' }, title, table, mine));
@@ -245,13 +247,13 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
       const load = () =>
         call('scores.top', board, { order, limit }).then((r) => {
           table.replaceChildren(
-            el('tr', {}, el('th', { textContent: '#' }), el('th', { textContent: 'Player' }), el('th', { class: 'score', textContent: 'Score' })),
+            el('tr', {}, el('th', { textContent: '#' }), el('th', { textContent: w('Player') }), el('th', { class: 'score', textContent: w('Score') })),
             ...r.top.map((row, i) =>
               el('tr', { class: row.username === me() ? 'me' : '' }, el('td', { class: 'rank', textContent: i + 1 }), el('td', { textContent: row.username }), el('td', { class: 'score', textContent: Number(row.score).toLocaleString() })),
             ),
           );
-          if (!r.top.length) table.append(el('tr', {}, el('td', { colSpan: 3, class: 'muted', textContent: 'No scores yet. Be the first!' })));
-          mine.textContent = r.mine !== null ? `Your best: ${Number(r.mine).toLocaleString()} (#${r.rank})` : '';
+          if (!r.top.length) table.append(el('tr', {}, el('td', { colSpan: 3, class: 'muted', textContent: w('No scores yet. Be the first!') })));
+          mine.textContent = r.mine !== null ? w('Your best: {score} (#{rank})', { score: Number(r.mine).toLocaleString(init.locale || undefined), rank: r.rank }) : '';
         }, showError);
       load();
       addEventListener('biggle:scores', (e) => e.detail?.board === board && load());
@@ -273,11 +275,11 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
       const colors = ['#222222', '#e5484d', '#f59f00', '#2f9e44', '#1c7ed6', '#9c36b5', '#ffffff'];
       let color = colors[0];
       let width = 4;
-      const canvas = el('canvas', { part: 'canvas', 'aria-label': 'Drawing wall' });
+      const canvas = el('canvas', { part: 'canvas', 'aria-label': w('Drawing wall') });
       canvas.style.height = `${height}px`;
       const tools = el('div', { class: 'tools' });
       const people = el('span', { class: 'people muted' });
-      const clear = el('button', { class: 'ghost', textContent: 'Clear', hidden: true });
+      const clear = el('button', { class: 'ghost', textContent: w('Clear'), hidden: true });
       for (const c of colors) {
         const b = el('button', { class: 'dot' + (c === color ? ' on' : ''), 'aria-label': c, style: `background:${c}` });
         b.onclick = () => {
@@ -286,10 +288,10 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
         };
         tools.append(b);
       }
-      for (const [w, label] of [[2, 'S'], [4, 'M'], [10, 'L']]) {
-        const b = el('button', { class: 'size' + (w === width ? ' on' : ''), textContent: label });
+      for (const [size, label] of [[2, 'Small'], [4, 'Medium'], [10, 'Large']]) {
+        const b = el('button', { class: 'size' + (size === width ? ' on' : ''), textContent: w(label).slice(0, 1).toLocaleUpperCase(init.locale || undefined), title: w(label), 'aria-label': w(label) });
         b.onclick = () => {
-          width = w;
+          width = size;
           for (const d of tools.querySelectorAll('.size')) d.classList.toggle('on', d === b);
         };
         tools.append(b);
@@ -368,7 +370,7 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
       __kit
         .room(`wall-${id}`)
         .then((room) => {
-          const who = () => (people.textContent = room.members.length > 1 ? `${room.members.length} drawing here` : '');
+          const who = () => (people.textContent = room.members.length > 1 ? w('{n} drawing here', { n: room.members.length }) : '');
           who();
           room.on('join', who);
           room.on('leave', who);
@@ -388,8 +390,8 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
   // --- <biggle-contact>: a button to message whoever made the site ---
 
   tag('biggle-contact', `.done{margin:.6em 0 0}`, (host, root, showError) => {
-    const b = el('button', { class: 'btn', part: 'button', textContent: host.getAttribute('label') || 'Message the owner' });
-    const done = el('p', { class: 'done muted', hidden: true, textContent: 'Sent! Thanks.' });
+    const b = el('button', { class: 'btn', part: 'button', textContent: host.getAttribute('label') || w('Message the owner') });
+    const done = el('p', { class: 'done muted', hidden: true, textContent: w('Sent! Thanks.') });
     b.onclick = () =>
       call('contact').then((r) => {
         if (r) done.hidden = false;
@@ -411,7 +413,7 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
       if (e.source !== frame.contentWindow || !e.data || e.data.biggle !== 1) return;
       const m = e.data;
       if (m.type === 'navigate' || m.type === 'external') post({ type: m.type, url: m.url, newTab: true });
-      else if (m.type === 'call') frame.contentWindow.postMessage({ biggle: 1, type: 'result', id: m.id, error: 'Embedded pages can’t do that.' }, '*');
+      else if (m.type === 'call') frame.contentWindow.postMessage({ biggle: 1, type: 'result', id: m.id, error: w('Embedded pages can’t do that.') }, '*');
     });
   });
 
@@ -464,17 +466,17 @@ a:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.name{font-we
 .name{font-weight:700}a{color:inherit;font-weight:600}`,
     (host, root, showError) => {
       const id = Number(host.getAttribute('ring'));
-      if (!id) return showError('Say which webring: <biggle-webring ring="3">.');
-      const box = el('nav', { class: 'card ring', part: 'ring', 'aria-label': 'Webring' });
+      if (!id) return showError(w('Say which webring: <biggle-webring ring="3">.'));
+      const box = el('nav', { class: 'card ring', part: 'ring', 'aria-label': w('Webring') });
       root.append(box);
       call('webring', id).then((r) => {
         const link = (s, text) => (s ? el('a', { href: `biggle://${s.address}/`, part: 'link', textContent: text, title: s.title || s.address }) : null);
         if (!r.member) {
-          box.append(el('span', { class: 'muted', textContent: `This site isn't in the ${r.ring.name} webring yet.` }));
+          box.append(el('span', { class: 'muted', textContent: w('This site isn’t in the {ring} webring yet.', { ring: r.ring.name }) }));
           return;
         }
         box.append(
-          ...[link(r.prev, '← Previous'), el('span', { class: 'name', part: 'name', textContent: r.ring.name }), link(r.random, 'Random'), link(r.next, 'Next →')].filter(Boolean),
+          ...[link(r.prev, w('← Previous')), el('span', { class: 'name', part: 'name', textContent: r.ring.name }), link(r.random, w('Random')), link(r.next, w('Next →'))].filter(Boolean),
         );
       }, showError);
     },

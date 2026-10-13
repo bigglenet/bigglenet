@@ -1,6 +1,7 @@
 <script lang="ts">
   // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
   import { account, type Again, type Ticket } from '../lib/account.svelte';
+  import Trans from './Trans.svelte';
   import { errorText } from '../lib/api';
   import { t } from '../lib/i18n.svelte';
   import { invite } from '../lib/invite.svelte';
@@ -245,12 +246,12 @@
     <span class="logo-word" aria-hidden="true"></span>
 
     {#if invite.from && (step === 'welcome' || step === 'signup')}
-      <p class="invited">{invite.from} invited you. Make a Biggle ID and you’ll be friends straight away.</p>
+      <p class="invited">{t('{from} invited you. Make a Biggle ID and you’ll be friends straight away.', { from: invite.from })}</p>
     {/if}
 
     {#if step === 'welcome'}
-      <h1>The internet, but smaller and nicer</h1>
-      <p class="lede">Make a Biggle ID to explore .biggle sites, chat with friends and build your own site.</p>
+      <h1>{t('The internet, but smaller and nicer')}</h1>
+      <p class="lede">{t('Make a Biggle ID to explore .biggle sites, chat with friends and build your own site.')}</p>
       <div class="stack">
         {#if account.google}
           <button class="google" onclick={google}>
@@ -263,50 +264,50 @@
                 d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7l3.7 2.9C6.7 7.3 9.1 5.4 12 5.4z"
               /></svg
             >
-            Continue with Google
+            {t('Continue with Google')}
           </button>
         {/if}
         {#if account.email}
-          <button class="primary" onclick={() => go('signup')}>Sign up with email</button>
+          <button class="primary" onclick={() => go('signup')}>{t('Sign up with email')}</button>
         {/if}
         <button class={account.email || account.google ? 'secondary' : 'primary'} onclick={() => go('signin')}>
-          I already have an account
+          {t('I already have an account')}
         </button>
         {#if canPasskey}
           <button class="secondary" onclick={passkey} disabled={busy}>{t('Sign in with a passkey')}</button>
         {/if}
       </div>
       {#if !account.email && !account.google}
-        <p class="note">New accounts open very soon.</p>
+        <p class="note">{t('New accounts open very soon.')}</p>
       {/if}
     {:else if step === 'signin'}
-      <h1>Welcome back</h1>
+      <h1>{t('Welcome back')}</h1>
       <form class="stack" onsubmit={submit(() => account.signIn(username, password))}>
-        <input bind:value={username} placeholder="Email or username" autocomplete="username" autocapitalize="off" spellcheck="false" required />
-        <input bind:value={password} type="password" placeholder="Password" autocomplete="current-password" required />
-        <button class="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <input bind:value={username} placeholder={t('Email or username')} aria-label={t('Email or username')} autocomplete="username" autocapitalize="off" spellcheck="false" required />
+        <input bind:value={password} type="password" placeholder={t('Password')} aria-label={t('Password')} autocomplete="current-password" required />
+        <button class="primary" disabled={busy}>{busy ? t('Signing in…') : t('Sign in')}</button>
       </form>
       <p class="links">
-        {#if account.email}<button class="link" onclick={() => go('reset')}>Forgot your password?</button>{/if}
-        <button class="link" onclick={() => go('welcome')}>Back</button>
+        {#if account.email}<button class="link" onclick={() => go('reset')}>{t('Forgot your password?')}</button>{/if}
+        <button class="link" onclick={() => go('welcome')}>{t('Back')}</button>
       </p>
     {:else if step === 'signup'}
-      <h1>Make your Biggle ID</h1>
+      <h1>{t('Make your Biggle ID')}</h1>
       <form
         class="stack"
         onsubmit={submit(async () =>
           confirm(await account.signUpStart(email, username, password, again('signup')), 'signup', 'signup-code'),
         )}
       >
-        <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
-        <input bind:value={username} placeholder="Username" autocomplete="username" autocapitalize="off" spellcheck="false" required />
-        <input bind:value={password} type="password" placeholder="Password (8+ characters)" autocomplete="new-password" minlength="8" required />
-        <button class="primary" disabled={busy}>{busy ? (account.join ? 'One moment…' : 'Sending code…') : 'Continue'}</button>
+        <input bind:value={email} type="email" placeholder={t('Email address')} aria-label={t('Email address')} autocomplete="email" required />
+        <input bind:value={username} placeholder={t('Username')} aria-label={t('Username')} autocomplete="username" autocapitalize="off" spellcheck="false" required />
+        <input bind:value={password} type="password" placeholder={t('Password (8+ characters)')} aria-label={t('Password (8+ characters)')} autocomplete="new-password" minlength="8" required />
+        <button class="primary" disabled={busy}>{busy ? (account.join ? t('One moment…') : t('Sending code…')) : 'Continue'}</button>
       </form>
-      <p class="links"><button class="link" onclick={() => go('welcome')}>Back</button></p>
+      <p class="links"><button class="link" onclick={() => go('welcome')}>{t('Back')}</button></p>
     {:else if step === 'signup-code' || step === 'add-email-code'}
-      <h1>Check your email</h1>
-      <p class="lede">We sent a 6-digit code to <strong>{email}</strong>.</p>
+      <h1>{t('Check your email')}</h1>
+      <p class="lede"><Trans text={t('We sent a 6-digit code to {address}.')}>{#snippet address()}<strong>{email}</strong>{/snippet}</Trans></p>
       <form
         class="stack"
         onsubmit={submit(() =>
@@ -320,45 +321,45 @@
           autocomplete="one-time-code"
           maxlength="6"
           placeholder="000000"
-          aria-label="Code"
+          aria-label={t('Code')}
           required
         />
-        <button class="primary" disabled={busy || code.length < 6}>{busy ? 'Checking…' : 'Confirm'}</button>
+        <button class="primary" disabled={busy || code.length < 6}>{busy ? t('Checking…') : 'Confirm'}</button>
       </form>
       <p class="links">
         <button
           class="link"
           onclick={() =>
             run(async () => withCode(step === 'signup-code' ? await account.signUpStart(email, username, password) : await account.emailStart(email)))}
-          >Send a new code</button
+          >{t('Send a new code')}</button
         >
-        <button class="link" onclick={() => go(step === 'signup-code' ? 'signup' : 'add-email')}>Use a different email</button>
+        <button class="link" onclick={() => go(step === 'signup-code' ? 'signup' : 'add-email')}>{t('Use a different email')}</button>
       </p>
     {:else if step === 'reset'}
-      <h1>Reset your password</h1>
-      <p class="lede">{account.join ? "Then you'll send us a quick email to prove it's you." : "We'll email you a code."}</p>
+      <h1>{t('Reset your password')}</h1>
+      <p class="lede">{account.join ? t("Then you'll send us a quick email to prove it's you.") : t("We'll email you a code.")}</p>
       <form
         class="stack"
         onsubmit={submit(async () =>
           confirm(await account.resetStart(email, account.join ? password : undefined, again('reset')), 'reset', 'reset-code'),
         )}
       >
-        <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
+        <input bind:value={email} type="email" placeholder={t('Email address')} aria-label={t('Email address')} autocomplete="email" required />
         {#if account.join}
-          <input bind:value={password} type="password" placeholder="New password (8+ characters)" autocomplete="new-password" minlength="8" required />
+          <input bind:value={password} type="password" placeholder={t('New password (8+ characters)')} aria-label={t('New password (8+ characters)')} autocomplete="new-password" minlength="8" required />
         {/if}
-        <button class="primary" disabled={busy}>{busy ? 'One moment…' : account.join ? 'Continue' : 'Send code'}</button>
+        <button class="primary" disabled={busy}>{busy ? t('One moment…') : account.join ? 'Continue' : t('Send code')}</button>
       </form>
-      <p class="links"><button class="link" onclick={() => go('signin')}>Back</button></p>
+      <p class="links"><button class="link" onclick={() => go('signin')}>{t('Back')}</button></p>
     {:else if step === 'reset-code'}
-      <h1>Choose a new password</h1>
-      <p class="lede">If there's an account for <strong>{email}</strong>, a code is on its way.</p>
+      <h1>{t('Choose a new password')}</h1>
+      <p class="lede"><Trans text={t('If there’s an account for {address}, a code is on its way.')}>{#snippet address()}<strong>{email}</strong>{/snippet}</Trans></p>
       <form class="stack" onsubmit={submit(() => account.resetFinish(ticket!.ticket, code, password))}>
-        <input class="code" bind:value={code} inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="Code" required />
-        <input bind:value={password} type="password" placeholder="New password (8+ characters)" autocomplete="new-password" minlength="8" required />
-        <button class="primary" disabled={busy}>{busy ? 'Saving…' : 'Reset password'}</button>
+        <input class="code" bind:value={code} inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label={t('Code')} required />
+        <input bind:value={password} type="password" placeholder={t('New password (8+ characters)')} aria-label={t('New password (8+ characters)')} autocomplete="new-password" minlength="8" required />
+        <button class="primary" disabled={busy}>{busy ? t('Saving…') : t('Reset password')}</button>
       </form>
-      <p class="links"><button class="link" onclick={() => go('signin')}>Back</button></p>
+      <p class="links"><button class="link" onclick={() => go('signin')}>{t('Back')}</button></p>
     {:else if step === 'second-step'}
       <h1>{t('Enter your code')}</h1>
       <p class="lede">{t('From your authenticator app. Lost your phone? Use one of your recovery codes.')}</p>
@@ -373,44 +374,46 @@
       <div class="spinner" aria-hidden="true"></div>
       <p class="links"><button class="link" onclick={() => go('welcome')}>{t('Cancel')}</button></p>
     {:else if step === 'google-wait'}
-      <h1>Finish in your browser</h1>
-      <p class="lede">Pick your Google account in the window that opened. We'll carry on here when you're done.</p>
+      <h1>{t('Finish in your browser')}</h1>
+      <p class="lede">{t("Pick your Google account in the window that opened. We'll carry on here when you're done.")}</p>
       <div class="spinner" aria-hidden="true"></div>
-      <p class="links"><button class="link" onclick={() => go('welcome')}>Cancel</button></p>
+      <p class="links"><button class="link" onclick={() => go('welcome')}>{t('Cancel')}</button></p>
     {:else if step === 'google-username'}
-      <h1>Pick a username</h1>
-      <p class="lede">It's how friends find you{email ? `. You're signing in as ${email}` : ''}.</p>
+      <h1>{t('Pick a username')}</h1>
+      <p class="lede">{email ? t("It's how friends find you. You're signing in as {email}.", { email }) : t("It's how friends find you.")}</p>
       <form class="stack" onsubmit={submit(() => account.googleFinish(googleId, username))}>
-        <input bind:value={username} placeholder="Username" autocapitalize="off" spellcheck="false" required />
-        <button class="primary" disabled={busy}>{busy ? 'One moment…' : 'Done'}</button>
+        <input bind:value={username} placeholder={t('Username')} aria-label={t('Username')} autocapitalize="off" spellcheck="false" required />
+        <button class="primary" disabled={busy}>{busy ? t('One moment…') : 'Done'}</button>
       </form>
     {:else if step === 'add-email'}
-      <h1>One more thing</h1>
-      <p class="lede">Every Biggle ID now has an email address, so you can always get back in. Add yours, {account.user?.username}.</p>
+      <h1>{t('One more thing')}</h1>
+      <p class="lede">{t('Every Biggle ID now has an email address, so you can always get back in. Add yours, {username}.', { username: account.user?.username })}</p>
       <form
         class="stack"
         onsubmit={submit(async () =>
           confirm(await account.emailStart(email, again('add-email')), 'add-email', 'add-email-code'),
         )}
       >
-        <input bind:value={email} type="email" placeholder="Email address" autocomplete="email" required />
-        <button class="primary" disabled={busy}>{busy ? 'One moment…' : account.join ? 'Continue' : 'Send code'}</button>
+        <input bind:value={email} type="email" placeholder={t('Email address')} aria-label={t('Email address')} autocomplete="email" required />
+        <button class="primary" disabled={busy}>{busy ? t('One moment…') : account.join ? 'Continue' : t('Send code')}</button>
       </form>
-      <p class="links"><button class="link" onclick={() => account.signOut()}>Sign out</button></p>
+      <p class="links"><button class="link" onclick={() => account.signOut()}>{t('Sign out')}</button></p>
     {:else if step === 'mail'}
-      <h1>Prove it's your email</h1>
-      <p class="lede">Send us a quick email from <strong>{email}</strong>. It's already written for you, so just press send.</p>
+      <h1>{t("Prove it's your email")}</h1>
+      <p class="lede"><Trans text={t('Send us a quick email from {address}. It’s already written for you, so just press send.')}>{#snippet address()}<strong>{email}</strong>{/snippet}</Trans></p>
       <div class="stack">
-        <a class="primary" href={mailto} onclick={openMail}>Open my email app</a>
+        <a class="primary" href={mailto} onclick={openMail}>{t('Open my email app')}</a>
       </div>
       {#if !error}
-        <p class="waiting"><span class="spinner small" aria-hidden="true"></span>{busy ? 'Got it! One moment…' : 'Waiting for your email…'}</p>
+        <p class="waiting"><span class="spinner small" aria-hidden="true"></span>{busy ? t('Got it! One moment…') : t('Waiting for your email…')}</p>
       {/if}
       <p class="note">
-        No email app? Email <strong class="pick">{ticket?.join}</strong> from {email} with
-        <strong class="pick">{ticket?.code}</strong> in the subject.
+        <Trans text={t('No email app? Email {to} from {address} with {code} in the subject.')} address={email}>
+          {#snippet to()}<strong class="pick">{ticket?.join}</strong>{/snippet}
+          {#snippet code()}<strong class="pick">{ticket?.code}</strong>{/snippet}
+        </Trans>
       </p>
-      <p class="links"><button class="link" onclick={() => go(mailBack)}>Use a different email</button></p>
+      <p class="links"><button class="link" onclick={() => go(mailBack)}>{t('Use a different email')}</button></p>
     {/if}
 
     {#if error}

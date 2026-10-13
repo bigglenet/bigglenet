@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n.svelte';
+  import Trans from './Trans.svelte';
   import { unlockWeb, type Gate } from '../lib/gate';
 
   let { gate }: { gate: Exclude<Gate, 'ok'> } = $props();
@@ -57,35 +59,45 @@
     <span class="logo-word" aria-hidden="true"></span>
 
     {#if gate === 'desktop'}
-      <h1>Bigglenet lives in its own app</h1>
-      <p>On a computer, the Bigglenet only opens in the Biggle desktop app. It's free and tiny.</p>
+      <h1>{t('Bigglenet lives in its own app')}</h1>
+      <p>{t("On a computer, the Bigglenet only opens in the Biggle desktop app. It's free and tiny.")}</p>
       <div class="actions">
-        <a class="primary" href={RELEASES}>Download for {os}</a>
-        <a class="secondary" href="biggle://home.biggle/" onclick={openApp}>I have it, open Bigglenet</a>
+        <a class="primary" href={RELEASES}>{t('Download for {os}', { os })}</a>
+        <a class="secondary" href="biggle://home.biggle/" onclick={openApp}>{t('I have it, open Bigglenet')}</a>
       </div>
-      <p class="small">Also for {os === 'Mac' ? 'Windows and Linux' : os === 'Windows' ? 'Mac and Linux' : 'Mac and Windows'}. On a phone? Open this page there and add it to your home screen.</p>
+      <p class="small">{t('Also for {and}. On a phone? Open this page there and add it to your home screen.', { and: os === 'Mac' ? t('Windows and Linux') : os === 'Windows' ? t('Mac and Linux') : t('Mac and Windows') })}</p>
     {:else if installed}
-      <h1>You're all set</h1>
-      <p>Open <strong>Bigglenet</strong> from your home screen.</p>
+      <h1>{t("You're all set")}</h1>
+      <p><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>Bigglenet</strong>{/snippet}</Trans></p>
     {:else}
-      <h1>Add Bigglenet to your home screen</h1>
-      <p>On phones, the Bigglenet works as an app on your home screen, not in a browser tab.</p>
+      <h1>{t('Add Bigglenet to your home screen')}</h1>
+      <p>{t('On phones, the Bigglenet works as an app on your home screen, not in a browser tab.')}</p>
       {#if installPrompt}
         <div class="actions">
-          <button class="primary" onclick={install}>Install Bigglenet</button>
+          <button class="primary" onclick={install}>{t('Install Bigglenet')}</button>
         </div>
       {:else}
         <ol>
           {#if gate === 'ios'}
             <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-            <li onclick={onFirstStep}>Tap the <strong>Share</strong> button <svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" /></svg> in your browser.</li>
-            <li>Choose <strong>Add to Home Screen</strong>.</li>
+            <li onclick={onFirstStep}>
+              <Trans text={t('Tap the {share} button {icon} in your browser.')}>
+                {#snippet share()}<strong>{t('Share')}</strong>{/snippet}
+                {#snippet icon()}<svg class="share" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" /></svg>{/snippet}
+              </Trans>
+            </li>
+            <li><Trans text={t('Choose {item}.')}>{#snippet item()}<strong>{t('Add to Home Screen')}</strong>{/snippet}</Trans></li>
           {:else}
             <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-            <li onclick={onFirstStep}>Open your browser's menu (<strong>⋮</strong>).</li>
-            <li>Choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
+            <li onclick={onFirstStep}><Trans text={t('Open your browser’s menu ({menu}).')}>{#snippet menu()}<strong>⋮</strong>{/snippet}</Trans></li>
+            <li>
+              <Trans text={t('Choose {install} or {add}.')}>
+                {#snippet install()}<strong>{t('Install app')}</strong>{/snippet}
+                {#snippet add()}<strong>{t('Add to Home screen')}</strong>{/snippet}
+              </Trans>
+            </li>
           {/if}
-          <li>Open <strong>Bigglenet</strong> from your home screen.</li>
+          <li><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>Bigglenet</strong>{/snippet}</Trans></li>
         </ol>
       {/if}
     {/if}

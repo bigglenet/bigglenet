@@ -5,7 +5,7 @@
   import { api, errorText } from '../lib/api';
   import { browser } from '../lib/browser.svelte';
   import { SERVER } from '../lib/config';
-  import { t } from '../lib/i18n.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
   import { isApp } from '../lib/platform';
   import { qrSvg } from '../lib/qr';
   import { sync } from '../lib/sync.svelte';
@@ -60,7 +60,7 @@
 
   function saveRecovery() {
     if (!recovery) return;
-    const url = URL.createObjectURL(new Blob([`Bigglenet recovery codes for ${account.user?.username}\n\n${recovery.join('\n')}\n\nEach one works once.\n`], { type: 'text/plain' }));
+    const url = URL.createObjectURL(new Blob([`${t('Bigglenet recovery codes for {name}', { name: account.user?.username })}\n\n${recovery.join('\n')}\n\n${t('Each one works once.')}\n`], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = 'bigglenet-recovery-codes.txt';
@@ -76,7 +76,7 @@
   let keyAbort: AbortController | null = null;
   const loadKeys = () => api<{ passkeys: Passkey[] }>('GET', '/api/passkeys').then((r) => (passkeys = r.passkeys), () => {});
   const canPasskey = isApp || passkeysHere;
-  const deviceName = () => (isApp ? 'Bigglenet app' : /Mac/.test(navigator.userAgent) ? 'Mac' : /Windows/.test(navigator.userAgent) ? 'Windows' : /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : 'Passkey');
+  const deviceName = () => (isApp ? t('Bigglenet app') : /Mac/.test(navigator.userAgent) ? 'Mac' : /Windows/.test(navigator.userAgent) ? 'Windows' : /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : t('Passkey'));
   const addKey = () => {
     keyAbort = new AbortController();
     waitingKey = isApp;
@@ -126,7 +126,7 @@
     loadKeys();
   });
 
-  const day = (s: number) => new Date(s * 1000).toLocaleDateString();
+  const day = (s: number) => new Date(s * 1000).toLocaleDateString(i18n.locale);
 </script>
 
 <section id="account">

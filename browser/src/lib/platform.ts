@@ -64,6 +64,8 @@ type Desktop = {
   info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
   /** The browser has started (so newer browser files from a smaller update work; webbundle.js). */
   booted?(): Promise<void>;
+  /** The browser's language, for the app's own menus (desktop/main/language.js). Older apps don't have it. */
+  language?(lang: string): Promise<void>;
   /** Keep running in the background after the window closes (desktop/main/background.js). */
   background: { get(): Promise<boolean>; set(on: boolean): Promise<boolean> };
   updates: {

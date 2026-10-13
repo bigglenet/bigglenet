@@ -91,6 +91,18 @@ button:disabled {
   outline-offset: 1px;
 }
 
+/* Hardly any movement for people who ask their computer for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* The brand marks are alpha masks, so they take the current text colour. */
 .logo-mark,
 .logo-word {

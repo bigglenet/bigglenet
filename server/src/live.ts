@@ -58,10 +58,10 @@ function pushFor(event: LiveEvent): PushMessage | null {
             ? 'Sent a photo'
             : 'Sent a file'
         : m.body.slice(0, 200);
-    return { title: m.from, body, tag: `chat-${m.chatId}`, chatId: m.chatId };
+    return { title: m.from, body, tag: `chat-${m.chatId}`, chatId: m.chatId, ours: body !== m.body.slice(0, 200) };
   }
   if (event.type === 'call' && event.ring) {
-    return { title: event.ring.from, body: event.ring.video ? 'Video calling you' : 'Calling you', tag: `call-${event.chatId}`, chatId: event.chatId };
+    return { title: event.ring.from, body: event.ring.video ? 'Video calling you' : 'Calling you', tag: `call-${event.chatId}`, chatId: event.chatId, ours: true };
   }
   if (event.type === 'notification') {
     const n = event.notification as { kind: string; data: Record<string, unknown> };
@@ -81,7 +81,7 @@ function pushFor(event: LiveEvent): PushMessage | null {
       'co-owner': [`${s(n.data.from)} added you as an editor of a site`, `biggle://sites/${s(n.data.site)}`],
     };
     const t = text[n.kind];
-    return t ? { title: 'Bigglenet', body: t[0], href: t[1], tag: `n-${n.kind}` } : null;
+    return t ? { title: 'Bigglenet', body: t[0], href: t[1], tag: `n-${n.kind}`, ours: true } : null;
   }
   return null;
 }
@@ -152,10 +152,10 @@ export class Live extends DurableObject<Env> {
     const message = pushFor(event);
     if (!message) return;
     const { results } = await this.env.DB.prepare(
-      'SELECT p.endpoint, p.p256dh, p.auth, u.username FROM push_subscriptions p JOIN users u ON u.id = p.user_id WHERE p.user_id = ?',
+      'SELECT p.endpoint, p.p256dh, p.auth, p.lang, u.username FROM push_subscriptions p JOIN users u ON u.id = p.user_id WHERE p.user_id = ?',
     )
       .bind(userId)
-      .all<{ endpoint: string; p256dh: string; auth: string; username: string }>();
+      .all<{ endpoint: string; p256dh: string; auth: string; lang: string; username: string }>();
     // Not your own messages, sent from another device.
     if (!results.length || (event.type === 'chat-message' && message.title === results[0].username)) return;
     await sendPush(this.env, userId, message, results);

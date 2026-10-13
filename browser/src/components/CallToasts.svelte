@@ -1,5 +1,6 @@
 <script lang="ts">
   // Someone calling you, and short notes about calls ("No answer").
+  import { t } from '../lib/i18n.svelte';
   import { calls } from '../lib/calls.svelte';
   import { chats } from '../lib/chats.svelte';
   import { overlays } from '../lib/overlays.svelte';
@@ -18,21 +19,21 @@
 </script>
 
 {#if ring}
-  <div class="ring" role="alertdialog" aria-label="{caller} is calling">
+  <div class="ring" role="alertdialog" aria-label={t('{caller} is calling', { caller })}>
     <Avatar name={caller} user={ring?.from} size={44} />
     <div class="who">
       <strong>{caller}</strong>
-      <span>{ring.video ? 'Video call' : 'Voice call'}{where ? ` · ${where}` : ''}</span>
+      <span>{ring.video ? t('Video call') : t('Voice call')}{where ? ` · ${where}` : ''}</span>
     </div>
     <div class="buttons">
-      <button class="round no" aria-label="Decline" title="Decline" onclick={() => calls.decline()}><Icon name="hangUp" size={18} /></button>
+      <button class="round no" aria-label={t('Decline')} title={t('Decline')} onclick={() => calls.decline()}><Icon name="hangUp" size={18} /></button>
       {#if ring.video}
-        <button class="round yes" aria-label="Answer with video" title="Answer with video" onclick={() => calls.accept()}><Icon name="video" size={18} /></button>
+        <button class="round yes" aria-label={t('Answer with video')} title={t('Answer with video')} onclick={() => calls.accept()}><Icon name="video" size={18} /></button>
       {/if}
       <button
         class="round yes"
-        aria-label={ring.video ? 'Answer with voice only' : 'Answer'}
-        title={ring.video ? 'Voice only' : 'Answer'}
+        aria-label={ring.video ? t('Answer with voice only') : 'Answer'}
+        title={ring.video ? t('Voice only') : 'Answer'}
         onclick={() => ring && calls.join(ring.chatId, false)}><Icon name="phone" size={18} /></button
       >
     </div>

@@ -68,7 +68,7 @@ class Social {
 
   /** What to call someone: the nickname you gave them, or their username. */
   nameOf(username: string | null): string {
-    if (!username) return 'Someone';
+    if (!username) return t('Someone');
     return this.friends.find((f) => f.username === username)?.nickname || username;
   }
 

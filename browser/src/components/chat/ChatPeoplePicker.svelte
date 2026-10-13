@@ -1,5 +1,6 @@
 <script lang="ts">
   // Tick friends to put in a group.
+  import { t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
@@ -21,9 +22,9 @@
 </script>
 
 {#if social.friends.filter((f) => !exclude.includes(f.username)).length > 6}
-  <input class="field filter" bind:value={query} placeholder="Find a friend" aria-label="Find a friend" />
+  <input class="field filter" bind:value={query} placeholder={t('Find a friend')} aria-label={t('Find a friend')} />
 {/if}
-<div class="people" role="group" aria-label="Friends">
+<div class="people" role="group" aria-label={t('Friends')}>
   {#each friends as f (f.username)}
     {@const on = picked.includes(f.username)}
     <button class="person" class:on role="checkbox" aria-checked={on} onclick={() => toggle(f.username)}>
@@ -35,7 +36,7 @@
       <span class="tick" class:on>{#if on}<Icon name="check" size={14} />{/if}</span>
     </button>
   {:else}
-    <p class="muted none">{social.friends.length ? 'No friends left to add.' : 'Add some friends first.'}</p>
+    <p class="muted none">{social.friends.length ? t('No friends left to add.') : t('Add some friends first.')}</p>
   {/each}
 </div>
 

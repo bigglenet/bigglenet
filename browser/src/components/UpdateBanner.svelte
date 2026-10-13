@@ -1,5 +1,6 @@
 <script lang="ts">
   // A new version is ready (restart or reload), or Bigglenet was just updated (what's new).
+  import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { updates } from '../lib/updates.svelte';
@@ -19,22 +20,22 @@
 <div class="update" role="status">
   {#if ready}
     <span class="text">
-      <strong>{updates.version ? `Bigglenet ${updates.version} is ready` : 'A new Bigglenet is ready'}</strong>
-      <span>{updates.version ? 'Restart to start using it.' : 'Reload to start using it.'}</span>
+      <strong>{updates.version ? t('Bigglenet {version} is ready', { version: updates.version }) : t('A new Bigglenet is ready')}</strong>
+      <span>{updates.version ? t('Restart to start using it.') : t('Reload to start using it.')}</span>
     </span>
     <button class="go" disabled={updates.installing} onclick={() => updates.apply()}>
-      {updates.installing ? 'Updating…' : updates.version ? 'Restart' : 'Reload'}
+      {updates.installing ? t('Updating…') : updates.version ? 'Restart' : 'Reload'}
     </button>
-    <button class="later" aria-label="Later" title="Later" onclick={() => (updates.dismissed = true)}>
+    <button class="later" aria-label={t('Later')} title={t('Later')} onclick={() => (updates.dismissed = true)}>
       <Icon name="close" size={15} />
     </button>
   {:else}
     <span class="text">
-      <strong>Bigglenet is now {updates.justUpdated}</strong>
-      <span>See what’s changed.</span>
+      <strong>{t('Bigglenet is now {justUpdated}', { justUpdated: updates.justUpdated })}</strong>
+      <span>{t('See what’s changed.')}</span>
     </span>
-    <button class="go" onclick={whatsNew}>What’s new</button>
-    <button class="later" aria-label="Close" title="Close" onclick={() => (updates.justUpdated = null)}>
+    <button class="go" onclick={whatsNew}>{t('What’s new')}</button>
+    <button class="later" aria-label={t('Close')} title={t('Close')} onclick={() => (updates.justUpdated = null)}>
       <Icon name="close" size={15} />
     </button>
   {/if}

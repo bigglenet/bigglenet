@@ -1,6 +1,7 @@
 // Watching or listening together during a call: someone pastes a YouTube link (or a link to a
 // video or song file), and everyone in the call plays it in step. Play, pause and seeking are
 // passed around the call (POST /api/chats/:id/together); everyone's player follows.
+import { t } from './i18n.svelte';
 import { account } from './account.svelte';
 import { api } from './api';
 import { calls } from './calls.svelte';
@@ -62,9 +63,9 @@ class Together {
     try {
       parsed = new URL(link);
     } catch {
-      return 'Paste a link, like https://youtu.be/…';
+      return t('Paste a link, like https://youtu.be/…');
     }
-    if (!/^https?:$/.test(parsed.protocol)) return 'Paste a link, like https://youtu.be/…';
+    if (!/^https?:$/.test(parsed.protocol)) return t('Paste a link, like https://youtu.be/…');
     const id = youtubeId(link);
     this.shared = { kind: id ? 'youtube' : 'media', url: link, id: id ?? undefined, playing: true, time: 0, at: Date.now(), by: account.user?.username ?? '' };
     this.send({ action: 'load', shared: { ...this.shared, sentAt: Date.now() } });

@@ -18,7 +18,7 @@
       script.src = 'https://www.youtube.com/iframe_api';
       script.onerror = () => {
         youtube = null;
-        reject(new Error('Couldn’t load YouTube.'));
+        reject(new Error(t('Couldn’t load YouTube.')));
       };
       document.head.append(script);
     });

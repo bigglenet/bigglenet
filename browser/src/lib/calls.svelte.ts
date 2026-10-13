@@ -3,6 +3,7 @@
 //
 // Who starts each connection: someone joining connects to everyone already in the call. If two
 // people's offers cross, the one whose username sorts first wins.
+import { t } from './i18n.svelte';
 import { account } from './account.svelte';
 import { api, errorText } from './api';
 import { chats, type CallMember } from './chats.svelte';
@@ -111,7 +112,7 @@ class Calls {
   /** Start or join the call in a chat. */
   async join(chatId: number, video: boolean) {
     if (this.chatId === chatId) return;
-    if (!this.supported) return this.say("Calls don't work in this browser.");
+    if (!this.supported) return this.say(t("Calls don't work in this browser."));
     if (this.chatId !== null) await this.leave();
     if (this.ringing?.chatId === chatId) this.stopRinging();
     this.chatId = chatId;
@@ -199,10 +200,10 @@ class Calls {
       if (video) {
         try {
           this.mic = (await media.getUserMedia({ audio: AUDIO })).getAudioTracks()[0] ?? null;
-          this.say("Couldn't use your camera, so you're on voice only.");
+          this.say(t("Couldn't use your camera, so you're on voice only."));
         } catch {}
       }
-      if (!this.mic) this.say("Couldn't use your microphone. Others won't hear you.");
+      if (!this.mic) this.say(t("Couldn't use your microphone. Others won't hear you."));
     }
     this.micOn = !!this.mic;
     this.cameraOn = !!this.camera;
@@ -220,7 +221,7 @@ class Calls {
       try {
         this.mic = (await navigator.mediaDevices.getUserMedia({ audio: AUDIO })).getAudioTracks()[0];
       } catch {
-        return this.say("Couldn't use your microphone.");
+        return this.say(t("Couldn't use your microphone."));
       }
       if (this.chatId === null) return this.mic.stop();
       this.micOn = true;
@@ -243,7 +244,7 @@ class Calls {
       try {
         this.camera = (await navigator.mediaDevices.getUserMedia({ video: VIDEO })).getVideoTracks()[0];
       } catch {
-        return this.say("Couldn't use your camera.");
+        return this.say(t("Couldn't use your camera."));
       }
       if (this.chatId === null) return this.camera.stop();
       this.cameraOn = true;
@@ -259,7 +260,7 @@ class Calls {
   /** Show everyone your screen (or a window), instead of your camera. */
   async toggleScreen() {
     if (this.screen) return this.stopScreen();
-    if (!navigator.mediaDevices?.getDisplayMedia) return this.say("Screen sharing doesn't work here.");
+    if (!navigator.mediaDevices?.getDisplayMedia) return this.say(t("Screen sharing doesn't work here."));
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
@@ -410,7 +411,7 @@ class Calls {
         if (this.chatId === chatId) for (const name of members) if (this.peers.get(name)?.pc.connectionState !== 'connected') this.offer(name);
       })
       .catch(() => {
-        if (this.chatId === chatId) this.leave('You were disconnected from the call.');
+        if (this.chatId === chatId) this.leave(t('You were disconnected from the call.'));
       })
       .finally(() => (this.rejoining = false));
   }
@@ -425,7 +426,7 @@ class Calls {
     } else if (this.hadCompany) {
       this.leave();
     } else if (!this.noAnswerTimer) {
-      this.noAnswerTimer = setTimeout(() => this.leave('No answer.'), NO_ANSWER_MS);
+      this.noAnswerTimer = setTimeout(() => this.leave(t('No answer.')), NO_ANSWER_MS);
     }
   }
 

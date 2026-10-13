@@ -2,6 +2,7 @@
 // Desktop app: finds and downloads new releases in the background, then offers a restart.
 // Web app: notices a new deploy and offers a reload.
 // Either way it checks now and then, and whenever someone asks (Settings, or the Mac menu).
+import { t } from './i18n.svelte';
 import { desktop } from './platform';
 
 const CHECK_EVERY = 6 * 60 * 60 * 1000;
@@ -55,7 +56,7 @@ class Updates {
     } catch (e) {
       // Offline, or the release isn't there yet. Try again later.
       this.status = asked ? 'failed' : 'idle';
-      this.error = e instanceof Error ? e.message : 'Couldn’t check for updates.';
+      this.error = e instanceof Error ? e.message : t('Couldn’t check for updates.');
     }
   }
 
@@ -80,7 +81,7 @@ class Updates {
       return;
     }
     const res = await fetch('/version.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('Couldn’t reach the Bigglenet.');
+    if (!res.ok) throw new Error(t('Couldn’t reach the Bigglenet.'));
     const { build, version } = await res.json();
     if (build && build !== __BUILD_ID__) {
       this.version = typeof version === 'string' && version !== this.current ? version : null;
@@ -98,7 +99,7 @@ class Updates {
     } catch (e) {
       this.installing = false;
       this.status = 'failed';
-      this.error = e instanceof Error ? e.message : 'The update couldn’t be installed.';
+      this.error = e instanceof Error ? e.message : t('The update couldn’t be installed.');
     }
   }
 }

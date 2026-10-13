@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import type { PageError } from '../lib/loader';
   import { parse, siteHost } from '../lib/url';
@@ -14,50 +15,50 @@
     switch (error.code) {
       case 'bad_address':
         return {
-          title: "That's not a Biggle address",
-          body: 'Biggle addresses look like hello.biggle or biggle://hello.biggle/about.bhtml.',
+          title: t("That's not a Biggle address"),
+          body: t('Biggle addresses look like hello.biggle or biggle://hello.biggle/about.bhtml.'),
         };
       case 'server_unreachable':
         return {
-          title: "Can't reach the Bigglenet",
-          body: "The Biggle server isn't responding. Check your connection and try again.",
+          title: t("Can't reach the Bigglenet"),
+          body: t("The Biggle server isn't responding. Check your connection and try again."),
         };
       case 'no_such_name':
         return {
-          title: `${host} doesn't exist`,
-          body: 'Nobody has this name yet. Names are handed out by the Bigglenet admin.',
+          title: t("{host} doesn't exist", { host }),
+          body: t('Nobody has this name yet. Names are handed out by the Bigglenet admin.'),
         };
       case 'host_unreachable':
         return {
-          title: `${host} isn't responding`,
-          body: "The site's host couldn't be reached. It might be down for a moment.",
+          title: t("{host} isn't responding", { host }),
+          body: t("The site's host couldn't be reached. It might be down for a moment."),
         };
       case 'bad_redirect':
         return {
-          title: `${host} tried to send you off the Bigglenet`,
-          body: 'The site redirected to an address outside itself, so Biggle stopped.',
+          title: t('{host} tried to send you off the Bigglenet', { host }),
+          body: t('The site redirected to an address outside itself, so Biggle stopped.'),
         };
       case 'not_found':
-        return { title: 'Page not found', body: `${host} doesn't have ${path}.` };
+        return { title: t('Page not found'), body: t("{host} doesn't have {path}.", { host, path }) };
       case 'not_bhtml':
         return {
-          title: "This isn't a BHTML page",
+          title: t("This isn't a BHTML page"),
           body:
             error.detail === 'html'
-              ? 'This is a normal web page. Biggle only opens pages that start with <!bhtml 1>.'
-              : 'Biggle only opens pages that start with <!bhtml 1>.',
+              ? t('This is a normal web page. Biggle only opens pages that start with <!bhtml 1>.')
+              : t('Biggle only opens pages that start with <!bhtml 1>.'),
         };
       case 'bhtml_version':
         return {
-          title: 'This page needs a newer Biggle',
-          body: `It's written in BHTML ${error.detail}, and this browser understands BHTML 1.`,
+          title: t('This page needs a newer Biggle'),
+          body: t("It's written in BHTML {detail}, and this browser understands BHTML 1.", { detail: error.detail }),
         };
       case 'unsupported':
-        return { title: "Biggle can't show this file", body: `It's a ${error.detail} file.` };
+        return { title: t("Biggle can't show this file"), body: t("It's a {kind} file.", { kind: error.detail }) };
       default:
         return {
-          title: 'Something went wrong',
-          body: `${host} answered with an error (HTTP ${error.status ?? '?'}).`,
+          title: t('Something went wrong'),
+          body: t('{host} answered with an error (HTTP {status}).', { host, status: error.status ?? '?' }),
         };
     }
   });
@@ -69,7 +70,7 @@
     <h1>{text.title}</h1>
     <p>{text.body}</p>
     {#if error.code !== 'bad_address'}
-      <button onclick={() => browser.reload(tab)}>Try again</button>
+      <button onclick={() => browser.reload(tab)}>{t('Try again')}</button>
     {/if}
   </div>
 </div>

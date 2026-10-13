@@ -1,5 +1,6 @@
 <script lang="ts">
   // biggle://history: tabs you closed (to bring back), and the sites you've been to, by day.
+  import { i18n, t } from '../lib/i18n.svelte';
   import { browser, type ClosedTab, type Tab } from '../lib/browser.svelte';
   import { pageHistory, type Visit } from '../lib/history.svelte';
   import { isMac } from '../lib/platform';
@@ -32,12 +33,12 @@
     const d = new Date(at);
     const today = new Date();
     const yesterday = new Date(Date.now() - 86_400_000);
-    if (d.toDateString() === today.toDateString()) return 'Today';
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+    if (d.toDateString() === today.toDateString()) return t('Today');
+    if (d.toDateString() === yesterday.toDateString()) return t('Yesterday');
+    return d.toLocaleDateString(i18n.locale, { weekday: 'long', day: 'numeric', month: 'long', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
   }
 
-  const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const time = (at: number) => new Date(at).toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit' });
   const host = (url: string) => url.replace(/^biggle:\/\//, '').replace(/\/$/, '');
 
   function open(e: MouseEvent, url: string) {
@@ -53,31 +54,31 @@
 <div class="page">
   <div class="inner">
     <header>
-      <h1>History</h1>
+      <h1>{t('History')}</h1>
       {#if pageHistory.visits.length}
         {#if clearing}
           <span class="confirm">
-            Clear all history? <button class="danger" onclick={() => ((clearing = false), pageHistory.clear())}>Clear it</button>
-            <button class="ghost" onclick={() => (clearing = false)}>Keep it</button>
+            {t('Clear all history?')} <button class="danger" onclick={() => ((clearing = false), pageHistory.clear())}>{t('Clear it')}</button>
+            <button class="ghost" onclick={() => (clearing = false)}>{t('Keep it')}</button>
           </span>
         {:else}
-          <button class="ghost" onclick={() => (clearing = true)}><Icon name="trash" size={14} /> Clear history</button>
+          <button class="ghost" onclick={() => (clearing = true)}><Icon name="trash" size={14} /> {t('Clear history')}</button>
         {/if}
       {/if}
     </header>
 
     {#if browser.closed.length}
       <section>
-        <h2>Recently closed tabs <span class="hint">{isMac ? '⇧⌘T' : 'Ctrl+Shift+T'} brings back the last one</span></h2>
+        <h2>{t('Recently closed tabs')} <span class="hint">{t('{isMac} brings back the last one', { isMac: isMac ? '⇧⌘T' : 'Ctrl+Shift+T' })}</span></h2>
         <ul>
           {#each [...browser.closed].reverse() as c (c.closedAt + c.url)}
             <li>
               <span class="time">{time(c.closedAt)}</span>
-              <button class="open" onclick={() => reopen(c)} title="Reopen this tab">
+              <button class="open" onclick={() => reopen(c)} title={t('Reopen this tab')}>
                 <span class="title">{c.title}</span>
                 <span class="url">{host(c.url)}</span>
               </button>
-              <button class="icon" aria-label="Reopen {c.title}" title="Reopen" onclick={() => reopen(c)}><Icon name="reload" size={15} /></button>
+              <button class="icon" aria-label={t('Reopen {title}', { title: c.title })} title={t('Reopen')} onclick={() => reopen(c)}><Icon name="reload" size={15} /></button>
             </li>
           {/each}
         </ul>
@@ -87,11 +88,11 @@
     {#if pageHistory.visits.length === 0}
       <div class="empty">
         <Icon name="clock" size={28} />
-        <p>No history yet.</p>
-        <p class="muted">Sites you visit show up here. History stays on this device.</p>
+        <p>{t('No history yet.')}</p>
+        <p class="muted">{t('Sites you visit show up here. History stays on this device.')}</p>
       </div>
     {:else}
-      <input class="search" bind:value={query} oninput={() => (limit = PAGE)} placeholder="Search history" aria-label="Search history" spellcheck="false" />
+      <input class="search" bind:value={query} oninput={() => (limit = PAGE)} placeholder={t('Search history')} aria-label={t('Search history')} spellcheck="false" />
       {#each days as day (day.label)}
         <section>
           <h2>{day.label}</h2>
@@ -103,7 +104,7 @@
                   <span class="title">{v.title}</span>
                   <span class="url">{host(v.url)}</span>
                 </button>
-                <button class="icon" aria-label="Remove {v.title} from history" title="Remove from history" onclick={() => pageHistory.remove(v)}>
+                <button class="icon" aria-label={t('Remove {title} from history', { title: v.title })} title={t('Remove from history')} onclick={() => pageHistory.remove(v)}>
                   <Icon name="close" size={15} />
                 </button>
               </li>
@@ -112,9 +113,9 @@
         </section>
       {/each}
       {#if matching.length > limit}
-        <button class="ghost more" onclick={() => (limit += PAGE)}>Show more</button>
+        <button class="ghost more" onclick={() => (limit += PAGE)}>{t('Show more')}</button>
       {:else if matching.length === 0}
-        <p class="muted none">Nothing in your history matches “{query}”.</p>
+        <p class="muted none">{t('Nothing in your history matches “{query}”.', { query })}</p>
       {/if}
     {/if}
   </div>

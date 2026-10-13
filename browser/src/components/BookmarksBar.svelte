@@ -1,5 +1,6 @@
 <script lang="ts">
   // The bookmarks bar under the address bar. ⇧⌘B (Ctrl+Shift+B) or Settings shows and hides it.
+  import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { bookmarks, type Bookmark } from '../lib/bookmarks.svelte';
   import Icon from './Icon.svelte';
@@ -12,7 +13,7 @@
   }
 </script>
 
-<nav class="bar" aria-label="Bookmarks">
+<nav class="bar" aria-label={t('Bookmarks')}>
   {#each bookmarks.list as b (b.id)}
     <button
       class="mark"
@@ -28,8 +29,8 @@
       <span>{b.title}</span>
     </button>
   {/each}
-  <button class="all" title="All bookmarks" onclick={() => browser.shortcut('bookmarks')}>
-    <Icon name="star" size={14} /> All
+  <button class="all" title={t('All bookmarks')} onclick={() => browser.shortcut('bookmarks')}>
+    <Icon name="star" size={14} /> {t('All')}
   </button>
 </nav>
 

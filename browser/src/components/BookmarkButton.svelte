@@ -1,6 +1,7 @@
 <script lang="ts">
   // The star in the address bar: bookmarks the page (⌘D / Ctrl+D does the same), then offers to
   // rename or remove it.
+  import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { bookmarks, type Bookmark } from '../lib/bookmarks.svelte';
   import { overlays } from '../lib/overlays.svelte';
@@ -63,8 +64,8 @@
     <button
       class="toggle"
       class:on={!!marked}
-      aria-label={marked ? 'Edit bookmark' : 'Bookmark this page'}
-      title={marked ? 'Edit bookmark' : 'Bookmark this page'}
+      aria-label={marked ? t('Edit bookmark') : t('Bookmark this page')}
+      title={marked ? t('Edit bookmark') : t('Bookmark this page')}
       aria-expanded={!!open}
       type="button"
       onclick={() => (open ? done() : show())}
@@ -76,7 +77,7 @@
       <div
         class="panel"
         role="dialog"
-        aria-label="Bookmark"
+        aria-label={t('Bookmark')}
         tabindex="-1"
         onkeydown={(e) => {
           if (e.key === 'Escape' || e.key === 'Enter') {
@@ -85,15 +86,15 @@
           }
         }}
       >
-        <strong>{added ? 'Bookmarked' : 'Edit bookmark'}</strong>
+        <strong>{added ? 'Bookmarked' : t('Edit bookmark')}</strong>
         <label>
-          <span>Name</span>
+          <span>{t('Name')}</span>
           <input bind:this={field} bind:value={name} maxlength="120" />
         </label>
         <p class="url">{open.url}</p>
         <div class="actions">
-          <button type="button" class="ghost" onclick={remove}>Remove</button>
-          <button type="button" class="primary" onclick={done}>Done</button>
+          <button type="button" class="ghost" onclick={remove}>{t('Remove')}</button>
+          <button type="button" class="primary" onclick={done}>{t('Done')}</button>
         </div>
       </div>
     {/if}

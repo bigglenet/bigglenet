@@ -5,7 +5,7 @@
 <script lang="ts">
   import { account } from '../lib/account.svelte';
   import { api } from '../lib/api';
-  import { t } from '../lib/i18n.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
   import { siteHome, siteHost } from '../lib/url';
@@ -51,8 +51,8 @@
     const timer = setInterval(() => (now = new Date()), 10_000);
     return () => clearInterval(timer);
   });
-  const time = $derived(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  const greeting = $derived(now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening');
+  const time = $derived(now.toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit' }));
+  const greeting = $derived(now.getHours() < 12 ? t('Good morning') : now.getHours() < 18 ? t('Good afternoon') : t('Good evening'));
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -82,14 +82,14 @@
 
       {#if settings.shown.search}
         <form class="search" onsubmit={submit}>
-          <input bind:value={query} placeholder="Search with Nox or go to a .biggle address" aria-label="Search with Nox" spellcheck="false" />
+          <input bind:value={query} placeholder={t('Search with Nox or go to a .biggle address')} aria-label={t('Search with Nox')} spellcheck="false" />
           <button type="submit">Nox</button>
         </form>
-        <button class="browse" onclick={() => browser.go(tab, 'biggle://nox')}>Browse every site in Nox →</button>
+        <button class="browse" onclick={() => browser.go(tab, 'biggle://nox')}>{t('Browse every site in Nox →')}</button>
       {/if}
 
       {#if settings.shown.shortcuts && settings.shortcuts.length}
-        <ul class="shortcuts" aria-label="My shortcuts">
+        <ul class="shortcuts" aria-label={t('My shortcuts')}>
           {#each settings.shortcuts as shortcut, i (shortcut.url + i)}
             <li>
               <button onclick={() => browser.go(tab, shortcut.url)} title={shortcut.url}>
@@ -105,16 +105,16 @@
         <button class="home" onclick={() => browser.go(tab, 'biggle://home.biggle/')}>
           <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
           <span class="home-text">
-            <strong>home.biggle</strong>
-            <span>New here? Start with the Bigglenet's homepage.</span>
+            <strong>{t('home.biggle')}</strong>
+            <span>{t("New here? Start with the Bigglenet's homepage.")}</span>
           </span>
           <Icon name="forward" />
         </button>
         <button class="make" onclick={() => browser.go(tab, 'biggle://sites')}>
           <span class="make-plus"><Icon name="plus" size={18} /></span>
           <span class="home-text">
-            <strong>Make your own site</strong>
-            <span>Pick a name and a look. No code needed.</span>
+            <strong>{t('Make your own site')}</strong>
+            <span>{t('Pick a name and a look. No code needed.')}</span>
           </span>
           <Icon name="forward" />
         </button>
@@ -136,13 +136,13 @@
 
       {#if settings.shown.latest}
         <section>
-          <h2>Latest sites</h2>
+          <h2>{t('Latest sites')}</h2>
           {#await directory}
-            <p class="muted">Loading…</p>
+            <p class="muted">{t('Loading…')}</p>
           {:then sites}
             {@const latest = [...sites].sort((x, y) => (y.created ?? 0) - (x.created ?? 0)).slice(0, 6)}
             {#if latest.length === 0}
-              <p class="muted">No sites yet.</p>
+              <p class="muted">{t('No sites yet.')}</p>
             {:else}
               <ul class="sites">
                 {#each latest as site (site.name)}
@@ -159,7 +159,7 @@
               </ul>
             {/if}
           {:catch}
-            <p class="muted">Can't reach the Biggle server right now.</p>
+            <p class="muted">{t("Can't reach the Biggle server right now.")}</p>
           {/await}
         </section>
       {/if}
@@ -168,7 +168,7 @@
 
   <button class="customize" onclick={() => (customizing = !customizing)} aria-expanded={customizing}>
     <Icon name="settings" size={16} />
-    <span>Customize</span>
+    <span>{t('Customize')}</span>
   </button>
   {#if customizing}
     <StartCustomize onclose={() => (customizing = false)} />

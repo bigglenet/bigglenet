@@ -1,5 +1,6 @@
 <script lang="ts">
   // A live preview of a site in the editor, loaded through its signed preview link.
+  import { t } from '../lib/i18n.svelte';
   import { account } from '../lib/account.svelte';
   import { answerCall, closeScope, newScope, roomSend } from '../lib/frame';
   import { saveLocal } from '../lib/storage';
@@ -29,7 +30,7 @@
         srcdoc = r.srcdoc;
         error = '';
       } else if (r.type === 'error') {
-        error = r.error.code === 'not_bhtml' ? 'This page needs <!bhtml 1> on its first line.' : `Can't show ${path}.`;
+        error = r.error.code === 'not_bhtml' ? t('This page needs <!bhtml 1> on its first line.') : `Can't show ${path}.`;
       }
     });
     return () => controller.abort();
@@ -69,7 +70,7 @@
       <iframe
         bind:this={iframe}
         {srcdoc}
-        title="Preview of {site}.biggle"
+        title={t('Preview of {site}.biggle', { site })}
         sandbox="allow-scripts allow-forms allow-modals"
         referrerpolicy="no-referrer"
       ></iframe>

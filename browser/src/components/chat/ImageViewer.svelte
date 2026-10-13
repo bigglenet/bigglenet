@@ -2,6 +2,7 @@
   // A picture from a chat, as big as the window.
   import { SERVER } from '../../lib/config';
   import type { Attachment } from '../../lib/chats.svelte';
+  import { dialog } from '../../lib/dialog';
   import { t } from '../../lib/i18n.svelte';
   import { overlays } from '../../lib/overlays.svelte';
   import { downloads } from '../../lib/downloads.svelte';
@@ -18,7 +19,7 @@
   });
 </script>
 
-<div class="viewer" role="dialog" aria-label={a.name} tabindex="-1">
+<div class="viewer" role="dialog" aria-modal="true" aria-label={a.name} tabindex="-1" use:dialog>
   <button class="backdrop" aria-label={t('Close')} onclick={onclose}></button>
   <img src={url} alt={a.name} />
   <div class="bar">

@@ -180,7 +180,7 @@
         <form class="card stack add" onsubmit={add}>
           <h3>{t('Add a site')}</h3>
           <div class="row">
-            <input class="grow" bind:value={adding} placeholder="hello.biggle" aria-label={t('Site address')} spellcheck="false" autocapitalize="off" />
+            <input class="grow" bind:value={adding} placeholder={t('hello.biggle')} aria-label={t('Site address')} spellcheck="false" autocapitalize="off" />
             <input class="grow" bind:value={note} maxlength="200" placeholder={t('Why it’s good (optional)')} aria-label={t('Note')} />
             <button class="primary" disabled={busy || !adding.trim()}>{t('Add')}</button>
           </div>

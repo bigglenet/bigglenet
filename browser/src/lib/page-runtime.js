@@ -85,6 +85,12 @@
   __kit.call = call;
   __kit.post = post;
   __kit.init = init;
+  /** The Bigglenet tags' text in the visitor's language: w('Hi, {name}', { name }). */
+  const w = (text, params) => {
+    const out = (init.words && init.words[text]) || text;
+    return params ? out.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m)) : out;
+  };
+  __kit.w = w;
   __kit.user = () => user;
   __kit.onPush = (fn) => pushes.add(fn);
 
@@ -268,11 +274,14 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       if (this.shadowRoot) return;
       const root = this.attachShadow({ mode: 'open' });
       root.innerHTML = `<style>${GUESTBOOK_CSS}</style>
-<div class="head"><h2 part="title"><span class="title"></span> <span class="total"></span></h2><button class="sign" part="button">Sign the guestbook</button></div>
-<ol></ol><p class="empty" hidden>Nobody has signed it yet. Be the first!</p>
-<button class="more" part="button" hidden>Show older notes</button><p class="error" role="alert" hidden></p>`;
+<div class="head"><h2 part="title"><span class="title"></span> <span class="total"></span></h2><button class="sign" part="button"></button></div>
+<ol></ol><p class="empty" hidden></p>
+<button class="more" part="button" hidden></button><p class="error" role="alert" hidden></p>`;
+      root.querySelector('.sign').textContent = w('Sign the guestbook');
+      root.querySelector('.empty').textContent = w('Nobody has signed it yet. Be the first!');
+      root.querySelector('.more').textContent = w('Show older notes');
       const $ = (sel) => root.querySelector(sel);
-      $('.title').textContent = this.getAttribute('heading') || 'Guestbook';
+      $('.title').textContent = this.getAttribute('heading') || w('Guestbook');
       const list = $('ol');
       let total = 0;
       let oldest = null;
@@ -298,13 +307,13 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
         date.setAttribute('part', 'date');
         const d = new Date(n.at * 1000);
         date.dateTime = d.toISOString();
-        date.textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+        date.textContent = d.toLocaleDateString(init.locale || undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
         meta.append(author, date);
         if (n.canDelete) {
           const remove = document.createElement('button');
           remove.className = 'remove';
-          remove.title = 'Take this note down';
-          remove.setAttribute('aria-label', 'Take this note down');
+          remove.title = w('Take this note down');
+          remove.setAttribute('aria-label', remove.title);
           remove.textContent = '×';
           remove.onclick = () =>
             call('guestbook.delete', n.id).then(() => {
@@ -318,8 +327,8 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
         if (user && n.author !== user.username) {
           const flag = document.createElement('button');
           flag.className = 'remove';
-          flag.title = 'Report this note';
-          flag.setAttribute('aria-label', 'Report this note');
+          flag.title = w('Report this note');
+          flag.setAttribute('aria-label', flag.title);
           flag.textContent = '⚑';
           flag.onclick = () => call('report', 'note', n.id).catch(showError);
           meta.append(flag);

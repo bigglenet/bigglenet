@@ -2,6 +2,7 @@
   // A site that loads straight from its own host (a "direct" link), like any website: its own
   // origin, storage and full speed, which games and WebAssembly ports need. The Bigglenet only
   // looked up where the name points.
+  import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { provideFinder } from '../lib/find.svelte';
   import { frameZoom, zoom } from '../lib/zoom.svelte';
@@ -38,7 +39,7 @@
       onload={() => browser.frameLoaded(tab)}
     ></iframe>
   {:else}
-    <p class="blocked">This site can't be shown.</p>
+    <p class="blocked">{t("This site can't be shown.")}</p>
   {/if}
 {/key}
 

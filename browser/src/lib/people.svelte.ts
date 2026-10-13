@@ -157,5 +157,5 @@ export async function squareImage(file: Blob, size = 256): Promise<Blob> {
   bitmap.close();
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.86));
   if (blob && blob.type === 'image/webp') return blob;
-  return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Couldn’t read that picture.'))), 'image/jpeg', 0.88));
+  return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(t('Couldn’t read that picture.')))), 'image/jpeg', 0.88));
 }

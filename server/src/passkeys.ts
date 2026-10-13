@@ -12,6 +12,7 @@
 //   GET    /passkey/:id                      the page the system browser shows
 import { base64url, randomId, requireUser, signedIn } from './auth';
 import { HttpError, json, readJson, str } from './http';
+import { langOf, translate } from './i18n';
 
 const REQUEST_TTL = 10 * 60;
 const MAX_PASSKEYS = 10;
@@ -216,25 +217,29 @@ export async function requestOptions(req: Request, env: Env, id: string): Promis
 }
 
 /** The page the desktop app opens in the system browser. */
-export async function passkeyPage(_req: Request, _env: Env, id: string): Promise<Response> {
+export async function passkeyPage(req: Request, _env: Env, id: string): Promise<Response> {
   const safeId = id.replace(/[^A-Za-z0-9_-]/g, '');
+  // In the person's language: T() for the page, q() for text inside its script.
+  const lang = langOf(req);
+  const T = (text: string) => translate(text, lang);
+  const q = (text: string) => JSON.stringify(T(text));
   return new Response(
-    `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Passkey · Bigglenet</title>
+    `<!doctype html><html lang="${lang}"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${T('Passkey')} · Bigglenet</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,sans-serif;background:#f6f4f0;color:#222;text-align:center;padding:24px}
 main{max-width:420px}h1{font-size:22px;margin:0 0 8px}p{color:#6e6b65;line-height:1.5}button{margin-top:12px;padding:12px 20px;border:0;border-radius:12px;background:#222;color:#f6f4f0;font:inherit;font-weight:600;cursor:pointer}
 @media (prefers-color-scheme:dark){body{background:#1c1c1c;color:#f6f4f0}p{color:#a5a29b}button{background:#f6f4f0;color:#222}}</style>
-<main><h1 id="title">Passkey</h1><p id="text">One moment…</p><button id="go" hidden>Use my passkey</button></main>
+<main><h1 id="title">${T('Passkey')}</h1><p id="text">${T('One moment…')}</p><button id="go" hidden>${T('Use my passkey')}</button></main>
 <script type="module">
 const id = ${JSON.stringify(safeId)};
 const $ = (x) => document.getElementById(x);
 const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
 const bytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 const say = (title, text) => { $('title').textContent = title; $('text').textContent = text; };
-const post = async (path, body) => { const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json(); if (!r.ok) throw new Error(d.message || 'That didn’t work.'); return d; };
+const post = async (path, body) => { const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json(); if (!r.ok) throw new Error(d.message || ${q('That didn’t work.')}); return d; };
 let start;
 try { const r = await fetch('/api/passkeys/requests/' + id); start = await r.json(); if (!r.ok) throw new Error(start.message); }
-catch (e) { say('That has expired', e.message || 'Go back to Bigglenet and try again.'); throw e; }
+catch (e) { say(${q('That has expired')}, e.message || ${q('Go back to Bigglenet and try again.')}); throw e; }
 const run = async () => {
   $('go').hidden = true;
   try {
@@ -242,18 +247,18 @@ const run = async () => {
     if (start.kind === 'login') {
       const c = await navigator.credentials.get({ publicKey: { ...o, challenge: bytes(o.challenge) } });
       await post('/api/passkeys/login/finish', { id, external: true, credential: { id: c.id, clientDataJSON: b64(c.response.clientDataJSON), authenticatorData: b64(c.response.authenticatorData), signature: b64(c.response.signature) } });
-      say('You’re signed in', 'Go back to Bigglenet. You can close this tab.');
+      say(${q('You’re signed in')}, ${q('Go back to Bigglenet. You can close this tab.')});
     } else {
       const c = await navigator.credentials.create({ publicKey: { ...o, challenge: bytes(o.challenge), user: { ...o.user, id: bytes(o.user.id) }, excludeCredentials: o.excludeCredentials.map((x) => ({ ...x, id: bytes(x.id) })) } });
       await post('/api/passkeys/register/finish', { id, name: navigator.platform || 'Passkey', credential: { id: c.id, clientDataJSON: b64(c.response.clientDataJSON), publicKey: b64(c.response.getPublicKey()), algorithm: c.response.getPublicKeyAlgorithm() } });
-      say('Passkey added', 'Go back to Bigglenet. You can close this tab.');
+      say(${q('Passkey added')}, ${q('Go back to Bigglenet. You can close this tab.')});
     }
   } catch (e) {
-    say('That didn’t work', (e && e.name === 'NotAllowedError') ? 'It was cancelled. Try again, or go back to Bigglenet.' : (e.message || 'Try again.'));
+    say(${q('That didn’t work')}, (e && e.name === 'NotAllowedError') ? ${q('It was cancelled. Try again, or go back to Bigglenet.')} : (e.message || ${q('Try again.')}));
     $('go').hidden = false;
   }
 };
-say(start.kind === 'login' ? 'Sign in with a passkey' : 'Add a passkey', start.kind === 'login' ? 'Use Touch ID, Windows Hello or your phone.' : 'Use Touch ID, Windows Hello or your phone, so you can sign in without a password.');
+say(start.kind === 'login' ? ${q('Sign in with a passkey')} : ${q('Add a passkey')}, start.kind === 'login' ? ${q('Use Touch ID, Windows Hello or your phone.')} : ${q('Use Touch ID, Windows Hello or your phone, so you can sign in without a password.')});
 $('go').hidden = false;
 $('go').onclick = run;
 </script>`,

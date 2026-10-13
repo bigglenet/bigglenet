@@ -6,7 +6,8 @@ import { app, BrowserWindow, desktopCapturer, ipcMain, nativeImage, nativeTheme,
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { setupBackground } from './background.js';
+import { relabelTray, setupBackground } from './background.js';
+import { setupLanguage } from './language.js';
 import { setupLinks } from './links.js';
 import { attachContextMenu, setupMenu } from './menus.js';
 import { migrateOldData, setupMigration } from './migrate.js';
@@ -143,6 +144,11 @@ function start() {
   );
 
   setupMenu(getMain, (open) => createWindow(open));
+  // The browser's language changed: the menu bar and tray follow.
+  setupLanguage(() => {
+    setupMenu(getMain, (open) => createWindow(open));
+    relabelTray();
+  });
   closeSites = setupSites();
 
   ipcMain.handle('window:minimize', (event) => windowOf(event)?.minimize());

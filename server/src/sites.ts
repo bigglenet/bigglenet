@@ -10,7 +10,6 @@ import { addNotification } from './notifications';
 import { TEMPLATES, templateFiles, type Template } from './templates';
 import { today } from './visitors';
 
-const MAX_SITES = 3;
 export const MAX_FILE = 1_000_000;
 const MAX_SITE = 5_000_000;
 const MAX_FILES = 60;
@@ -217,7 +216,6 @@ export async function mySites(req: Request, env: Env): Promise<Response> {
     .all<SiteRow & { visits: number; week: number; role: 'owner' | 'editor'; drafts: number }>();
   return json({
     sites: results.map((s) => ({ ...publicSite(s), visits: s.visits, week: s.week, role: s.role, drafts: s.drafts })),
-    limit: user.is_admin ? null : MAX_SITES,
     short: canUseShort(user),
   });
 }
@@ -247,11 +245,6 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
   const title = str(body.title).trim().slice(0, 80) || name;
   const about = str(body.about).trim().slice(0, 300);
   const template = (TEMPLATES as string[]).includes(str(body.template)) ? (str(body.template) as Template) : 'page';
-
-  if (!user.is_admin) {
-    const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM names WHERE owner_id = ?').bind(user.id).first<{ n: number }>();
-    if ((count?.n ?? 0) >= MAX_SITES) throw new HttpError(400, 'too_many', `You can have up to ${MAX_SITES} sites.`);
-  }
 
   const files = body.files && typeof body.files === 'object' ? starterFiles(body.files) : templateFiles(template, title, about);
   const enc = new TextEncoder();

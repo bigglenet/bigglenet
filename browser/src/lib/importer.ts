@@ -2,6 +2,7 @@
 // (a folder or a .zip). Pages become .bhtml, links are pointed at the new copies, and files the
 // site loads from elsewhere (fonts, libraries, pictures) are copied in too, because Biggle pages
 // can only load things from Biggle sites. Trackers are left behind.
+import { plural, t } from './i18n.svelte';
 import { api, apiFetch, errorText } from './api';
 
 /** The same limits the server keeps. */
@@ -90,9 +91,9 @@ export function webSource(address: string): Source {
   try {
     start = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`);
   } catch {
-    throw new Error("That doesn't look like a website address.");
+    throw new Error(t("That doesn't look like a website address."));
   }
-  if (!start.hostname.includes('.')) throw new Error("That doesn't look like a website address.");
+  if (!start.hostname.includes('.')) throw new Error(t("That doesn't look like a website address."));
   return { start, get: fetchWeb };
 }
 
@@ -106,7 +107,7 @@ export function filesSource(picked: Map<string, Blob>): Source {
   const depth = (p: string) => p.split('/').length;
   const pages = paths.filter((p) => /\.html?$/i.test(p)).sort((a, b) => depth(a) - depth(b) || a.length - b.length);
   const index = pages.find((p) => /(^|\/)index\.html?$/i.test(p)) ?? (pages.length === 1 ? pages[0] : null);
-  if (!index) throw new Error("Couldn't find the site's index.html. Pick the folder it's in.");
+  if (!index) throw new Error(t("Couldn't find the site's index.html. Pick the folder it's in."));
 
   // Only what's in the main page's folder comes along.
   const root = index.slice(0, index.lastIndexOf('/') + 1);
@@ -128,7 +129,7 @@ export function filesSource(picked: Map<string, Blob>): Source {
         const ext = extOf(p);
         return { data, type: /^html?$/.test(ext) ? 'text/html' : (TYPES[ext] ?? '').split(';')[0], charset: null, url: new URL(`${LOCAL}/${encodePath(p)}`) };
       }
-      throw new Error("It isn't in the files you picked.");
+      throw new Error(t("It isn't in the files you picked."));
     },
   };
 }
@@ -237,7 +238,7 @@ export async function importSite(source: Source, progress: (text: string) => voi
   const first = await source.get(source.start).catch((e) => {
     throw new Error(`Couldn't open ${source.start.href}: ${errorText(e)}`);
   });
-  if (!/html/.test(first.type)) throw new Error("That address isn't a web page.");
+  if (!/html/.test(first.type)) throw new Error(t("That address isn't a web page."));
 
   // Everything in the first page's folder, on the same site, comes along as part of the site.
   const root = new URL('./', first.url);
@@ -269,7 +270,7 @@ export async function importSite(source: Source, progress: (text: string) => voi
     const known = pagePaths.get(key);
     if (known) return known;
     if (pagePaths.size >= LIMITS.pages) {
-      if (!tooManyPages) skipped.push({ what: 'More pages', why: `only the first ${LIMITS.pages} pages come along. Links to the rest go to the original site` });
+      if (!tooManyPages) skipped.push({ what: t('More pages'), why: t('only the first {n} pages come along. Links to the rest go to the original site', { n: LIMITS.pages }) });
       tooManyPages = true;
       return null;
     }
@@ -294,12 +295,12 @@ export async function importSite(source: Source, progress: (text: string) => voi
   };
 
   function add(path: string, data: Blob, u: URL, page = false): boolean {
-    if (data.size > LIMITS.file) return skip(u, "it's over 1 MB"), false;
-    if (files.size + (page ? 0 : pagesWaiting) >= LIMITS.files) return skip(u, `a site can have up to ${LIMITS.files} files`), false;
-    if (total + data.size > LIMITS.site) return skip(u, 'a site can use up to 5 MB'), false;
+    if (data.size > LIMITS.file) return skip(u, t("it's over 1 MB")), false;
+    if (files.size + (page ? 0 : pagesWaiting) >= LIMITS.files) return skip(u, t('a site can have up to {n} files', { n: LIMITS.files })), false;
+    if (total + data.size > LIMITS.site) return skip(u, t('a site can use up to 5 MB')), false;
     files.set(path, data);
     total += data.size;
-    progress(`Copied ${files.size} file${files.size === 1 ? '' : 's'}…`);
+    progress(plural(files.size, 'Copied {n} file…', 'Copied {n} files…'));
     return true;
   }
 
@@ -331,7 +332,7 @@ export async function importSite(source: Source, progress: (text: string) => voi
     const typed = EXT_FOR_TYPE[got.type];
     if (!TYPES[ext] || ext === 'bhtml' || (typed && (typed === 'css' || typed === 'js') && ext !== typed)) ext = typed ?? '';
     if (!ext) {
-      skip(u, "Biggle sites can't hold this kind of file");
+      skip(u, t("Biggle sites can't hold this kind of file"));
       return null;
     }
     let base = inside(u) ? safeDecode(u.pathname.slice(root.pathname.length)) : `ext/${u.host}${safeDecode(u.pathname)}`;
@@ -501,7 +502,7 @@ export async function importSite(source: Source, progress: (text: string) => voi
   }
   while (work.length) await Promise.all(work.splice(0));
 
-  if (!files.has('index.bhtml')) throw new Error("The site's front page couldn't be copied.");
+  if (!files.has('index.bhtml')) throw new Error(t("The site's front page couldn't be copied."));
   return {
     title,
     files: [...files].map(([path, data]) => ({ path, data })),

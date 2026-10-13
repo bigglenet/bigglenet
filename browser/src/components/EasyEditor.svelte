@@ -191,8 +191,8 @@
 </script>
 
 <div class="tabs" role="tablist">
-  <button role="tab" aria-selected={pane === 'edit'} onclick={() => (pane = 'edit')}>Edit</button>
-  <button role="tab" aria-selected={pane === 'preview'} onclick={() => (pane = 'preview')}>Preview</button>
+  <button role="tab" aria-selected={pane === 'edit'} onclick={() => (pane = 'edit')}>{t('Edit')}</button>
+  <button role="tab" aria-selected={pane === 'preview'} onclick={() => (pane = 'preview')}>{t('Preview')}</button>
 </div>
 
 <div class="easy" data-pane={pane}>
@@ -201,36 +201,36 @@
       <p class="lock">{t('{who} is changing the site. You can edit again when they stop.', { who: locked })}</p>
     {/if}
     <section>
-      <h3>Look</h3>
+      <h3>{t('Look')}</h3>
       <div class="themes">
-        {#each THEMES as t (t.id)}
+        {#each THEMES as theme (theme.id)}
           <button
             class="swatch"
-            class:on={site.theme === t.id}
-            style:background={t.bg}
-            style:--dot={t.accent}
-            aria-label="{t.name} theme"
-            title={t.name}
-            onclick={() => (site.theme = t.id)}
+            class:on={site.theme === theme.id}
+            style:background={theme.bg}
+            style:--dot={theme.accent}
+            aria-label={t('{x} theme', { x: t(theme.name) })}
+            title={t(theme.name)}
+            onclick={() => (site.theme = theme.id)}
           ><span></span></button>
         {/each}
       </div>
       <div class="fonts">
         {#each FONTS as f (f.id)}
           <button class="chip" class:on={site.font === f.id} style:font-family={f.stack} onclick={() => (site.font = f.id)}>
-            {f.name}
+            {t(f.name)}
           </button>
         {/each}
       </div>
     </section>
 
     <section>
-      <h3>Top of the page</h3>
+      <h3>{t('Top of the page')}</h3>
       <div class="top">
-        <input class="emoji" bind:value={site.emoji} maxlength="4" aria-label="Emoji" />
-        <input bind:value={site.title} placeholder="Title" aria-label="Title" maxlength="80" />
+        <input class="emoji" bind:value={site.emoji} maxlength="4" aria-label={t('Emoji')} />
+        <input bind:value={site.title} placeholder={t('Title')} aria-label={t('Title')} maxlength="80" />
       </div>
-      <input bind:value={site.tagline} placeholder="A short line under the title" aria-label="Tagline" maxlength="160" />
+      <input bind:value={site.tagline} placeholder={t('A short line under the title')} aria-label={t('Tagline')} maxlength="160" />
     </section>
 
     <section>
@@ -250,37 +250,37 @@
     </section>
 
     <section>
-      <h3>Blocks</h3>
+      <h3>{t('Blocks')}</h3>
       {#each site.blocks as b, i (b.id)}
         <div class="block">
           <div class="block-head">
-            <span>{BLOCK_NAMES[b.type]}</span>
-            <button class="mini" aria-label="Move up" disabled={i === 0} onclick={() => move(i, -1)}>↑</button>
-            <button class="mini" aria-label="Move down" disabled={i === site.blocks.length - 1} onclick={() => move(i, 1)}>↓</button>
-            <button class="mini" aria-label="Remove {BLOCK_NAMES[b.type]}" onclick={() => (site.blocks = site.blocks.filter((x) => x.id !== b.id))}>
+            <span>{t(BLOCK_NAMES[b.type])}</span>
+            <button class="mini" aria-label={t('Move up')} disabled={i === 0} onclick={() => move(i, -1)}>↑</button>
+            <button class="mini" aria-label={t('Move down')} disabled={i === site.blocks.length - 1} onclick={() => move(i, 1)}>↓</button>
+            <button class="mini" aria-label={t('Remove {type}', { type: t(BLOCK_NAMES[b.type]) })} onclick={() => (site.blocks = site.blocks.filter((x) => x.id !== b.id))}>
               <Icon name="close" size={13} />
             </button>
           </div>
           {#if b.type === 'heading'}
-            <input bind:value={b.text} aria-label="Heading" />
+            <input bind:value={b.text} aria-label={t('Heading')} />
           {:else if b.type === 'text'}
-            <textarea bind:value={b.text} rows="3" aria-label="Text"></textarea>
+            <textarea bind:value={b.text} rows="3" aria-label={t('Text')}></textarea>
           {:else if b.type === 'image'}
             <div class="image-row">
-              <button class="pick" onclick={() => pickImage(b.id)}>{b.src ? 'Change picture' : 'Choose a picture'}</button>
-              <input bind:value={b.alt} placeholder="Describe it (for screen readers)" aria-label="Picture description" />
+              <button class="pick" onclick={() => pickImage(b.id)}>{b.src ? t('Change picture') : t('Choose a picture')}</button>
+              <input bind:value={b.alt} placeholder={t('Describe it (for screen readers)')} aria-label={t('Picture description')} />
             </div>
           {:else if b.type === 'button'}
-            <input bind:value={b.label} placeholder="Button text" aria-label="Button text" />
-            <input bind:value={b.url} placeholder="Where it goes: friend.biggle or a web address" aria-label="Button link" />
+            <input bind:value={b.label} placeholder={t('Button text')} aria-label={t('Button text')} />
+            <input bind:value={b.url} placeholder={t('Where it goes: friend.biggle or a web address')} aria-label={t('Button link')} />
           {:else if b.type === 'greeting'}
-            <p class="hint">Says hi to each visitor by their Biggle name.</p>
+            <p class="hint">{t('Says hi to each visitor by their Biggle name.')}</p>
           {:else if b.type === 'counter'}
-            <p class="hint">Shows each visitor how many times they've come by.</p>
+            <p class="hint">{t("Shows each visitor how many times they've come by.")}</p>
           {:else if b.type === 'visits'}
-            <p class="hint">Shows how many visits your site has had from everyone (each person counts once a day).</p>
+            <p class="hint">{t('Shows how many visits your site has had from everyone (each person counts once a day).')}</p>
           {:else if b.type === 'guestbook'}
-            <p class="hint">Visitors can leave you a note. You can take down any note on your site.</p>
+            <p class="hint">{t('Visitors can leave you a note. You can take down any note on your site.')}</p>
           {:else if b.type === 'poll'}
             <input bind:value={b.question} placeholder={t('The question')} aria-label={t('Poll question')} />
             <textarea
@@ -307,7 +307,7 @@
           {:else if b.type === 'newsites'}
             <p class="hint">{t('The five newest sites on the Bigglenet.')}</p>
           {:else if b.type === 'embed'}
-            <input bind:value={b.url} placeholder="friend.biggle/page" aria-label={t('Page to show')} />
+            <input bind:value={b.url} placeholder={t('friend.biggle/page')} aria-label={t('Page to show')} />
             <p class="hint">{t('Shows another .biggle page inside yours.')}</p>
           {:else if b.type === 'webring'}
             <select bind:value={b.ring} aria-label={t('Webring')}>
@@ -316,14 +316,14 @@
             </select>
             <p class="hint">{t('Links to the sites before and after yours in the ring. Add your site to the ring in Nox → Webrings first.')}</p>
           {:else}
-            <p class="hint">A line between sections.</p>
+            <p class="hint">{t('A line between sections.')}</p>
           {/if}
         </div>
       {/each}
 
       <div class="add">
         {#each ADD as type (type)}
-          <button class="chip" onclick={() => add(type)}>+ {BLOCK_NAMES[type]}</button>
+          <button class="chip" onclick={() => add(type)}>+ {t(BLOCK_NAMES[type])}</button>
         {/each}
       </div>
     </section>
@@ -331,7 +331,7 @@
   </div>
 
   <div class="preview" style:background={previewBg}>
-    <iframe bind:this={iframe} {srcdoc} title="Preview of {name}.biggle" sandbox="allow-scripts allow-modals"></iframe>
+    <iframe bind:this={iframe} {srcdoc} title={t('Preview of {x}.biggle', { x: name })} sandbox="allow-scripts allow-modals"></iframe>
   </div>
 </div>
 

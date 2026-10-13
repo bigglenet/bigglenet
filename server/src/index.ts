@@ -57,6 +57,7 @@ import * as requests from './requests';
 import * as google from './google';
 import { serveFile } from './files';
 import { fail, HttpError, preflight } from './http';
+import { langOf, translateError } from './i18n';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
 import * as invites from './invites';
@@ -305,60 +306,65 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/live$/, connect],
 ];
 
+async function handle(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (req.method === 'OPTIONS') return preflight();
+  const { pathname, search } = new URL(req.url);
+
+  // A backup runs on after the answer, so it needs the context.
+  if (pathname === '/api/admin/backups' && req.method === 'POST') {
+    try {
+      return await backups.backupNow(req, env, ctx);
+    } catch (e) {
+      if (e instanceof HttpError) return fail(e.status, e.code, e.message);
+      throw e;
+    }
+  }
+
+  const file = pathname.match(/^\/files\/(.+)$/);
+  if (file && req.method === 'GET') {
+    try {
+      return await serveFile(req, env, file[1]);
+    } catch (e) {
+      if (e instanceof HttpError) return fail(e.status, e.code, e.message);
+      throw e;
+    }
+  }
+
+  const site = pathname.match(/^\/(site|preview)\/([^/]+)(\/.*)?$/);
+  if (site) {
+    const handler = site[1] === 'site' ? gateway : preview;
+    return handler(req, env, site[2], site[3] ?? '', search);
+  }
+
+  let pathMatched = false;
+  for (const [method, pattern, handler] of routes) {
+    const m = pathname.match(pattern);
+    if (!m) continue;
+    pathMatched = true;
+    if (method !== req.method) continue;
+    try {
+      const params = m.slice(1).map((p) => {
+        try {
+          return decodeURIComponent(p);
+        } catch {
+          throw new HttpError(400, 'bad_path', "That address isn't valid.");
+        }
+      });
+      return await handler(req, env, ...params);
+    } catch (e) {
+      if (e instanceof HttpError) return fail(e.status, e.code, e.message);
+      console.error(e);
+      return fail(500, 'server_error', 'Something went wrong on the Biggle server.');
+    }
+  }
+  if (pathMatched) return fail(405, 'method_not_allowed', "That method isn't allowed here.");
+  return fail(404, 'not_found', 'Nothing here.');
+}
+
 export default {
+  // Errors come back in the asker's language (i18n.ts).
   async fetch(req, env, ctx): Promise<Response> {
-    if (req.method === 'OPTIONS') return preflight();
-    const { pathname, search } = new URL(req.url);
-
-    // A backup runs on after the answer, so it needs the context.
-    if (pathname === '/api/admin/backups' && req.method === 'POST') {
-      try {
-        return await backups.backupNow(req, env, ctx);
-      } catch (e) {
-        if (e instanceof HttpError) return fail(e.status, e.code, e.message);
-        throw e;
-      }
-    }
-
-    const file = pathname.match(/^\/files\/(.+)$/);
-    if (file && req.method === 'GET') {
-      try {
-        return await serveFile(req, env, file[1]);
-      } catch (e) {
-        if (e instanceof HttpError) return fail(e.status, e.code, e.message);
-        throw e;
-      }
-    }
-
-    const site = pathname.match(/^\/(site|preview)\/([^/]+)(\/.*)?$/);
-    if (site) {
-      const handler = site[1] === 'site' ? gateway : preview;
-      return handler(req, env, site[2], site[3] ?? '', search);
-    }
-
-    let pathMatched = false;
-    for (const [method, pattern, handler] of routes) {
-      const m = pathname.match(pattern);
-      if (!m) continue;
-      pathMatched = true;
-      if (method !== req.method) continue;
-      try {
-        const params = m.slice(1).map((p) => {
-          try {
-            return decodeURIComponent(p);
-          } catch {
-            throw new HttpError(400, 'bad_path', "That address isn't valid.");
-          }
-        });
-        return await handler(req, env, ...params);
-      } catch (e) {
-        if (e instanceof HttpError) return fail(e.status, e.code, e.message);
-        console.error(e);
-        return fail(500, 'server_error', 'Something went wrong on the Biggle server.');
-      }
-    }
-    if (pathMatched) return fail(405, 'method_not_allowed', "That method isn't allowed here.");
-    return fail(404, 'not_found', 'Nothing here.');
+    return translateError(await handle(req, env, ctx), langOf(req));
   },
 
   async email(message, env) {

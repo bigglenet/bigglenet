@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld('bigglenet', {
   info: () => ipcRenderer.invoke('app:info'),
   /** The browser has started (main/webbundle.js checks newer browser files do). */
   booted: () => ipcRenderer.invoke('app:booted'),
+  /** The browser's language, for the app's own menus (main/language.js). */
+  language: (lang) => ipcRenderer.invoke('app:language', lang),
   /** Keep running in the background after the window closes (main/background.js). */
   background: {
     get: () => ipcRenderer.invoke('background:get'),

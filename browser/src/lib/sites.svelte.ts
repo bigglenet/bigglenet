@@ -22,8 +22,6 @@ export type MySite = {
 
 class Sites {
   mine = $state<MySite[] | null>(null);
-  /** How many sites you may have, or null for no limit (admins). */
-  limit = $state<number | null>(3);
   /** Sites waiting for an admin's approval. */
   reviews = $state(0);
   /** Bumped when the review queue changes, so the admin page can reload it. */
@@ -32,9 +30,8 @@ class Sites {
   async refreshMine() {
     if (!account.token) return;
     try {
-      const r = await api<{ sites: MySite[]; limit: number | null }>('GET', '/api/sites');
+      const r = await api<{ sites: MySite[] }>('GET', '/api/sites');
       this.mine = r.sites;
-      this.limit = r.limit;
     } catch {}
   }
 

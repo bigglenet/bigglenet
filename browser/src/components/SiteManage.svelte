@@ -4,6 +4,7 @@
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
   import { browser } from '../lib/browser.svelte';
+  import { dialog } from '../lib/dialog';
   import type { HeadMeta } from '../lib/headmeta';
   import { TAG_IDS, tagName } from '../lib/discover';
   import { i18n, plural, t } from '../lib/i18n.svelte';
@@ -163,6 +164,7 @@
     aria-label={t('Site settings')}
     tabindex="-1"
     bind:this={box}
+    use:dialog
     onkeydown={(e) => e.key === 'Escape' && onclose()}
   >
     <header>

@@ -1,6 +1,7 @@
 // How the new tab page looks and what new tabs open, kept in this browser. Change them from the
 // start page's Customize button or biggle://settings. biggle://newtab always shows the new tab
 // page, whatever's set.
+import { t } from './i18n.svelte';
 import { registerSync, syncChanged } from './sync.svelte';
 import { START, fromInput } from './url';
 
@@ -81,7 +82,7 @@ class StartSettings {
   /** New tabs open this address (anything you could type in the address bar). Returns an error, if any. */
   useNewTab(text: string): string | null {
     const address = toAddress(text);
-    if (!address) return "That isn't a Bigglenet address. Try something like home.biggle.";
+    if (!address) return t("That isn't a Bigglenet address. Try something like home.biggle.");
     this.newTab = address === START ? null : address;
     this.save();
     return null;

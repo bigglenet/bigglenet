@@ -47,7 +47,7 @@
     }
   });
 
-  const message = (e: unknown) => (typeof e === 'string' ? e : e instanceof Error ? e.message : 'Something went wrong.');
+  const message = (e: unknown) => (typeof e === 'string' ? e : e instanceof Error ? e.message : t('Something went wrong.'));
 
   // A new load (a new `view`): start in the tab. Leaving the page closes its web view and window.
   $effect(() => {

@@ -42,7 +42,7 @@ export async function runs(env: Env, s: Pick<Site, 'name' | 'owner_id'>, me: Use
 }
 
 function checkName(raw: string, what: string): string {
-  if (!NAME_RE.test(raw)) throw new HttpError(400, 'bad_name', `A ${what} name is 1–40 letters, numbers, - or _.`);
+  if (!NAME_RE.test(raw)) throw new HttpError(400, 'bad_name', `${/^[aeiou]/.test(what) ? 'An' : 'A'} ${what} name is 1–40 letters, numbers, - or _.`);
   return raw.toLowerCase();
 }
 

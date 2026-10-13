@@ -1,6 +1,7 @@
 <script lang="ts">
   // biggle://requests: ask for features and vote for the ones you want most. Admins set a status
   // and can reply.
+  import { i18n, t } from '../lib/i18n.svelte';
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
   import Icon from './Icon.svelte';
@@ -61,7 +62,7 @@
       .sort((a, b) => (sort === 'new' ? b.createdAt - a.createdAt : b.votes - a.votes || b.createdAt - a.createdAt)),
   );
   const count = (s: Status | 'all') => (s === 'all' ? requests.length : requests.filter((r) => r.status === s).length);
-  const date = (s: number) => new Date(s * 1000).toLocaleDateString([], { dateStyle: 'medium' });
+  const date = (s: number) => new Date(s * 1000).toLocaleDateString(i18n.locale, { dateStyle: 'medium' });
 
   async function send(e: SubmitEvent) {
     e.preventDefault();
@@ -118,29 +119,29 @@
 
 <div class="requests">
   <div class="inner">
-    <h1>Feature requests</h1>
-    <p class="muted">Ask for something you'd like the Bigglenet to do, and vote for the ideas you want most.</p>
+    <h1>{t('Feature requests')}</h1>
+    <p class="muted">{t("Ask for something you'd like the Bigglenet to do, and vote for the ideas you want most.")}</p>
 
     <form class="ask" onsubmit={send}>
-      <input bind:value={title} placeholder="What would you like?" maxlength="120" required aria-label="Your idea" />
-      <textarea bind:value={details} placeholder="More details (optional)" maxlength="2000" rows="3" aria-label="More details"></textarea>
+      <input bind:value={title} placeholder={t('What would you like?')} maxlength="120" required aria-label={t('Your idea')} />
+      <textarea bind:value={details} placeholder={t('More details (optional)')} maxlength="2000" rows="3" aria-label={t('More details')}></textarea>
       {#if formError}<p class="error" role="alert">{formError}</p>{/if}
       <div class="ask-actions">
-        <button class="primary" disabled={sending || title.trim().length < 3}>{sending ? 'Sending…' : 'Send request'}</button>
+        <button class="primary" disabled={sending || title.trim().length < 3}>{sending ? t('Sending…') : t('Send request')}</button>
       </div>
     </form>
 
     <div class="bar">
-      <div class="filters" role="radiogroup" aria-label="Show">
+      <div class="filters" role="radiogroup" aria-label={t('Show')}>
         {#each [['all', 'All'], ['open', 'Open'], ['planned', 'Planned'], ['done', 'Done'], ['declined', 'Not planned']] as [id, label] (id)}
           <button role="radio" aria-checked={filter === id} class:on={filter === id} onclick={() => (filter = id as Status | 'all')}>
-            {label} <span class="count">{count(id as Status | 'all')}</span>
+            {t(label)} <span class="count">{count(id as Status | 'all')}</span>
           </button>
         {/each}
       </div>
-      <div class="sort" role="radiogroup" aria-label="Order">
-        <button role="radio" aria-checked={sort === 'top'} class:on={sort === 'top'} onclick={() => (sort = 'top')}>Top</button>
-        <button role="radio" aria-checked={sort === 'new'} class:on={sort === 'new'} onclick={() => (sort = 'new')}>New</button>
+      <div class="sort" role="radiogroup" aria-label={t('Order')}>
+        <button role="radio" aria-checked={sort === 'top'} class:on={sort === 'top'} onclick={() => (sort = 'top')}>{t('Top')}</button>
+        <button role="radio" aria-checked={sort === 'new'} class:on={sort === 'new'} onclick={() => (sort = 'new')}>{t('New')}</button>
       </div>
     </div>
 
@@ -153,7 +154,7 @@
             class="vote"
             class:voted={r.voted}
             aria-pressed={r.voted}
-            aria-label={r.voted ? `Take back your vote for "${r.title}"` : `Vote for "${r.title}"`}
+            aria-label={r.voted ? t('Take back your vote for "{title}"', { title: r.title }) : t('Vote for "{title}"', { title: r.title })}
             onclick={() => toggleVote(r)}
           >
             <Icon name="up" size={18} />
@@ -162,22 +163,22 @@
           <div class="body">
             <div class="head">
               <strong>{r.title}</strong>
-              {#if r.status !== 'open'}<span class="pill {r.status}">{STATUS[r.status]}</span>{/if}
+              {#if r.status !== 'open'}<span class="pill {r.status}">{t(STATUS[r.status])}</span>{/if}
             </div>
             {#if r.details}<p class="details">{r.details}</p>{/if}
-            {#if r.reply}<p class="reply"><span>Reply:</span> {r.reply}</p>{/if}
+            {#if r.reply}<p class="reply"><span>{t('Reply:')}</span> {r.reply}</p>{/if}
             <div class="meta">
               <span>by {r.author ?? 'a deleted account'} · {date(r.createdAt)}</span>
               {#if isAdmin}
-                <button class="link" onclick={() => (answering = { id: r.id, status: r.status, reply: r.reply ?? '' })}>Answer</button>
+                <button class="link" onclick={() => (answering = { id: r.id, status: r.status, reply: r.reply ?? '' })}>{t('Answer')}</button>
               {/if}
               {#if r.mine || isAdmin}
                 {#if deleting === r.id}
-                  <span>Delete it?</span>
-                  <button class="link danger" onclick={() => remove(r)}>Yes, delete</button>
-                  <button class="link" onclick={() => (deleting = null)}>Keep</button>
+                  <span>{t('Delete it?')}</span>
+                  <button class="link danger" onclick={() => remove(r)}>{t('Yes, delete')}</button>
+                  <button class="link" onclick={() => (deleting = null)}>{t('Keep')}</button>
                 {:else}
-                  <button class="link" onclick={() => (deleting = r.id)}>Delete</button>
+                  <button class="link" onclick={() => (deleting = r.id)}>{t('Delete')}</button>
                 {/if}
               {/if}
             </div>
@@ -189,20 +190,20 @@
                   answer();
                 }}
               >
-                <select bind:value={answering.status} aria-label="Status">
+                <select bind:value={answering.status} aria-label={t('Status')}>
                   {#each Object.entries(STATUS) as [id, label] (id)}
-                    <option value={id}>{label}</option>
+                    <option value={id}>{t(label)}</option>
                   {/each}
                 </select>
-                <input bind:value={answering.reply} placeholder="Reply (optional, everyone sees it)" maxlength="1000" aria-label="Reply" />
-                <button class="primary">Save</button>
-                <button type="button" class="ghost" onclick={() => (answering = null)}>Cancel</button>
+                <input bind:value={answering.reply} placeholder={t('Reply (optional, everyone sees it)')} maxlength="1000" aria-label={t('Reply')} />
+                <button class="primary">{t('Save')}</button>
+                <button type="button" class="ghost" onclick={() => (answering = null)}>{t('Cancel')}</button>
               </form>
             {/if}
           </div>
         </li>
       {:else}
-        <li class="empty muted">{loaded ? (requests.length ? 'Nothing here.' : 'No requests yet. Be the first!') : 'Loading…'}</li>
+        <li class="empty muted">{loaded ? (requests.length ? t('Nothing here.') : t('No requests yet. Be the first!')) : t('Loading…')}</li>
       {/each}
     </ul>
   </div>

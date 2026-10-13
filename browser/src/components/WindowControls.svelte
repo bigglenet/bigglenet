@@ -1,6 +1,7 @@
 <script lang="ts">
   // Minimize, maximize and close, for the desktop app on Windows and Linux, where the tab bar
   // takes the place of the system title bar. Styled like the system's own buttons.
+  import { t } from '../lib/i18n.svelte';
   import { desktop } from '../lib/platform';
 
   const win = desktop?.window;
@@ -14,17 +15,17 @@
 </script>
 
 <div class="controls">
-  <button aria-label="Minimize" title="Minimize" onclick={() => win?.minimize()}>
+  <button aria-label={t('Minimize')} title={t('Minimize')} onclick={() => win?.minimize()}>
     <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10" /></svg>
   </button>
-  <button aria-label={maximized ? 'Restore' : 'Maximize'} title={maximized ? 'Restore' : 'Maximize'} onclick={() => win?.toggleMaximize()}>
+  <button aria-label={maximized ? t('Restore') : t('Maximize')} title={maximized ? t('Restore') : t('Maximize')} onclick={() => win?.toggleMaximize()}>
     {#if maximized}
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5V.5h7v7h-2M.5 2.5h7v7h-7z" /></svg>
     {:else}
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M.5.5h9v9h-9z" /></svg>
     {/if}
   </button>
-  <button class="close" aria-label="Close" title="Close" onclick={() => win?.close()}>
+  <button class="close" aria-label={t('Close')} title={t('Close')} onclick={() => win?.close()}>
     <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M.5.5l9 9M9.5.5l-9 9" /></svg>
   </button>
 </div>

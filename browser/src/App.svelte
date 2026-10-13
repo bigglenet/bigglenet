@@ -21,7 +21,7 @@
   import { couch } from './lib/couch.svelte';
   import { downloads } from './lib/downloads.svelte';
   import { perf } from './lib/perf.svelte';
-  import { t } from './lib/i18n.svelte';
+  import { i18n, t } from './lib/i18n.svelte';
   import './lib/theme.svelte';
   import AdminPage from './components/AdminPage.svelte';
   import CommandPalette, { palette } from './components/CommandPalette.svelte';
@@ -211,6 +211,11 @@
     (key) => browser.shortcut(key),
   );
   // "Check for Updates…" in the Mac menu: show Settings → Updates, and check.
+  // The app's own menus (menu bar, tray) follow the browser's language.
+  $effect(() => {
+    desktop?.language?.(i18n.lang);
+  });
+
   desktop?.updates.onCheckRequested(() => {
     if (ready) browser.openFromOutside('biggle://settings/updates');
     updates.check(true);

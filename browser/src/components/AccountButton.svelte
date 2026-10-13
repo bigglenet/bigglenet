@@ -46,13 +46,13 @@
   {#if account.user}
     <button
       class="me"
-      aria-label="Account: {account.user.username}"
+      aria-label={t('Account: {username}', { username: account.user.username })}
       aria-haspopup="menu"
       aria-expanded={open}
       onclick={() => (open = !open)}
     >
       <Avatar name={account.user.username} user={account.user.username} size={28} />
-      {#if sites.reviews}<span class="ping" aria-label="{sites.reviews} sites waiting for approval"></span>{/if}
+      {#if sites.reviews}<span class="ping" aria-label={t('{reviews} sites waiting for approval', { reviews: sites.reviews })}></span>{/if}
     </button>
     {#if open}
       <div class="menu" role="menu">
@@ -60,22 +60,22 @@
           <Avatar name={account.user.username} user={account.user.username} size={36} />
           <div>
             <strong>{account.user.username}</strong>
-            <span>{account.user.admin ? 'Admin' : 'Biggle ID'}</span>
+            <span>{account.user.admin ? t('Admin') : t('Biggle ID')}</span>
           </div>
         </div>
         <button role="menuitem" onclick={() => openPage(`biggle://u/${account.user!.username}`)}><Icon name="users" size={16} /> {t('My profile')}</button>
-        <button role="menuitem" onclick={() => openPage('biggle://sites')}><Icon name="globe" size={16} /> My sites</button>
+        <button role="menuitem" onclick={() => openPage('biggle://sites')}><Icon name="globe" size={16} /> {t('My sites')}</button>
         {#if account.user.admin}
           <button role="menuitem" onclick={() => openPage('biggle://admin')}>
             <Icon name="shield" size={16} /> Admin
-            {#if sites.reviews}<span class="count">{sites.reviews} to approve</span>{/if}
+            {#if sites.reviews}<span class="count">{t('{reviews} to approve', { reviews: sites.reviews })}</span>{/if}
           </button>
         {/if}
-        <button role="menuitem" onclick={() => openPage('biggle://bookmarks')}><Icon name="star" size={16} /> Bookmarks</button>
-        <button role="menuitem" onclick={() => openPage('biggle://history')}><Icon name="clock" size={16} /> History</button>
-        <button role="menuitem" onclick={() => openPage('biggle://settings')}><Icon name="settings" size={16} /> Settings</button>
-        <button role="menuitem" onclick={() => openPage('biggle://requests')}><Icon name="idea" size={16} /> Request a feature</button>
-        <button role="menuitem" onclick={signOut}><Icon name="logout" size={16} /> Sign out</button>
+        <button role="menuitem" onclick={() => openPage('biggle://bookmarks')}><Icon name="star" size={16} /> {t('Bookmarks')}</button>
+        <button role="menuitem" onclick={() => openPage('biggle://history')}><Icon name="clock" size={16} /> {t('History')}</button>
+        <button role="menuitem" onclick={() => openPage('biggle://settings')}><Icon name="settings" size={16} /> {t('Settings')}</button>
+        <button role="menuitem" onclick={() => openPage('biggle://requests')}><Icon name="idea" size={16} /> {t('Request a feature')}</button>
+        <button role="menuitem" onclick={signOut}><Icon name="logout" size={16} /> {t('Sign out')}</button>
       </div>
     {/if}
   {/if}

@@ -1,6 +1,7 @@
 // Biggle ID: accounts and sessions. Every account has a confirmed email address
 // (checked with an emailed code, or by emailing us) or signs in with Google.
 import { mailMode, sendCode } from './email';
+import { langOf } from './i18n';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 import { useInvite } from './invites';
 import { signedInOrSecondStep } from './twofactor';
@@ -173,7 +174,7 @@ type CodeRow = {
  * emailed (unless `send` is false) and typing it in proves the address. Otherwise the app gets
  * the code back and the person emails it to us from that address (see inbox.ts).
  */
-async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true, again?: unknown) {
+async function issueCode(env: Env, email: string, purpose: Purpose, data: unknown, send = true, again?: unknown, lang: 'en' | 'tr' = 'en') {
   const mode = mailMode(env);
   if (!mode) {
     throw new HttpError(503, 'email_off', purpose === 'signup' ? 'New accounts open soon.' : "Email isn't switched on yet. Try again soon.");
@@ -211,7 +212,7 @@ async function issueCode(env: Env, email: string, purpose: Purpose, data: unknow
     ),
   ]);
   if (mode === 'receive') return { ticket: id, code, join: env.JOIN_ADDRESS };
-  const devCode = send ? await sendCode(env, email, code, purpose) : null;
+  const devCode = send ? await sendCode(env, email, code, purpose, lang) : null;
   return { ticket: id, ...(devCode ? { devCode } : {}) };
 }
 
@@ -271,7 +272,7 @@ export async function signupStart(req: Request, env: Env): Promise<Response> {
   checkPassword(password);
   if (await emailTaken(env, email)) throw new HttpError(409, 'email_taken', 'There is already an account with that email. Try signing in.');
   const { hash, salt } = await newPasswordHash(password);
-  return json(await issueCode(env, email, 'signup', { username, hash, salt }, true, body.again));
+  return json(await issueCode(env, email, 'signup', { username, hash, salt }, true, body.again, langOf(req)));
 }
 
 export async function signupFinish(req: Request, env: Env): Promise<Response> {
@@ -351,7 +352,7 @@ export async function emailStart(req: Request, env: Env): Promise<Response> {
   if (email !== user.email && (await emailTaken(env, email))) {
     throw new HttpError(409, 'email_taken', 'Another account already uses that email.');
   }
-  return json(await issueCode(env, email, 'verify', { userId: user.id }, true, body.again));
+  return json(await issueCode(env, email, 'verify', { userId: user.id }, true, body.again, langOf(req)));
 }
 
 export async function emailFinish(req: Request, env: Env): Promise<Response> {
@@ -381,7 +382,7 @@ export async function resetStart(req: Request, env: Env): Promise<Response> {
   const user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first<{ id: number }>();
   const data = { userId: user?.id ?? null, ...(password ? await newPasswordHash(password) : {}) };
   // Answer the same either way, so this can't be used to find out who has an account.
-  return json(await issueCode(env, email, 'reset', data, !!user, body.again));
+  return json(await issueCode(env, email, 'reset', data, !!user, body.again, langOf(req)));
 }
 
 export async function resetFinish(req: Request, env: Env): Promise<Response> {

@@ -6,13 +6,15 @@
 <script lang="ts">
   // One chat: its messages, the box to write in, and its call.
   import { tick, untrack } from 'svelte';
+  import Trans from '../Trans.svelte';
   import { account } from '../../lib/account.svelte';
   import { errorText } from '../../lib/api';
   import { browser } from '../../lib/browser.svelte';
   import { calls } from '../../lib/calls.svelte';
+  import { eventText } from '../../lib/chatevents';
   import { clock, dayLabel, fullTime, linkify, sameDay, type Part } from '../../lib/chatformat';
   import { chats, type Attachment, type Chat, type ChatMessage } from '../../lib/chats.svelte';
-  import { t } from '../../lib/i18n.svelte';
+  import { plural, t } from '../../lib/i18n.svelte';
   import { people } from '../../lib/people.svelte';
   import { social } from '../../lib/social.svelte';
   import Avatar from '../Avatar.svelte';
@@ -39,7 +41,7 @@
   const canTalk = $derived(chat.kind === 'group' || !!friend || !social.friendsLoaded);
   const subtitle = $derived(
     chat.kind === 'group'
-      ? `${chat.members.length} ${chat.members.length === 1 ? 'person' : 'people'}`
+      ? plural(chat.members.length, '{n} person', '{n} people')
       : [friend?.nickname ? `@${other}` : '', friend ? people.statusLine(other!) || (friend.online ? t('Online') : t('Offline')) : '']
           .filter(Boolean)
           .join(' · '),
@@ -127,7 +129,7 @@
   function jump(id: number) {
     const el = list?.querySelector(`[data-message="${id}"]`);
     if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     el.classList.add('flash');
     setTimeout(() => el.classList.remove('flash'), 1400);
   }
@@ -181,15 +183,15 @@
     })),
   );
 
-  const who = (u: string | null) => (u === me ? 'You' : social.nameOf(u));
+  const who = (u: string | null) => (u === me ? t('You') : social.nameOf(u));
   const names = (list: string[]) => (list.length <= 2 ? list.join(' and ') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 </script>
 
 <header class="bar">
   {#if onback}
-    <button class="icon" aria-label="Back to chats" onclick={onback}><Icon name="back" /></button>
+    <button class="icon" aria-label={t('Back to chats')} onclick={onback}><Icon name="back" /></button>
   {/if}
-  <button class="who" onclick={oninfo} aria-label="About this chat">
+  <button class="who" onclick={oninfo} aria-label={t('About this chat')}>
     {#if chat.kind === 'group'}
       <span class="gavatar" style:--size="36px"><Icon name="users" size={16} /></span>
     {:else}
@@ -200,13 +202,13 @@
       {#if subtitle}<span>{subtitle}</span>{/if}
     </span>
   </button>
-  <button class="icon" aria-label="Voice call" title="Voice call" disabled={!canTalk || inThisCall} onclick={() => calls.join(chat.id, false)}>
+  <button class="icon" aria-label={t('Voice call')} title={t('Voice call')} disabled={!canTalk || inThisCall} onclick={() => calls.join(chat.id, false)}>
     <Icon name="phone" size={17} />
   </button>
-  <button class="icon" aria-label="Video call" title="Video call" disabled={!canTalk || inThisCall} onclick={() => calls.join(chat.id, true)}>
+  <button class="icon" aria-label={t('Video call')} title={t('Video call')} disabled={!canTalk || inThisCall} onclick={() => calls.join(chat.id, true)}>
     <Icon name="video" size={18} />
   </button>
-  <button class="icon" class:on={infoOpen} aria-label="Chat details" title="Details" aria-pressed={infoOpen} onclick={oninfo}>
+  <button class="icon" class:on={infoOpen} aria-label={t('Chat details')} title={t('Details')} aria-pressed={infoOpen} onclick={oninfo}>
     <Icon name="info" size={18} />
   </button>
 </header>
@@ -215,14 +217,14 @@
   <div class="callbar in">
     <span class="dot"></span>
     <span class="what">You're in this call{inCall.length ? ` with ${names(inCall.map((m) => social.nameOf(m.username)))}` : ''}</span>
-    <button class="btn small" onclick={() => (calls.expanded = true)}>Show</button>
+    <button class="btn small" onclick={() => (calls.expanded = true)}>{t('Show')}</button>
   </div>
 {:else if chat.call.length}
   <div class="callbar">
     <span class="dot"></span>
-    <span class="what">{names(chat.call.map((m) => who(m.username)))} {chat.call.length === 1 ? 'is' : 'are'} in a call</span>
-    <button class="btn small call" disabled={!canTalk} onclick={() => calls.join(chat.id, false)}><Icon name="phone" size={13} /> Join</button>
-    <button class="icon" aria-label="Join with video" title="Join with video" disabled={!canTalk} onclick={() => calls.join(chat.id, true)}>
+    <span class="what">{chat.call.length === 1 ? t('{who} is in a call', { who: names(chat.call.map((m) => who(m.username))) }) : t('{who} are in a call', { who: names(chat.call.map((m) => who(m.username))) })}</span>
+    <button class="btn small call" disabled={!canTalk} onclick={() => calls.join(chat.id, false)}><Icon name="phone" size={13} /> {t('Join')}</button>
+    <button class="icon" aria-label={t('Join with video')} title={t('Join with video')} disabled={!canTalk} onclick={() => calls.join(chat.id, true)}>
       <Icon name="video" size={16} />
     </button>
   </div>
@@ -240,13 +242,13 @@
   {ondrop}
 >
   {#if thread?.more}
-    <button class="older" disabled={thread.loading} onclick={older}>{thread.loading ? 'Loading…' : 'Load older messages'}</button>
+    <button class="older" disabled={thread.loading} onclick={older}>{thread.loading ? t('Loading…') : t('Load older messages')}</button>
   {/if}
   {#each rows as r (r.m.id)}
     {#if r.day}<div class="day"><span>{r.day}</span></div>{/if}
     {#if r.m.kind === 'event'}
       <!-- Links in them (a club's new event) work like links in messages. -->
-      <p class="event" title={fullTime(r.m.at)}>{#each linkify(r.m.from ? `${who(r.m.from)} ${r.m.body}` : r.m.body) as part, i (i)}{#if part.link}<button class="event-link" onclick={() => openLink(part.link!)}>{part.text}</button>{:else}{part.text}{/if}{/each} · {clock(r.m.at)}</p>
+      <p class="event" title={fullTime(r.m.at)}>{#each linkify(eventText(r.m.from ? who(r.m.from) : null, r.m.body)) as part, i (i)}{#if part.link}<button class="event-link" onclick={() => openLink(part.link!)}>{part.text}</button>{:else}{part.text}{/if}{/each} · {clock(r.m.at)}</p>
     {:else}
       <div class="msg" class:mine={r.mine} class:first={r.first} class:last={r.last} data-message={r.m.id}>
         {#if chat.kind === 'group' && !r.mine}
@@ -272,10 +274,10 @@
       <div class="hello">
         {#if chat.kind === 'group'}
           <span class="gavatar" style:--size="64px"><Icon name="users" size={28} /></span>
-          <p>This is the start of <strong>{title}</strong>.</p>
+          <p><Trans text={t('This is the start of {chat}.')}>{#snippet chat()}<strong>{title}</strong>{/snippet}</Trans></p>
         {:else}
           <Avatar name={title} user={other} size={64} />
-          <p>Say hi to <strong>{title}</strong>.</p>
+          <p><Trans text={t('Say hi to {name}.')}>{#snippet name()}<strong>{title}</strong>{/snippet}</Trans></p>
         {/if}
       </div>
     {/if}
@@ -292,7 +294,7 @@
 {#if canTalk}
   <ChatComposer bind:this={composer} {chat} {title} bind:text bind:replyTo bind:editing onsent={() => (stick = true)} />
 {:else}
-  <p class="cant muted">You and {other} aren't friends any more, so you can't message each other.</p>
+  <p class="cant muted">{t("You and {other} aren't friends any more, so you can't message each other.", { other })}</p>
 {/if}
 {#if viewing}
   <ImageViewer a={viewing} onclose={() => (viewing = null)} />

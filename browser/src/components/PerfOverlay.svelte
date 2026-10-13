@@ -10,7 +10,7 @@
 </script>
 
 <div class="perf" role="status" aria-label={t('Performance')}>
-  <span class="fps {level}">{perf.fps === null ? '–' : Math.round(perf.fps)} <small>FPS</small></span>
+  <span class="fps {level}">{perf.fps === null ? '–' : Math.round(perf.fps)} <small>{t('FPS')}</small></span>
   <span>{t('Memory')} {mb(perf.memory)}</span>
   {#if perf.cpu !== null}<span>{t('Processor')} {Math.round(perf.cpu)}%</span>{/if}
   <button aria-label={t('Hide')} onclick={() => perf.toggle()}><Icon name="close" size={12} /></button>

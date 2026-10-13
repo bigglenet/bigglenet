@@ -2,6 +2,7 @@
   // Signing a site's guestbook. The browser asks, not the page, so a page can't sign for you.
   import { account } from '../lib/account.svelte';
   import { api, errorText } from '../lib/api';
+  import { dialog } from '../lib/dialog';
   import { overlays } from '../lib/overlays.svelte';
   import { signing, type GuestbookNote } from '../lib/signing.svelte';
   import { siteHost } from '../lib/url';
@@ -51,7 +52,7 @@
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && signing.finish(null)}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label={heading} tabindex="-1" onkeydown={(e) => e.key === 'Escape' && signing.finish(null)}>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={heading} tabindex="-1" use:dialog onkeydown={(e) => e.key === 'Escape' && signing.finish(null)}>
     <form onsubmit={send}>
       <h2>{heading}</h2>
       <p class="muted">

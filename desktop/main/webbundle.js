@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { t } from './language.js';
 import { verifySignature } from './minisign.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -106,15 +107,15 @@ export async function downloadBundle(manifest) {
   for (const file of manifest.files) {
     const path = normalize(join(part, file.path));
     if (typeof file.path !== 'string' || !/^[0-9a-f]{64}$/.test(file.sha256) || relative(part, path).startsWith('..') || path.includes(`${sep}..${sep}`)) {
-      throw new Error('That update lists a file it shouldn’t.');
+      throw new Error(t('That update lists a file it shouldn’t.'));
     }
     let data = have.has(file.sha256) ? readFileSync(have.get(file.sha256)) : null;
     if (!data) {
       const res = await net.fetch(`${RELEASES}/v${manifest.version}/web-${file.sha256}`);
-      if (!res.ok) throw new Error(`The download failed (${res.status}).`);
+      if (!res.ok) throw new Error(t('The download failed ({status}).', { status: res.status }));
       data = Buffer.from(await res.arrayBuffer());
     }
-    if (sha256(data) !== file.sha256) throw new Error("A file in the update doesn't match. Not using it.");
+    if (sha256(data) !== file.sha256) throw new Error(t("A file in the update doesn't match. Not using it."));
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, data);
   }
