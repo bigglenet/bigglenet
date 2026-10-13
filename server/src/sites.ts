@@ -100,6 +100,7 @@ async function getSite(env: Env, key: string): Promise<SiteRow> {
 const SITE_TABLES = [
   'site_files', 'site_visits', 'guestbook', 'achievements', 'site_editors', 'site_drafts', 'page_comments', 'poll_votes',
   'site_likes', 'scores', 'wall_strokes', 'page_views', 'site_referrals', 'activity', 'clubs', 'collection_sites',
+  'site_tags', 'follows', 'webring_sites', 'site_of_day', 'site_pages',
 ];
 
 /**
@@ -314,6 +315,9 @@ export async function getSiteInfo(req: Request, env: Env, name: string): Promise
     editors: editors.map((e) => e.username),
     /** The club whose site this is: all its members can edit it too. */
     club: await env.DB.prepare('SELECT id, name FROM clubs WHERE site = ? LIMIT 1').bind(site.name).first<{ id: number; name: string }>(),
+    /** How it's found in Nox (discover.ts). */
+    tags: (await env.DB.prepare('SELECT tag FROM site_tags WHERE site = ?').bind(site.name).all<{ tag: string }>()).results.map((t) => t.tag),
+    webrings: (await env.DB.prepare('SELECT r.id, r.name FROM webring_sites w JOIN webrings r ON r.id = w.ring_id WHERE w.site = ? ORDER BY r.name').bind(site.name).all<{ id: number; name: string }>()).results,
     canManage: owner,
   });
 }

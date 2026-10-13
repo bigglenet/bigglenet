@@ -450,6 +450,30 @@ a:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.name{font-we
     }, () => {});
   });
 
+  // --- <biggle-webring ring="3">: this site's place in a webring (previous, next, random) ---
+
+  tag(
+    'biggle-webring',
+    `.ring{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;text-align:center}
+.name{font-weight:700}a{color:inherit;font-weight:600}`,
+    (host, root, showError) => {
+      const id = Number(host.getAttribute('ring'));
+      if (!id) return showError('Say which webring: <biggle-webring ring="3">.');
+      const box = el('nav', { class: 'card ring', part: 'ring', 'aria-label': 'Webring' });
+      root.append(box);
+      call('webring', id).then((r) => {
+        const link = (s, text) => (s ? el('a', { href: `biggle://${s.address}/`, part: 'link', textContent: text, title: s.title || s.address }) : null);
+        if (!r.member) {
+          box.append(el('span', { class: 'muted', textContent: `This site isn't in the ${r.ring.name} webring yet.` }));
+          return;
+        }
+        box.append(
+          ...[link(r.prev, '← Previous'), el('span', { class: 'name', part: 'name', textContent: r.ring.name }), link(r.random, 'Random'), link(r.next, 'Next →')].filter(Boolean),
+        );
+      }, showError);
+    },
+  );
+
   // An embedded page (inside a <biggle-embed>) doesn't run as its own page.
   if (init.embedded) document.documentElement.dataset.embedded = '';
 })();

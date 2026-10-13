@@ -26,6 +26,8 @@
 //   /api/board*                      the board, board.biggle (board.ts)
 //   /api/events*                     events, and their reminders (cron, events.ts)
 //   /api/collections*                collections of favourite sites (collections.ts)
+//   /api/discover*, /api/search, /api/follows*   finding sites in Nox (discover.ts)
+//   /api/webrings*                   webrings (webrings.ts)
 //   /api/live                        WebSocket for live updates
 import * as admin from './admin';
 import * as auth from './auth';
@@ -33,6 +35,7 @@ import * as board from './board';
 import * as chat from './chat';
 import * as clubs from './clubs';
 import * as collections from './collections';
+import * as discover from './discover';
 import * as events from './events';
 import { feed } from './feed';
 import { directory, gateway, preview, resolveName } from './gateway';
@@ -53,6 +56,7 @@ import { connect } from './live';
 import * as sites from './sites';
 import * as social from './social';
 import * as visitors from './visitors';
+import * as webrings from './webrings';
 
 export { Live } from './live';
 export { Room } from './rooms';
@@ -228,6 +232,25 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/collections\/([A-Za-z0-9]+)\/sites\/([^/]+)$/, collections.removeFromCollection],
   ['PUT', /^\/api\/collections\/([A-Za-z0-9]+)\/order$/, collections.reorderCollection],
 
+  ['GET', /^\/api\/discover$/, discover.discover],
+  ['GET', /^\/api\/discover\/today$/, discover.siteOfTheDay],
+  ['GET', /^\/api\/discover\/week$/, discover.thisWeek],
+  ['GET', /^\/api\/search$/, discover.search],
+  ['GET', /^\/api\/follows$/, discover.follows],
+  ['POST', /^\/api\/follows$/, discover.follow],
+  ['DELETE', /^\/api\/follows\/([^/]+)$/, discover.unfollow],
+  ['PUT', /^\/api\/sites\/([^/]+)\/tags$/, discover.setTags],
+  ['PUT', /^\/api\/admin\/site-of-day$/, discover.pickSiteOfTheDay],
+
+  ['GET', /^\/api\/webrings$/, webrings.listRings],
+  ['POST', /^\/api\/webrings$/, webrings.createRing],
+  ['GET', /^\/api\/webrings\/(\d+)$/, webrings.getRingInfo],
+  ['PATCH', /^\/api\/webrings\/(\d+)$/, webrings.updateRing],
+  ['DELETE', /^\/api\/webrings\/(\d+)$/, webrings.deleteRing],
+  ['POST', /^\/api\/webrings\/(\d+)\/sites$/, webrings.joinRing],
+  ['DELETE', /^\/api\/webrings\/(\d+)\/sites\/([^/]+)$/, webrings.leaveRing],
+  ['GET', /^\/api\/webrings\/(\d+)\/around\/([^/]+)$/, webrings.around],
+
   ['GET', /^\/api\/live$/, connect],
 ];
 
@@ -281,8 +304,10 @@ export default {
     await receive(message, env);
   },
 
-  // Every minute (wrangler.jsonc): event reminders.
-  async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(events.remindSoon(env));
+  // Every minute (wrangler.jsonc), taking turns so each run stays within the Workers limits
+  // (clubs.ts): event reminders, then reading changed sites for search.
+  async scheduled(controller, env, ctx) {
+    const minute = new Date(controller.scheduledTime).getUTCMinutes();
+    ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
   },
 } satisfies ExportedHandler<Env>;

@@ -36,6 +36,8 @@ export async function visit(req: Request, env: Env, key: string): Promise<Respon
     await env.DB.prepare('INSERT OR IGNORE INTO site_visits (site, day, user_id) VALUES (?, ?, ?)').bind(site.name, today(), user.id).run();
     const from = typeof input.from === 'string' && SITE_KEY_RE.test(input.from) ? input.from : null;
     await countView(env, site.name, str(input.path), from);
+    // Seen it: a followed site loses its dot.
+    await env.DB.prepare('UPDATE follows SET seen_at = unixepoch() WHERE user_id = ? AND site = ?').bind(user.id, site.name).run();
   }
   return json({});
 }

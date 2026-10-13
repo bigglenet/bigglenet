@@ -358,7 +358,7 @@
               {:else if tab.view.page === 'admin'}
                 <AdminPage {tab} />
               {:else if tab.view.page === 'nox'}
-                <NoxPage {tab} />
+                <NoxPage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'requests'}
                 <RequestsPage />
               {:else if tab.view.page === 'settings'}

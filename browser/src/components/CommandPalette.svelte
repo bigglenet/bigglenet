@@ -10,6 +10,7 @@
   import { tick } from 'svelte';
   import { pictureInPicture, printPage, saveForOffline, setGameMode, toggleReader } from '../lib/actions.svelte';
   import { account } from '../lib/account.svelte';
+  import { api, errorText } from '../lib/api';
   import { bookmarks } from '../lib/bookmarks.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { chats } from '../lib/chats.svelte';
@@ -26,6 +27,7 @@
   import { parse, siteHome, siteHost, siteKey, START } from '../lib/url';
   import { zoom } from '../lib/zoom.svelte';
   import { collect } from '../lib/collect.svelte';
+  import { follows } from '../lib/follows.svelte';
   import { couch } from '../lib/couch.svelte';
   import { canScreenshot, shot } from './ScreenshotTool.svelte';
   import Icon, { type IconName } from './Icon.svelte';
@@ -113,8 +115,19 @@
           c('dark', siteSettings.dark(key) ? t('Turn off dark mode for this site') : t('Dark mode for this site'), 'moon', () => siteSettings.setDark(key, !siteSettings.dark(key))),
           c('offline', t('Save this site for offline'), 'download', () => saveForOffline(tab)),
           c('collect', t('Add this site to a collection'), 'star', () => collect.open(key)),
+          c('follow', follows.has(key) ? t('Unfollow this site') : t('Follow this site'), 'bell', () => follows.toggle(key, (m) => browser.say(m))),
           c('site-settings', t('Site settings'), 'settings', () => go(`biggle://settings/sites/${key}`)),
         );
+        if (account.user?.admin) {
+          list.push(
+            c('site-of-day', t('Make this the site of the day'), 'star', () =>
+              api('PUT', '/api/admin/site-of-day', { site: key }).then(
+                () => browser.say(t('{site} is the site of the day', { site: siteHost(key) })),
+                (e) => browser.say(errorText(e)),
+              ),
+            ),
+          );
+        }
       }
       const others = browser.tabs.filter((o) => o.id !== tab.id);
       if (others.length && !browser.inSplit(tab.id)) list.push(c('split', t('Side by side with the next tab'), 'split', () => browser.splitWith(tab.id, others[0].id)));

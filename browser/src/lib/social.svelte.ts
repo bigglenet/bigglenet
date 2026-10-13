@@ -5,6 +5,7 @@ import { calls } from './calls.svelte';
 import { chats, fileLabel, type ChatMessage, type Reaction } from './chats.svelte';
 import { t } from './i18n.svelte';
 import { SERVER } from './config';
+import { follows } from './follows.svelte';
 import { notices } from './notify.svelte';
 import { notifications, type Notification } from './notifications.svelte';
 import { people, type Activity, type Status } from './people.svelte';
@@ -89,6 +90,7 @@ class Social {
     chats.refresh();
     people.start();
     notifications.refresh();
+    follows.refresh();
     this.connect();
   }
 
@@ -107,6 +109,7 @@ class Social {
     chats.reset();
     people.reset();
     notifications.reset();
+    follows.reset();
   }
 
   private connect() {
@@ -122,6 +125,7 @@ class Social {
       chats.refresh();
       chats.reloadOpen();
       notifications.refresh();
+      follows.refresh();
       this.pingTimer = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send('ping'), PING_MS);
     };
     ws.onmessage = (e) => {

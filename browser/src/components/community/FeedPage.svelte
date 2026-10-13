@@ -2,6 +2,7 @@
   // biggle://feed: what your friends have been up to (server/src/feed.ts).
   import { api, errorText } from '../../lib/api';
   import { browser, type Tab } from '../../lib/browser.svelte';
+  import { follows } from '../../lib/follows.svelte';
   import { ago, when } from '../../lib/community';
   import { t } from '../../lib/i18n.svelte';
   import { siteHome, siteHost } from '../../lib/url';
@@ -139,6 +140,20 @@
     </main>
 
     <aside class="stack">
+      {#if follows.list.length}
+        <section class="card stack">
+          <div class="row">
+            <h3 class="grow">{t('Following')}</h3>
+            <button class="link small" onclick={() => open('biggle://nox/following')}>{t('All')}</button>
+          </div>
+          {#each [...follows.list].sort((a, b) => Number(b.changed) - Number(a.changed)).slice(0, 5) as f (f.site)}
+            <button class="followed" onclick={() => open(siteHome(f.site, f.tld))}>
+              <span class="grow">{siteHost(f.site, f.tld)}</span>
+              {#if f.changed}<span class="dot" title={t('Changed since you looked')}></span>{/if}
+            </button>
+          {/each}
+        </section>
+      {/if}
       <InviteCard />
       <section class="card stack">
         <div class="row">
@@ -173,6 +188,29 @@
   .more {
     margin-top: 14px;
     text-align: center;
+  }
+  .followed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .followed:hover {
+    background: var(--hover);
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
   }
   .event {
     display: flex;

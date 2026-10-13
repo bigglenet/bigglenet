@@ -9,6 +9,7 @@ import { closeWindow, desktop, isApp, isMac } from './platform';
 import { startSettings } from './startpage.svelte';
 import { zoom } from './zoom.svelte';
 import { saveLocal } from './storage';
+import { follows } from './follows.svelte';
 import { BUILT_IN_SITES, fromInput, looksLikeAddress, noxSearch, parse, siteHost, siteKey, START, withHash, type InternalPage } from './url';
 
 export type View =
@@ -546,6 +547,7 @@ class Browser {
     const before = tab.index > 0 ? parse(tab.history[tab.index - 1]) : null;
     const from = before?.kind === 'site' && siteKey(before) !== site ? siteKey(before) : null;
     api('POST', `/api/sites/${encodeURIComponent(site)}/visit`, { path: u?.kind === 'site' ? u.path : '/', from }).catch(() => {});
+    follows.seen(site);
   }
 
   /** A page's title arrived. */

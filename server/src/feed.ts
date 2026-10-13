@@ -1,7 +1,7 @@
-// The activity feed (biggle://feed): what your friends have been up to. New sites, site updates,
-// guestbook notes, clubs, events, threads on the board and collections. Other modules call
-// record() when something happens; only things everyone may see go in (no invite-only events,
-// no unlisted collections).
+// The activity feed (biggle://feed): what your friends have been up to (new sites, site updates,
+// guestbook notes, clubs, events, threads on the board and collections), and what's happened on
+// sites you follow. Other modules call record() when something happens; only things everyone may
+// see go in (no invite-only events, no unlisted collections).
 //
 //   GET /api/feed?before=<id>   newest first, a page at a time
 import { requireUser } from './auth';
@@ -45,7 +45,8 @@ export async function feed(req: Request, env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT a.id, a.kind, a.site, a.data, a.created_at, a.user_id, u.username, u.avatar_v, n.title AS site_title, n.status AS site_status
      FROM activity a JOIN users u ON u.id = a.user_id LEFT JOIN names n ON n.name = a.site
-     WHERE a.id < ?2 AND (a.user_id = ?1 OR a.user_id IN (SELECT friend_id FROM friendships WHERE user_id = ?1 AND status = 'friends'))
+     WHERE a.id < ?2 AND (a.user_id = ?1 OR a.user_id IN (SELECT friend_id FROM friendships WHERE user_id = ?1 AND status = 'friends')
+       OR (a.site IS NOT NULL AND a.site IN (SELECT site FROM follows WHERE user_id = ?1)))
      ORDER BY a.id DESC LIMIT ?3`,
   )
     .bind(me.id, before, PAGE + 1)

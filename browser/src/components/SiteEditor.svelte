@@ -28,6 +28,8 @@
     owner: string | null;
     editors: string[];
     club: { id: number; name: string } | null;
+    tags: string[];
+    webrings: { id: number; name: string }[];
     /** The owner (or an admin): may add editors, change the address, delete the site. */
     canManage: boolean;
   };
@@ -57,7 +59,7 @@
   let mode = $state<'easy' | 'code'>('code');
   let easyState = $state({ saving: false, error: '', dirty: false });
   // Site settings (people, stats, sharing), and publishing drafts.
-  let manage = $state<null | 'people' | 'stats' | 'sharing'>(null);
+  let manage = $state<null | 'people' | 'stats' | 'sharing' | 'nox'>(null);
   let publishing = $state(false);
   let confirmDiscard = $state(false);
 
@@ -339,7 +341,7 @@
   const images = $derived(info?.files.filter((f) => /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(f.path)).map((f) => f.path) ?? []);
   const head = $derived<HeadMeta | null>(!easy && contents['index.bhtml'] !== undefined ? readHead(contents['index.bhtml']) : null);
 
-  async function openManage(section: 'people' | 'stats' | 'sharing' = 'people') {
+  async function openManage(section: 'people' | 'stats' | 'sharing' | 'nox' = 'people') {
     if (!easy && contents['index.bhtml'] === undefined) {
       const text = await fetchText('index.bhtml');
       if (text !== null) {
@@ -581,6 +583,8 @@
       owner={info.owner}
       editors={info.editors}
       club={info.club}
+      tags={info.tags}
+      webrings={info.webrings}
       canManage={info.canManage}
       {head}
       {images}

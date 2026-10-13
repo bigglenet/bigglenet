@@ -22,7 +22,8 @@ export type Block =
   | { id: string; type: 'leaderboard'; board: string; title: string }
   | { id: string; type: 'online' }
   | { id: string; type: 'newsites' }
-  | { id: string; type: 'embed'; url: string };
+  | { id: string; type: 'embed'; url: string }
+  | { id: string; type: 'webring'; ring: number | null };
 
 export type BlockType = Block['type'];
 
@@ -76,6 +77,7 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
   online: 'People online',
   newsites: 'Newest sites',
   embed: 'Another page',
+  webring: 'Webring',
 };
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -97,6 +99,8 @@ export function newBlock(type: BlockType): Block {
       return { id, type, board: 'main', title: 'High scores' };
     case 'embed':
       return { id, type, url: 'hello.biggle' };
+    case 'webring':
+      return { id, type, ring: null };
     default:
       return { id, type } as Block;
   }
@@ -173,6 +177,8 @@ function block(b: Block): string {
       const target = linkTarget(b.url);
       return target.startsWith('biggle://') ? `<biggle-embed src="${esc(target)}"></biggle-embed>` : '';
     }
+    case 'webring':
+      return b.ring ? `<biggle-webring ring="${Math.floor(b.ring)}"></biggle-webring>` : '';
   }
 }
 

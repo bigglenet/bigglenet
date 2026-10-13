@@ -153,6 +153,11 @@ export function answerCall(scope: PageScope, msg: Record<string, unknown>, reply
       },
       (e) => done({ error: errorText(e) }),
     );
+  } else if (method === 'webring') {
+    // Where this site is in a webring: the sites before and after it, and a random one.
+    const ring = Number(args[0]);
+    if (!Number.isInteger(ring) || ring < 1) return done({ error: t('Say which webring: <biggle-webring ring="3">.') });
+    ask(api('GET', `/api/webrings/${ring}/around/${encodeURIComponent(site)}`));
   } else if (method === 'wall.get') {
     const wall = String(args[0] ?? '');
     if (!NAME.test(wall)) return done({ error: t('A wall needs an id: letters, numbers, - or _.') });

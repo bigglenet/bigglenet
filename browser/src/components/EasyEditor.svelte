@@ -1,7 +1,7 @@
 <script lang="ts">
   // The easy site editor: pick a look, then add and edit blocks. No code.
   import { account } from '../lib/account.svelte';
-  import { apiFetch, errorText } from '../lib/api';
+  import { api, apiFetch, errorText } from '../lib/api';
   import {
     BLOCK_NAMES,
     FONTS,
@@ -44,7 +44,7 @@
 
   const ADD: BlockType[] = [
     'heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter', 'visits', 'guestbook',
-    'poll', 'comments', 'like', 'contact', 'wall', 'leaderboard', 'online', 'newsites', 'embed',
+    'poll', 'comments', 'like', 'contact', 'wall', 'leaderboard', 'online', 'newsites', 'embed', 'webring',
   ];
   const AUTOSAVE_MS = 800;
 
@@ -55,6 +55,17 @@
   let iframe = $state<HTMLIFrameElement>();
 
   const json = $derived(JSON.stringify(site));
+  // Webrings to pick from, once there's a webring block.
+  let rings = $state<{ id: number; name: string }[] | null>(null);
+  $effect(() => {
+    if (rings === null && site.blocks.some((b) => b.type === 'webring')) {
+      rings = [];
+      api<{ rings: { id: number; name: string }[] }>('GET', '/api/webrings').then(
+        (r) => (rings = r.rings),
+        () => {},
+      );
+    }
+  });
   // Pictures uploaded to the site, for the preview picture and icon.
   const images = $derived([...new Set(site.blocks.flatMap((b) => (b.type === 'image' && b.src ? [b.src] : [])))]);
   const dirty = $derived(json !== savedJson);
@@ -298,6 +309,12 @@
           {:else if b.type === 'embed'}
             <input bind:value={b.url} placeholder="friend.biggle/page" aria-label={t('Page to show')} />
             <p class="hint">{t('Shows another .biggle page inside yours.')}</p>
+          {:else if b.type === 'webring'}
+            <select bind:value={b.ring} aria-label={t('Webring')}>
+              <option value={null}>{t('Pick a webring…')}</option>
+              {#each rings ?? [] as r (r.id)}<option value={r.id}>{r.name}</option>{/each}
+            </select>
+            <p class="hint">{t('Links to the sites before and after yours in the ring. Add your site to the ring in Nox → Webrings first.')}</p>
           {:else}
             <p class="hint">A line between sections.</p>
           {/if}

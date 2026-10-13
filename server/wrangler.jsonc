@@ -3,7 +3,7 @@
   "name": "bigglenet",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
-  // Every minute: event reminders (events.ts remindSoon).
+  // Every minute: event reminders and reading sites for search, taking turns (index.ts scheduled).
   "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true },
   "d1_databases": [

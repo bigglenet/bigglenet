@@ -103,7 +103,7 @@
     flex: 1;
     min-width: 0;
   }
-  :global(.cp :where(ul.list)) {
+  :global(.cp :where(.list)) {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -112,10 +112,10 @@
     background: var(--card);
     overflow: hidden;
   }
-  :global(.cp :where(ul.list > li)) {
+  :global(.cp :where(.list > li)) {
     border-top: 1px solid var(--border);
   }
-  :global(.cp :where(ul.list > li:first-child)) {
+  :global(.cp :where(.list > li:first-child)) {
     border-top: 0;
   }
   :global(.cp :where(.item)) {

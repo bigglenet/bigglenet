@@ -19,6 +19,7 @@
   import AccountButton from './AccountButton.svelte';
   import BookmarkButton from './BookmarkButton.svelte';
   import { collect } from '../lib/collect.svelte';
+  import { follows } from '../lib/follows.svelte';
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
   import SiteInfo from './SiteInfo.svelte';
@@ -130,6 +131,9 @@
           ? { label: t('Remove the offline copy'), icon: 'wifi', action: () => offline.remove(key) }
           : { label: t('Save for offline'), icon: 'wifi', action: () => saveForOffline(t0) },
         { label: t('Add to collection…'), icon: 'star', action: () => collect.open(key) },
+        follows.has(key)
+          ? { label: t('Unfollow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) }
+          : { label: t('Follow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) },
       );
     }
     items.push(

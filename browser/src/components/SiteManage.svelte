@@ -5,6 +5,7 @@
   import { api, errorText } from '../lib/api';
   import { browser } from '../lib/browser.svelte';
   import type { HeadMeta } from '../lib/headmeta';
+  import { TAG_IDS, tagName } from '../lib/discover';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { social } from '../lib/social.svelte';
@@ -25,6 +26,8 @@
     owner,
     editors,
     club = null,
+    tags = [],
+    webrings = [],
     canManage,
     head,
     images,
@@ -39,11 +42,14 @@
     editors: string[];
     /** The club whose site this is: all its members can edit it. */
     club?: { id: number; name: string } | null;
+    /** How it's found in Nox: its tags, and the webrings it's in. */
+    tags?: string[];
+    webrings?: { id: number; name: string }[];
     canManage: boolean;
     /** The code site's head, or null for easy sites (the easy editor has its own). */
     head: HeadMeta | null;
     images: string[];
-    start?: 'people' | 'stats' | 'sharing';
+    start?: 'people' | 'stats' | 'sharing' | 'nox';
     onhead: (meta: HeadMeta) => void;
     onchange: () => void;
     onleave: () => void;
@@ -51,7 +57,7 @@
   } = $props();
 
   // svelte-ignore state_referenced_locally
-  let section = $state<'people' | 'stats' | 'sharing'>(start);
+  let section = $state<'people' | 'stats' | 'sharing' | 'nox'>(start);
   let adding = $state('');
   let error = $state('');
   let busy = $state(false);
@@ -119,6 +125,33 @@
   const dayName = (day: number) => new Date(day * 86_400_000).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short' });
   const n = (v: number) => v.toLocaleString(i18n.locale);
 
+  // Tags, saved as they're picked.
+  // svelte-ignore state_referenced_locally
+  let picked = $state<string[]>([...tags]);
+  async function toggleTag(tag: string) {
+    const next = picked.includes(tag) ? picked.filter((x) => x !== tag) : [...picked, tag].slice(0, 3);
+    const before = picked;
+    picked = next;
+    error = '';
+    try {
+      picked = (await api<{ tags: string[] }>('PUT', `/api/sites/${enc(name)}/tags`, { tags: next })).tags;
+      onchange();
+    } catch (err) {
+      picked = before;
+      error = errorText(err);
+    }
+  }
+
+  async function leaveRing(id: number) {
+    error = '';
+    try {
+      await api('DELETE', `/api/webrings/${id}/sites/${enc(name)}`);
+      onchange();
+    } catch (err) {
+      error = errorText(err);
+    }
+  }
+
   const changedHead = $derived(!!head && (meta.description !== head.description || meta.image !== head.image || meta.icon !== head.icon));
 </script>
 
@@ -142,6 +175,7 @@
       {#if head}
         <button role="tab" aria-selected={section === 'sharing'} onclick={() => (section = 'sharing')}>{t('Sharing')}</button>
       {/if}
+      <button role="tab" aria-selected={section === 'nox'} onclick={() => (section = 'nox')}>Nox</button>
     </div>
 
     <div class="body">
@@ -236,6 +270,29 @@
             </section>
           </div>
         {/if}
+      {:else if section === 'nox'}
+        <p class="muted">{t('Pick up to three tags, so people find your site in Nox.')}</p>
+        <div class="chips" role="group" aria-label={t('Tags')}>
+          {#each TAG_IDS as tag (tag)}
+            {@const on = picked.includes(tag)}
+            <button class="chip" class:on aria-pressed={on} disabled={!on && picked.length >= 3} onclick={() => toggleTag(tag)}>{tagName(tag)}</button>
+          {/each}
+        </div>
+        <h3>{t('Webrings')}</h3>
+        {#if webrings.length}
+          <ul class="people">
+            {#each webrings as r (r.id)}
+              <li>
+                <span class="who">{r.name}</span>
+                <button class="ghost small" onclick={() => leaveRing(r.id)}>{t('Take out')}</button>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="muted">{t('Not in any webrings.')}</p>
+        {/if}
+        <button class="link" onclick={() => (onclose(), browser.newTab('biggle://nox/webrings', { after: browser.activeId }))}>{t('Find a webring to join')}</button>
+        {#if error}<p class="bad">{error}</p>{/if}
       {:else if section === 'sharing' && head}
         <p class="muted">{t('What people see when they share a link to your site, and the icon on its tab. This changes the head of index.bhtml.')}</p>
         <label>
@@ -520,5 +577,28 @@
     color: inherit;
     font-weight: 600;
     text-decoration: underline;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .chip.on {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .chip:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 </style>

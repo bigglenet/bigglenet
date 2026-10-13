@@ -63,6 +63,7 @@ These only do something in Biggle. In a normal browser they show their fallback 
 | `<biggle-online></biggle-online>` | How many people are on the Bigglenet right now |
 | `<biggle-new-sites limit="5"></biggle-new-sites>` | The newest sites on the Bigglenet, as links |
 | `<biggle-status user="ethem"></biggle-status>` | Someone's status, like 📚 Revising |
+| `<biggle-webring ring="3"></biggle-webring>` | Links to the sites before and after yours in a webring, and a random one. Start or join a ring in Nox → Webrings; the ring's page shows its number |
 
 Each tag draws itself in the page's colours (it uses `--accent`) and can be styled with `::part()`. Anything that writes as the visitor, like a comment, a vote or a like, needs them to click: a page can't do it by itself.
 

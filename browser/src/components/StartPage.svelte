@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import { account } from '../lib/account.svelte';
+  import { api } from '../lib/api';
   import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { loadDirectory } from '../lib/directory';
@@ -24,6 +25,16 @@
     }
   });
   const directory = loadDirectory();
+  // The site of the day (server/src/discover.ts), the same for everyone.
+  type Today = { name: string; tld: 'biggle' | 'b'; title: string | null; about: string | null } | null;
+  let today = $state<Today>(null);
+  $effect(() => {
+    if (!settings.shown.featured) return;
+    api<{ site: Today }>('GET', '/api/discover/today').then(
+      (r) => (today = r.site),
+      () => {},
+    );
+  });
   // Just started, with tabs from last time not reopened: offer them (once).
   let restoreOffer = $state<number | null>(
     !offered && browser.startup === 'newtab' && browser.tabs.filter((x) => !x.pinned).length === 1 && browser.lastSession
@@ -107,6 +118,14 @@
           </span>
           <Icon name="forward" />
         </button>
+        {#if today}
+          <button class="today" onclick={() => browser.go(tab, siteHome(today!.name, today!.tld))}>
+            <span class="today-label">{t('Site of the day')}</span>
+            <strong>{siteHost(today.name, today.tld)}</strong>
+            {#if today.title}<span class="today-title">{today.title}</span>{/if}
+            {#if today.about}<span class="today-about">{today.about}</span>{/if}
+          </button>
+        {/if}
         <nav class="places" aria-label={t('Community')}>
           <button onclick={() => browser.go(tab, 'biggle://feed')}><Icon name="users" size={17} /> {t('Feed')}</button>
           <button onclick={() => browser.go(tab, 'biggle://clubs')}><Icon name="users" size={17} /> {t('Clubs')}</button>
@@ -371,6 +390,40 @@
   }
   .make:hover {
     border-color: var(--accent);
+  }
+  .today {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 10px;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+  }
+  .today:hover {
+    border-color: var(--accent);
+  }
+  .today-label {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .today strong {
+    font-size: 17px;
+  }
+  .today-title {
+    font-weight: 600;
+  }
+  .today-about {
+    color: var(--muted);
+    font-size: 14px;
   }
   .places {
     display: grid;
