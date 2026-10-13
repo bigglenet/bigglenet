@@ -5,6 +5,25 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.0.0',
+    date: '2026-10-13',
+    changes: [
+      'Bigglenet in Turkish: pick it in Settings → Language, or it follows your computer.',
+      'Make as many sites as you like.',
+      'Chat: replies, reactions, editing and deleting, photos, files and voice messages, time capsules, link previews, sharing your screen, and watching or listening together in a call.',
+      'Tabs: groups, pinning, muting, sleeping tabs, side by side, more than one window, reopening closed tabs, and picture-in-picture.',
+      'Reader mode, dark mode for any site, screenshots, saving sites for offline, a command palette (⌘K), downloads, and getting around with a game controller.',
+      'Sites: drafts you publish when ready, editors who can change your site with you at the same time, stats, link previews, comments, polls, likes, leaderboards, achievements, drawing walls and rooms for live pages.',
+      'Profiles, statuses, a notification centre and blocking people.',
+      'The feed, invite links, clubs with their own chat and site, the board (forums), events with reminders, and collections of sites.',
+      'Nox: rankings, tags, search inside pages, following sites, webrings, the site of the day and this week on the Bigglenet.',
+      'Your bookmarks and settings on every device, two-factor sign-in, passkeys, downloading your data and deleting your account.',
+      'Notifications even when Bigglenet is closed, and the desktop app can keep running in the background.',
+      'Reporting things that shouldn’t be on the Bigglenet, announcements, biggle://status, and smaller, faster updates for the desktop app.',
+      'Easier to use with a keyboard and screen readers, and less movement if your computer asks for it.',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-10-12',
     changes: [
