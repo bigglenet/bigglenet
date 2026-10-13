@@ -64,7 +64,7 @@ import * as invites from './invites';
 import * as moderation from './moderation';
 import * as passkeys from './passkeys';
 import * as push from './push';
-import { connect } from './live';
+import { connect, fixPresence } from './live';
 import * as sites from './sites';
 import * as social from './social';
 import * as twofactor from './twofactor';
@@ -373,11 +373,12 @@ export default {
 
   // Every minute (wrangler.jsonc), taking turns so each run stays within the Workers limits
   // (clubs.ts): event reminders, then reading changed sites for search. At 03:00 UTC, the
-  // nightly backup instead.
+  // nightly backup instead, and at 03:31 a check of who's really online.
   async scheduled(controller, env, ctx) {
     const at = new Date(controller.scheduledTime);
     const minute = at.getUTCMinutes();
     if (at.getUTCHours() === 3 && minute === 0) ctx.waitUntil(backups.runBackup(env));
+    else if (at.getUTCHours() === 3 && minute === 31) ctx.waitUntil(fixPresence(env));
     else ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
   },
 } satisfies ExportedHandler<Env>;

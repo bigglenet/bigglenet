@@ -90,12 +90,26 @@ export function isOnline(env: Env, userId: number): Promise<boolean> {
   return liveFor(env, userId).online();
 }
 
+// Friends who are online hear straight away (others see it when they next open Bigglenet). At most
+// PRESENCE_FANOUT of them, to stay within the Workers limit on calls per request.
+const PRESENCE_FANOUT = 40;
+
 async function announcePresence(env: Env, a: Attachment, online: boolean) {
   await env.DB.prepare('UPDATE users SET online = ? WHERE id = ?').bind(online ? 1 : 0, a.userId).run();
-  const { results } = await env.DB.prepare("SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'friends'")
-    .bind(a.userId)
+  const { results } = await env.DB.prepare(
+    "SELECT f.friend_id FROM friendships f JOIN users u ON u.id = f.friend_id WHERE f.user_id = ? AND f.status = 'friends' AND u.online = 1 LIMIT ?",
+  )
+    .bind(a.userId, PRESENCE_FANOUT)
     .all<{ friend_id: number }>();
   await Promise.all(results.map((r) => notify(env, r.friend_id, { type: 'presence', username: a.username, online })));
+}
+
+/** Nightly: people still marked online whose connection went away without saying so. */
+export async function fixPresence(env: Env) {
+  const { results } = await env.DB.prepare('SELECT id FROM users WHERE online = 1 ORDER BY random() LIMIT ?').bind(PRESENCE_FANOUT).all<{ id: number }>();
+  const gone: number[] = [];
+  for (const { id } of results) if (!(await isOnline(env, id))) gone.push(id);
+  if (gone.length) await env.DB.prepare(`UPDATE users SET online = 0 WHERE id IN (${gone.map(() => '?').join(', ')})`).bind(...gone).run();
 }
 
 /**
