@@ -1,5 +1,6 @@
 // Bookmarks, kept in this browser: ⌘D (Ctrl+D) or the star in the address bar adds one, the
 // bookmarks bar under the address bar shows them, and biggle://bookmarks lists them all.
+import { registerSync, syncChanged } from './sync.svelte';
 import { START } from './url';
 
 export type Bookmark = { id: string; url: string; title: string; icon: string | null };
@@ -8,13 +9,17 @@ const KEY = 'biggle:bookmarks';
 
 type Saved = { list: Bookmark[]; bar: boolean };
 
+/** Saved bookmarks, checked (from this browser, or from another device through sync). */
+function parse(saved: Partial<Saved> | null): Saved {
+  const list = Array.isArray(saved?.list)
+    ? saved.list.filter((b): b is Bookmark => !!b && typeof b.url === 'string' && typeof b.title === 'string' && typeof b.id === 'string')
+    : [];
+  return { list, bar: saved?.bar !== false };
+}
+
 function load(): Saved {
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Saved> | null;
-    const list = Array.isArray(saved?.list)
-      ? saved.list.filter((b): b is Bookmark => !!b && typeof b.url === 'string' && typeof b.title === 'string' && typeof b.id === 'string')
-      : [];
-    return { list, bar: saved?.bar !== false };
+    return parse(JSON.parse(localStorage.getItem(KEY) ?? 'null'));
   } catch {
     return { list: [], bar: true };
   }
@@ -79,11 +84,26 @@ class Bookmarks {
     this.save();
   }
 
+  /** The bookmarks from another device (sync). */
+  replace(data: unknown) {
+    const saved = parse(data as Partial<Saved> | null);
+    // Icons too big to sync stay as they were here.
+    this.list = saved.list.map((b) => ({ ...b, icon: b.icon ?? this.list.find((x) => x.url === b.url)?.icon ?? null }));
+    this.bar = saved.bar;
+    this.save();
+  }
+
   private save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({ list: this.list, bar: this.bar } satisfies Saved));
     } catch {}
+    syncChanged('bookmarks');
   }
 }
 
 export const bookmarks = new Bookmarks();
+
+registerSync('bookmarks', 'bookmarks', {
+  get: () => ({ list: $state.snapshot(bookmarks.list).map((b) => ({ ...b, icon: b.icon && b.icon.length <= 2048 ? b.icon : null })), bar: bookmarks.bar }),
+  set: (data) => bookmarks.replace(data),
+});

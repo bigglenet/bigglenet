@@ -15,6 +15,7 @@
   import { chats, fileLabel, type Attachment, type Chat, type ChatMessage } from '../../lib/chats.svelte';
   import { i18n, t } from '../../lib/i18n.svelte';
   import { social } from '../../lib/social.svelte';
+  import { report } from '../../lib/report.svelte';
   import Icon from '../Icon.svelte';
   import ChatAttachment from './ChatAttachment.svelte';
   import LinkCard from './LinkCard.svelte';
@@ -147,6 +148,8 @@
         {#if mine}
           {#if m.body || !m.attachment}<button aria-label={t('Edit')} title={t('Edit')} onclick={() => ((held = false), onedit(m))}><Icon name="edit" size={15} /></button>{/if}
           <button aria-label={t('Delete')} title={t('Delete')} onclick={() => (confirmDelete = true)}><Icon name="trash" size={15} /></button>
+        {:else if m.from}
+          <button aria-label={t('Report')} title={t('Report')} onclick={() => ((held = false), report.open('message', m.id, t('a message from {who}', { who: m.from ?? '' })))}><Icon name="alert" size={15} /></button>
         {/if}
       </div>
     {/if}

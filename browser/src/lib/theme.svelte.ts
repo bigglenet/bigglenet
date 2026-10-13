@@ -1,6 +1,8 @@
 // How the browser itself looks: light, dark or the same as the computer, and a colour theme.
 // The new tab page has its own backdrops (startpage.svelte.ts).
 
+import { registerSync, syncChanged } from './sync.svelte';
+
 const KEY = 'biggle:theme';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -58,10 +60,22 @@ class Theme {
       localStorage.setItem(KEY, JSON.stringify({ appearance: this.appearance, theme: this.theme }));
     } catch {}
     this.apply();
+    syncChanged('settings');
   }
 }
 
 export const theme = new Theme();
+
+registerSync('settings', 'look', {
+  get: () => ({ appearance: theme.appearance, theme: theme.theme }),
+  set: (data) => {
+    const d = data as { appearance?: Appearance; theme?: ThemeId } | null;
+    theme.set({
+      appearance: d?.appearance && ['system', 'light', 'dark'].includes(d.appearance) ? d.appearance : undefined,
+      theme: THEMES.some((th) => th.id === d?.theme) ? d!.theme : undefined,
+    });
+  },
+});
 if (typeof window !== 'undefined') {
   theme.apply();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => theme.apply());

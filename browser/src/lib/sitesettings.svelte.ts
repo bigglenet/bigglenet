@@ -2,6 +2,8 @@
 // every site), and (desktop app) the permissions you've given sites straight from the internet.
 // Zoom is in zoom.svelte.ts. biggle://settings/sites lists them all.
 
+import { registerSync, syncChanged } from './sync.svelte';
+
 const KEY = 'biggle:site-settings';
 type Saved = { darkAll: boolean; sites: Record<string, { dark?: boolean }> };
 
@@ -42,11 +44,25 @@ class SiteSettings {
     this.save();
   }
 
+  /** The settings from another device (sync). */
+  replace(data: unknown) {
+    const d = data as Partial<Saved> | null;
+    this.darkAll = !!d?.darkAll;
+    this.sites = d?.sites && typeof d.sites === 'object' ? d.sites : {};
+    this.save();
+  }
+
   private save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({ darkAll: this.darkAll, sites: this.sites }));
     } catch {}
+    syncChanged('sites');
   }
 }
 
 export const siteSettings = new SiteSettings();
+
+registerSync('sites', 'sites', {
+  get: () => ({ darkAll: siteSettings.darkAll, sites: $state.snapshot(siteSettings.sites) }),
+  set: (data) => siteSettings.replace(data),
+});

@@ -18,6 +18,9 @@ export function setToken(value: string | null) {
   token = value;
 }
 
+/** Whether there's a session (for modules that can't import account.svelte.ts without a cycle). */
+export const hasSession = () => token !== null;
+
 /** Called when the server says our session is no longer valid. */
 export function onSessionExpired(handler: () => void) {
   onSignedOut = handler;

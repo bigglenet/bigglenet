@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { verifySignature } from './minisign.js';
+import { currentVersion, downloadBundle, findBundle, useBundle } from './webbundle.js';
 
 const run = promisify(execFile);
 
@@ -53,7 +54,14 @@ async function check() {
   const res = await net.fetch(FEED, { cache: 'no-store' });
   if (!res.ok) throw new Error(`The update server answered ${res.status}.`);
   const feed = await res.json();
-  if (typeof feed.version !== 'string' || !newer(feed.version, app.getVersion())) return null;
+  // Newer than the browser files in use (which may be newer than the app, from a smaller update).
+  if (typeof feed.version !== 'string' || !newer(feed.version, currentVersion())) return null;
+  // Just the browser's files, if that release has them and this app can use them.
+  const bundle = await findBundle(feed.version, PUBLIC_KEY).catch(() => null);
+  if (bundle) {
+    found = { version: feed.version, bundle };
+    return { version: feed.version, downloaded: false, small: true };
+  }
   const entry = feedKeys()
     .map((key) => feed.platforms?.[key])
     .find((e) => e && typeof e.url === 'string' && typeof e.signature === 'string');
@@ -66,6 +74,11 @@ async function check() {
 async function download() {
   if (ready) return { version: ready.version };
   if (!found) throw new Error('There’s no update to download.');
+  if (found.bundle) {
+    await downloadBundle(found.bundle);
+    ready = { version: found.version, bundle: true };
+    return { version: found.version };
+  }
   const { version, entry } = found;
   // GitHub's API links only give the file to requests that ask for it as bytes.
   const download = await net.fetch(entry.url, { headers: { Accept: 'application/octet-stream' } });
@@ -84,6 +97,13 @@ async function download() {
 /** Install the downloaded update and start the new version. */
 async function install() {
   if (!ready) return;
+  // A smaller update: start again with the new browser files.
+  if (ready.bundle) {
+    useBundle(ready.version);
+    app.relaunch();
+    app.exit(0);
+    return;
+  }
   const { file } = ready;
 
   if (process.platform === 'darwin') {

@@ -28,9 +28,17 @@
 //   /api/collections*                collections of favourite sites (collections.ts)
 //   /api/discover*, /api/search, /api/follows*   finding sites in Nox (discover.ts)
 //   /api/webrings*                   webrings (webrings.ts)
+//   /api/reports, /api/announcement, /api/status, /api/admin/{reports,announcements,dashboard}  (moderation.ts)
+//   /api/sync*, /api/me/export, DELETE /api/me   your account's own things (account.ts)
+//   /api/me/2fa*, /api/auth/login/2fa    two-factor sign-in (twofactor.ts)
+//   /api/passkeys*, /passkey/:id      passkeys (passkeys.ts)
+//   /api/push                        web push (push.ts)
+//   /api/admin/backups*, /api/admin/restore   nightly backups (backups.ts)
 //   /api/live                        WebSocket for live updates
+import * as account from './account';
 import * as admin from './admin';
 import * as auth from './auth';
+import * as backups from './backups';
 import * as board from './board';
 import * as chat from './chat';
 import * as clubs from './clubs';
@@ -52,9 +60,13 @@ import { fail, HttpError, preflight } from './http';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
 import * as invites from './invites';
+import * as moderation from './moderation';
+import * as passkeys from './passkeys';
+import * as push from './push';
 import { connect } from './live';
 import * as sites from './sites';
 import * as social from './social';
+import * as twofactor from './twofactor';
 import * as visitors from './visitors';
 import * as webrings from './webrings';
 
@@ -251,13 +263,62 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['DELETE', /^\/api\/webrings\/(\d+)\/sites\/([^/]+)$/, webrings.leaveRing],
   ['GET', /^\/api\/webrings\/(\d+)\/around\/([^/]+)$/, webrings.around],
 
+  ['POST', /^\/api\/reports$/, moderation.report],
+  ['GET', /^\/api\/admin\/reports$/, moderation.reports],
+  ['POST', /^\/api\/admin\/reports\/(\d+)$/, moderation.handleReport],
+  ['GET', /^\/api\/announcement$/, moderation.announcement],
+  ['POST', /^\/api\/admin\/announcements$/, moderation.announce],
+  ['DELETE', /^\/api\/admin\/announcements$/, moderation.endAnnouncement],
+  ['GET', /^\/api\/admin\/dashboard$/, moderation.dashboard],
+  ['GET', /^\/api\/status$/, moderation.status],
+
+  ['GET', /^\/api\/sync$/, account.getSync],
+  ['PUT', /^\/api\/sync\/([a-z]+)$/, account.putSync],
+  ['GET', /^\/api\/me\/export$/, account.exportData],
+  ['DELETE', /^\/api\/me$/, account.deleteAccount],
+
+  ['GET', /^\/api\/me\/2fa$/, twofactor.twoFactorStatus],
+  ['POST', /^\/api\/me\/2fa\/setup$/, twofactor.setupTwoFactor],
+  ['POST', /^\/api\/me\/2fa\/enable$/, twofactor.enableTwoFactor],
+  ['DELETE', /^\/api\/me\/2fa$/, twofactor.disableTwoFactor],
+  ['POST', /^\/api\/auth\/login\/2fa$/, twofactor.secondStep],
+
+  ['GET', /^\/api\/passkeys$/, passkeys.listPasskeys],
+  ['DELETE', /^\/api\/passkeys\/([A-Za-z0-9_-]+)$/, passkeys.removePasskey],
+  ['POST', /^\/api\/passkeys\/register\/start$/, passkeys.registerStart],
+  ['POST', /^\/api\/passkeys\/register\/finish$/, passkeys.registerFinish],
+  ['POST', /^\/api\/passkeys\/login\/start$/, passkeys.loginStart],
+  ['POST', /^\/api\/passkeys\/login\/finish$/, passkeys.loginFinish],
+  ['POST', /^\/api\/passkeys\/poll$/, passkeys.poll],
+  ['GET', /^\/api\/passkeys\/requests\/([A-Za-z0-9_-]+)$/, passkeys.requestOptions],
+  ['GET', /^\/passkey\/([A-Za-z0-9_-]+)$/, passkeys.passkeyPage],
+
+  ['GET', /^\/api\/push$/, push.pushKey],
+  ['POST', /^\/api\/push$/, push.subscribe],
+  ['DELETE', /^\/api\/push$/, push.unsubscribe],
+
+  ['GET', /^\/api\/admin\/backups$/, backups.listBackups],
+  ['GET', /^\/api\/admin\/backups\/(\d+)\/download$/, backups.downloadBackup],
+  ['POST', /^\/api\/admin\/backups\/(\d+)\/restore$/, backups.restoreBackup],
+  ['POST', /^\/api\/admin\/restore$/, backups.undoRestore],
+
   ['GET', /^\/api\/live$/, connect],
 ];
 
 export default {
-  async fetch(req, env): Promise<Response> {
+  async fetch(req, env, ctx): Promise<Response> {
     if (req.method === 'OPTIONS') return preflight();
     const { pathname, search } = new URL(req.url);
+
+    // A backup runs on after the answer, so it needs the context.
+    if (pathname === '/api/admin/backups' && req.method === 'POST') {
+      try {
+        return await backups.backupNow(req, env, ctx);
+      } catch (e) {
+        if (e instanceof HttpError) return fail(e.status, e.code, e.message);
+        throw e;
+      }
+    }
 
     const file = pathname.match(/^\/files\/(.+)$/);
     if (file && req.method === 'GET') {
@@ -305,9 +366,12 @@ export default {
   },
 
   // Every minute (wrangler.jsonc), taking turns so each run stays within the Workers limits
-  // (clubs.ts): event reminders, then reading changed sites for search.
+  // (clubs.ts): event reminders, then reading changed sites for search. At 03:00 UTC, the
+  // nightly backup instead.
   async scheduled(controller, env, ctx) {
-    const minute = new Date(controller.scheduledTime).getUTCMinutes();
-    ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
+    const at = new Date(controller.scheduledTime);
+    const minute = at.getUTCMinutes();
+    if (at.getUTCHours() === 3 && minute === 0) ctx.waitUntil(backups.runBackup(env));
+    else ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
   },
 } satisfies ExportedHandler<Env>;

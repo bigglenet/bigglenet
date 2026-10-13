@@ -8,9 +8,11 @@
   import { CHANGELOG } from '../lib/changelog';
   import { i18n, t, type LangChoice } from '../lib/i18n.svelte';
   import { notices } from '../lib/notify.svelte';
+  import { push } from '../lib/push.svelte';
   import { people } from '../lib/people.svelte';
   import { couch } from '../lib/couch.svelte';
   import { theme, THEMES, type Appearance } from '../lib/theme.svelte';
+  import AccountSettings from './AccountSettings.svelte';
   import SiteSettingsList from './SiteSettingsList.svelte';
   import { desktop, isMac } from '../lib/platform';
   import { startSettings as settings } from '../lib/startpage.svelte';
@@ -42,6 +44,29 @@
   let showAll = $state(false);
   const releases = $derived(showAll ? CHANGELOG : CHANGELOG.slice(0, 4));
   const date = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString([], { dateStyle: 'medium' });
+
+  // Notifications while Bigglenet is closed: web push on the web, running in the background on desktop.
+  let pushBusy = $state(false);
+  let pushError = $state('');
+  let background = $state(false);
+  $effect(() => {
+    push.refresh();
+    desktop?.background.get().then((on) => (background = on));
+  });
+  async function setPush(on: boolean) {
+    pushBusy = true;
+    pushError = '';
+    try {
+      await (on ? push.enable() : push.disable());
+    } catch (e) {
+      pushError = (e as Error).message;
+    } finally {
+      pushBusy = false;
+    }
+  }
+  async function setBackground(on: boolean) {
+    background = (await desktop?.background.set(on)) ?? false;
+  }
 
   let ownPage = $state(settings.newTab !== null);
   let pageText = $state(settings.newTab ?? '');
@@ -184,6 +209,8 @@
       </select>
     </section>
 
+    <AccountSettings />
+
     <section id="privacy">
       <h2>{t('Privacy')}</h2>
       <label class="choice">
@@ -230,6 +257,24 @@
         {:else}
           <button class="ghost" onclick={() => notices.test()}><Icon name="bell" size={15} /> Send a test notification</button>
         {/if}
+      {/if}
+      {#if push.supported}
+        <label class="choice">
+          <input type="checkbox" checked={push.on} disabled={pushBusy} onchange={(e) => setPush(e.currentTarget.checked)} />
+          <span>
+            <strong>{t('Notify me even when Bigglenet is closed')}</strong><br />
+            <span class="muted">{t('Messages, calls and reminders on this device, like other apps.')}</span>
+          </span>
+        </label>
+        {#if pushError}<p class="error">{pushError}</p>{/if}
+      {:else if desktop}
+        <label class="choice">
+          <input type="checkbox" checked={background} onchange={(e) => setBackground(e.currentTarget.checked)} />
+          <span>
+            <strong>{t('Keep running in the background')}</strong><br />
+            <span class="muted">{isMac ? t('After you close the window, Bigglenet stays in the menu bar and still tells you about messages, calls and reminders.') : t('After you close the window, Bigglenet stays in the system tray and still tells you about messages, calls and reminders.')}</span>
+          </span>
+        </label>
       {/if}
       <p class="muted small" style:margin-top="12px">New messages are also counted on Bigglenet’s icon{desktop ? (isMac ? ' in the Dock' : ' in the taskbar') : ''}.</p>
     </section>

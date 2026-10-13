@@ -5,6 +5,7 @@ import { checkUsername, randomId, signedIn } from './auth';
 import { mailMode } from './email';
 import { HttpError, json, readJson, str } from './http';
 import { useInvite } from './invites';
+import { signedInOrSecondStep } from './twofactor';
 
 const REQUEST_TTL = 10 * 60;
 
@@ -107,7 +108,7 @@ export async function poll(req: Request, env: Env): Promise<Response> {
   if (row.status === 'needs_username') return json({ needsUsername: true, email: row.email });
   if (row.status === 'waiting') return json({ waiting: true });
   await env.DB.prepare('DELETE FROM oauth_requests WHERE id = ?').bind(id).run();
-  return signedIn(env, row.user_id!);
+  return signedInOrSecondStep(env, row.user_id!);
 }
 
 /** First time with Google: pick a username, then the account is made. */

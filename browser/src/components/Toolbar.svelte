@@ -20,6 +20,7 @@
   import BookmarkButton from './BookmarkButton.svelte';
   import { collect } from '../lib/collect.svelte';
   import { follows } from '../lib/follows.svelte';
+  import { report } from '../lib/report.svelte';
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
   import SiteInfo from './SiteInfo.svelte';
@@ -134,6 +135,7 @@
         follows.has(key)
           ? { label: t('Unfollow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) }
           : { label: t('Follow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) },
+        { label: t('Report this site…'), icon: 'alert', action: () => report.open('site', key, siteHost(key)) },
       );
     }
     items.push(

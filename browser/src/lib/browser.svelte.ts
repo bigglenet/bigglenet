@@ -69,6 +69,8 @@ const SAVED_TABS = 'biggle:tabs';
 // The tabs from last time, to bring back after quitting (Settings → On startup), and pinned tabs,
 // which always come back.
 const LAST_SESSION = 'biggle:last-session';
+/** At most this many tabs are saved or restored, so a runaway session can't stall startup. */
+const MAX_SAVED_TABS = 100;
 const PINNED = 'biggle:pinned';
 const STARTUP = 'biggle:startup';
 const SLEEP_AFTER = 'biggle:sleep-after';
@@ -213,8 +215,8 @@ class Browser {
       ids.set(g.id, id);
       this.groups.push({ ...g, id, collapsed: !!g.collapsed });
     }
-    const active = session.tabs[session.active] ? session.active : 0;
-    session.tabs.forEach((t, i) => {
+    const active = session.tabs[session.active] && session.active < MAX_SAVED_TABS ? session.active : 0;
+    session.tabs.slice(0, MAX_SAVED_TABS).forEach((t, i) => {
       const tab = this.newTab(t.url, { activate: i === active, pinned: !!t.pinned, groupId: t.group ? (ids.get(t.group) ?? null) : null });
       // Background tabs wait until they're looked at.
       if (i !== active && t.title) {
@@ -258,7 +260,7 @@ class Browser {
   saveTabs() {
     // Private tabs are never saved.
     const tabs = this.tabs.filter((t) => !t.private);
-    const saved: SavedTab[] = tabs.map((t) => ({ url: t.url, title: t.title, pinned: t.pinned, group: t.groupId }));
+    const saved: SavedTab[] = tabs.slice(0, MAX_SAVED_TABS).map((t) => ({ url: t.url, title: t.title, pinned: t.pinned, group: t.groupId }));
     const active = Math.max(0, tabs.findIndex((t) => t.id === this.activeId));
     const groups = this.groups.filter((g) => tabs.some((t) => t.groupId === g.id)).map((g) => ({ ...g }));
     writeJson(sessionStorage, SAVED_TABS, { tabs: saved, groups, active });
@@ -750,6 +752,7 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'events') return path === 'new' ? 'New event' : path ? 'Event' : 'Events';
   if (page === 'collections') return path ? 'Collection' : 'Collections';
   if (page === 'invite') return 'Invite';
+  if (page === 'status') return 'Status';
   if (page === 'settings') return 'Settings';
   if (page === 'bookmarks') return 'Bookmarks';
   if (page === 'history') return 'History';

@@ -62,8 +62,13 @@ type Desktop = {
   };
   onShortcut(callback: (key: string) => void): Stop;
   info(): Promise<{ version: string; electron: string; chromium: string; packaged: boolean }>;
+  /** The browser has started (so newer browser files from a smaller update work; webbundle.js). */
+  booted?(): Promise<void>;
+  /** Keep running in the background after the window closes (desktop/main/background.js). */
+  background: { get(): Promise<boolean>; set(on: boolean): Promise<boolean> };
   updates: {
-    check(): Promise<{ version: string; downloaded: boolean } | null>;
+    /** `small`: only the browser's own files changed, so the download is small (webbundle.js). */
+    check(): Promise<{ version: string; downloaded: boolean; small?: boolean } | null>;
     download(): Promise<{ version: string }>;
     install(): Promise<void>;
     onCheckRequested(callback: () => void): Stop;
@@ -165,4 +170,6 @@ export async function initPlatform(open: (href: string) => void, shortcut: (key:
   desktop.onShortcut(shortcut);
   (await desktop.links.initial()).forEach(open);
   desktop.links.onOpen(open);
+  // Started fine: newer browser files from a smaller update are kept (desktop/main/webbundle.js).
+  desktop.booted?.();
 }

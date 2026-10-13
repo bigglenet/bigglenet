@@ -81,6 +81,13 @@ contextBridge.exposeInMainWorld('bigglenet', {
   },
   onShortcut: (callback) => on('shortcut', callback),
   info: () => ipcRenderer.invoke('app:info'),
+  /** The browser has started (main/webbundle.js checks newer browser files do). */
+  booted: () => ipcRenderer.invoke('app:booted'),
+  /** Keep running in the background after the window closes (main/background.js). */
+  background: {
+    get: () => ipcRenderer.invoke('background:get'),
+    set: (on) => ipcRenderer.invoke('background:set', !!on),
+  },
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
     download: () => ipcRenderer.invoke('updates:download'),

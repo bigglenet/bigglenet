@@ -2,8 +2,10 @@
   // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
   import { account, type Again, type Ticket } from '../lib/account.svelte';
   import { errorText } from '../lib/api';
+  import { t } from '../lib/i18n.svelte';
   import { invite } from '../lib/invite.svelte';
   import { isApp, openExternal } from '../lib/platform';
+  import { passkeysHere } from '../lib/webauthn';
 
   type Step =
     | 'welcome'
@@ -16,6 +18,8 @@
     | 'google-username'
     | 'add-email'
     | 'add-email-code'
+    | 'second-step'
+    | 'passkey-wait'
     | 'mail';
 
   let step = $state<Step>(account.needsEmail ? 'add-email' : 'welcome');
@@ -35,11 +39,37 @@
   $effect(() => {
     if (account.needsEmail && !step.startsWith('add-email') && step !== 'mail') step = 'add-email';
   });
+  // Two-factor is on: the code is next (after a password, Google or a password reset).
+  $effect(() => {
+    if (account.secondStep && step !== 'second-step') {
+      code = '';
+      step = 'second-step';
+    }
+  });
+
+  let passkeyAbort: AbortController | null = null;
+  function passkey() {
+    passkeyAbort = new AbortController();
+    const signal = passkeyAbort.signal;
+    // The desktop app waits for the system browser; the web asks right here.
+    if (isApp) step = 'passkey-wait';
+    run(async () => {
+      try {
+        await account.passkeySignIn(signal);
+      } catch (e) {
+        if (isApp) step = 'welcome';
+        throw e;
+      }
+    });
+  }
+  const canPasskey = isApp || passkeysHere;
 
   function go(next: Step) {
     error = '';
     code = '';
     googleAbort?.abort();
+    passkeyAbort?.abort();
+    if (step === 'second-step') account.cancelSecondStep();
     step = next;
   }
 
@@ -242,6 +272,9 @@
         <button class={account.email || account.google ? 'secondary' : 'primary'} onclick={() => go('signin')}>
           I already have an account
         </button>
+        {#if canPasskey}
+          <button class="secondary" onclick={passkey} disabled={busy}>{t('Sign in with a passkey')}</button>
+        {/if}
       </div>
       {#if !account.email && !account.google}
         <p class="note">New accounts open very soon.</p>
@@ -326,6 +359,19 @@
         <button class="primary" disabled={busy}>{busy ? 'Saving…' : 'Reset password'}</button>
       </form>
       <p class="links"><button class="link" onclick={() => go('signin')}>Back</button></p>
+    {:else if step === 'second-step'}
+      <h1>{t('Enter your code')}</h1>
+      <p class="lede">{t('From your authenticator app. Lost your phone? Use one of your recovery codes.')}</p>
+      <form class="stack" onsubmit={submit(() => account.finishSecondStep(code))}>
+        <input class="code" bind:value={code} autocomplete="one-time-code" maxlength="11" placeholder="000000" aria-label={t('Code')} autocapitalize="off" spellcheck="false" required />
+        <button class="primary" disabled={busy}>{busy ? t('Checking…') : t('Sign in')}</button>
+      </form>
+      <p class="links"><button class="link" onclick={() => go('welcome')}>{t('Back')}</button></p>
+    {:else if step === 'passkey-wait'}
+      <h1>{t('Finish in your browser')}</h1>
+      <p class="lede">{t('Use your passkey in the window that opened. We’ll carry on here when you’re done.')}</p>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="links"><button class="link" onclick={() => go('welcome')}>{t('Cancel')}</button></p>
     {:else if step === 'google-wait'}
       <h1>Finish in your browser</h1>
       <p class="lede">Pick your Google account in the window that opened. We'll carry on here when you're done.</p>

@@ -7,6 +7,7 @@
   import { chats } from '../lib/chats.svelte';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { people, squareImage, type Profile } from '../lib/people.svelte';
+  import { report } from '../lib/report.svelte';
   import { social } from '../lib/social.svelte';
   import { siteHome, siteHost } from '../lib/url';
   import Avatar from './Avatar.svelte';
@@ -255,6 +256,7 @@
               </span>
             {:else}
               <button class="ghost quiet" onclick={() => (confirmBlock = true)}>{t('Block')}</button>
+              <button class="ghost quiet" onclick={() => report.open('user', profile!.username, profile!.username)}>{t('Report')}</button>
             {/if}
           {/if}
         </div>

@@ -2,6 +2,7 @@
 // t(); the Turkish list maps each English text to its translation. Anything not translated yet
 // shows in English. Pick the language in Settings → Language ("System" follows the computer).
 import tr from './locales/tr';
+import { registerSync, syncChanged } from './sync.svelte';
 
 export type Lang = 'en' | 'tr';
 export type LangChoice = 'system' | Lang;
@@ -36,10 +37,18 @@ class I18n {
       else localStorage.setItem(KEY, choice);
     } catch {}
     document.documentElement.lang = this.lang;
+    syncChanged('settings');
   }
 }
 
 export const i18n = new I18n();
+
+registerSync('settings', 'language', {
+  get: () => i18n.choice,
+  set: (data) => {
+    if (data === 'system' || data === 'en' || data === 'tr') i18n.set(data);
+  },
+});
 if (typeof document !== 'undefined') document.documentElement.lang = i18n.lang;
 
 /**

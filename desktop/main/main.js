@@ -6,11 +6,13 @@ import { app, BrowserWindow, desktopCapturer, ipcMain, nativeImage, nativeTheme,
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { setupBackground } from './background.js';
 import { setupLinks } from './links.js';
 import { attachContextMenu, setupMenu } from './menus.js';
 import { migrateOldData, setupMigration } from './migrate.js';
 import { setupSites } from './sites.js';
 import { setupUpdater } from './updater.js';
+import { activeFiles, watchBoot } from './webbundle.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const isMac = process.platform === 'darwin';
@@ -21,7 +23,9 @@ const isWindows = process.platform === 'win32';
 const APP_URL = isWindows ? 'http://tauri.localhost/' : 'app://bigglenet/';
 const DEV_URL = process.env.BIGGLE_DEV_URL || 'http://localhost:5173/';
 const useDevServer = !app.isPackaged && !process.env.BIGGLE_FILES;
-const appFiles = app.isPackaged ? join(process.resourcesPath, 'app') : join(here, '../../browser/dist');
+const packagedFiles = app.isPackaged ? join(process.resourcesPath, 'app') : join(here, '../../browser/dist');
+// The app's own browser files, or newer ones from a smaller update (webbundle.js). Set at start.
+let appFiles = packagedFiles;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true, codeCache: true } },
@@ -47,6 +51,8 @@ const getMain = () => {
   return [...windows].find((w) => !w.isDestroyed()) ?? null;
 };
 const windowOf = (event) => BrowserWindow.fromWebContents(event.sender);
+// Set up below: hides the last window instead of closing it, when running in the background.
+let watchClose = () => {};
 
 if (!setupLinks(getMain)) {
   // Bigglenet is already open; the link (if any) went to it.
@@ -57,7 +63,17 @@ if (!setupLinks(getMain)) {
   migrateOldData();
   setupMigration();
   setupUpdater();
+  watchClose = setupBackground(() => [...windows], showWindow);
   app.whenReady().then(start);
+}
+
+/** Bring back a window (hidden while running in the background), or open one. */
+function showWindow() {
+  const win = getMain();
+  if (!win) return app.isReady() && createWindow(null);
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
 }
 
 /** The browser's files. Anything that isn't a file gets the app (it's a single-page app). */
@@ -69,6 +85,8 @@ function serveApp(request) {
 }
 
 function start() {
+  appFiles = activeFiles(packagedFiles).dir;
+  watchBoot();
   if (isWindows) {
     // Only the app's own address is served from its files; everything else goes out as usual.
     protocol.handle('http', (request) =>
@@ -206,6 +224,7 @@ function createWindow(open, opts = {}) {
   });
   windows.add(main);
   lastUsed = main;
+  watchClose(main);
   const contentsId = main.webContents.id;
   main.once('ready-to-show', () => main.show());
   main.on('focus', () => (lastUsed = main));
@@ -236,5 +255,6 @@ function createWindow(open, opts = {}) {
   return main;
 }
 
-// Closing the window quits, on every system (as before).
+// Closing the window quits, on every system (as before), unless Bigglenet runs in the background
+// (background.js), where closing the last window only hides it.
 app.on('window-all-closed', () => app.quit());

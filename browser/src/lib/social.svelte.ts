@@ -10,6 +10,7 @@ import { notices } from './notify.svelte';
 import { notifications, type Notification } from './notifications.svelte';
 import { people, type Activity, type Status } from './people.svelte';
 import { sites } from './sites.svelte';
+import { sync } from './sync.svelte';
 import { together } from './together.svelte';
 
 export type Friend = {
@@ -44,6 +45,7 @@ type LiveEvent =
   | { type: 'status'; username: string; status: Status | null; activity: Activity | null }
   | { type: 'blocks' }
   | { type: 'profile'; username: string; avatar: number | null }
+  | { type: 'sync'; key: string }
   // Sent for apps from before group chats; chat-message covers it here.
   | { type: 'message' }
   | { type: 'read' };
@@ -91,6 +93,7 @@ class Social {
     people.start();
     notifications.refresh();
     follows.refresh();
+    sync.pull();
     this.connect();
   }
 
@@ -126,6 +129,7 @@ class Social {
       chats.reloadOpen();
       notifications.refresh();
       follows.refresh();
+      sync.pull();
       this.pingTimer = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send('ping'), PING_MS);
     };
     ws.onmessage = (e) => {
@@ -192,6 +196,9 @@ class Social {
         return people.refreshBlocks();
       case 'profile':
         return people.learn(ev.username, { avatar: ev.avatar });
+      case 'sync':
+        // Changed on another device.
+        return sync.pull();
     }
   }
 

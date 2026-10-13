@@ -3,6 +3,7 @@
 import { mailMode, sendCode } from './email';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 import { useInvite } from './invites';
+import { signedInOrSecondStep } from './twofactor';
 
 export type User = {
   id: number;
@@ -38,6 +39,13 @@ async function hashPassword(password: string, salt: Uint8Array): Promise<Uint8Ar
   const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ITERATIONS }, key, 256);
   return new Uint8Array(bits);
+}
+
+/** Whether `password` matches a stored hash (base64) and salt. */
+export async function verifyPassword(password: string, hashB64: string, saltB64: string): Promise<boolean> {
+  const hash = await hashPassword(password, fromBase64(saltB64));
+  const expected = fromBase64(hashB64);
+  return hash.length === expected.length && crypto.subtle.timingSafeEqual(hash, expected);
 }
 
 async function newPasswordHash(password: string) {
@@ -320,7 +328,7 @@ export async function login(req: Request, env: Env): Promise<Response> {
   if (!row || hash.length !== expected.length || !crypto.subtle.timingSafeEqual(hash, expected)) {
     throw new HttpError(401, 'bad_login', 'Wrong username, email or password.');
   }
-  return signedIn(env, row.id);
+  return signedInOrSecondStep(env, row.id);
 }
 
 export async function logout(req: Request, env: Env): Promise<Response> {
@@ -391,5 +399,5 @@ export async function resetFinish(req: Request, env: Env): Promise<Response> {
     env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, email_verified = 1 WHERE id = ?').bind(hash, salt, userId),
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
   ]);
-  return signedIn(env, userId);
+  return signedInOrSecondStep(env, userId);
 }

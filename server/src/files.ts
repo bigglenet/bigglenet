@@ -24,6 +24,11 @@ export async function deleteFile(env: Env, key: string) {
   await env.FILES.delete(key);
 }
 
+/** Many at once (up to 1000), in one call. */
+export async function deleteFiles(env: Env, keys: string[]) {
+  for (let i = 0; i < keys.length; i += 1000) await env.FILES.delete(keys.slice(i, i + 1000));
+}
+
 /** A file as a response, or null if it isn't there. */
 export async function fileResponse(env: Env, key: string, headers: Record<string, string> = {}): Promise<Response | null> {
   const object = await env.FILES.get(key);

@@ -1,6 +1,7 @@
 // How the new tab page looks and what new tabs open, kept in this browser. Change them from the
 // start page's Customize button or biggle://settings. biggle://newtab always shows the new tab
 // page, whatever's set.
+import { registerSync, syncChanged } from './sync.svelte';
 import { START, fromInput } from './url';
 
 export type Section = 'clock' | 'search' | 'shortcuts' | 'featured' | 'latest';
@@ -38,15 +39,19 @@ const DEFAULTS: Saved = {
   backdrop: 'plain',
 };
 
+/** Saved settings, checked (from this browser, or another device through sync). */
+function parse(saved: Partial<Saved> | null): Saved {
+  return {
+    newTab: typeof saved?.newTab === 'string' ? saved.newTab : null,
+    shown: { ...DEFAULTS.shown, ...saved?.shown },
+    shortcuts: Array.isArray(saved?.shortcuts) ? saved.shortcuts.filter((s) => s && typeof s.url === 'string') : [],
+    backdrop: BACKDROPS.some((b) => b.id === saved?.backdrop) ? saved!.backdrop! : 'plain',
+  };
+}
+
 function load(): Saved {
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Saved> | null;
-    return {
-      newTab: typeof saved?.newTab === 'string' ? saved.newTab : null,
-      shown: { ...DEFAULTS.shown, ...saved?.shown },
-      shortcuts: Array.isArray(saved?.shortcuts) ? saved.shortcuts.filter((s) => s && typeof s.url === 'string') : [],
-      backdrop: BACKDROPS.some((b) => b.id === saved?.backdrop) ? saved!.backdrop! : 'plain',
-    };
+    return parse(JSON.parse(localStorage.getItem(KEY) ?? 'null'));
   } catch {
     return structuredClone(DEFAULTS);
   }
@@ -93,6 +98,17 @@ class StartSettings {
     try {
       localStorage.setItem(KEY, JSON.stringify(saved));
     } catch {}
+    syncChanged('start');
+  }
+
+  /** The settings from another device (sync). */
+  replace(data: unknown) {
+    const saved = parse(data as Partial<Saved> | null);
+    this.newTab = saved.newTab;
+    this.shown = saved.shown;
+    this.shortcuts = saved.shortcuts;
+    this.backdrop = saved.backdrop;
+    this.save();
   }
 
   reset() {
@@ -105,3 +121,8 @@ class StartSettings {
 }
 
 export const startSettings = new StartSettings();
+
+registerSync('start', 'start', {
+  get: () => ({ newTab: startSettings.newTab, shown: $state.snapshot(startSettings.shown), shortcuts: $state.snapshot(startSettings.shortcuts), backdrop: startSettings.backdrop }),
+  set: (data) => startSettings.replace(data),
+});

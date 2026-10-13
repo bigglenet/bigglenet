@@ -1,8 +1,10 @@
 // Biggle ID: who's signed in to this browser. You need one to use Bigglenet at all, with a
 // confirmed email address or Google.
 import { api, onSessionExpired, setToken } from './api';
+import { SERVER } from './config';
 import { invite } from './invite.svelte';
-import { openExternal } from './platform';
+import { desktop, openExternal } from './platform';
+import { createPasskey, getPasskey } from './webauthn';
 
 export type Me = {
   username: string;
@@ -14,6 +16,8 @@ export type Me = {
   avatar?: number | null;
 };
 type SignedIn = { token: string; user: Me };
+/** Signed in, or (two-factor) a ticket for the second step. */
+type SignInResult = SignedIn | { needs2fa: true; ticket: string };
 /**
  * A code to finish with. Either it was emailed out, or (with `join`) the person emails `code`
  * to the `join` address from their own email, then the app finishes once it arrives.
@@ -42,6 +46,8 @@ class Account {
   email = $state(false);
   /** When set, people confirm an email by emailing a code to this address. */
   join = $state<string | null>(null);
+  /** A sign-in waiting for its two-factor code (the ticket for it). */
+  secondStep = $state<string | null>(null);
 
   constructor() {
     const saved = loadSaved();
@@ -73,7 +79,61 @@ class Account {
   }
 
   async signIn(login: string, password: string) {
-    this.set(await api<SignedIn>('POST', '/api/auth/login', { login, password }));
+    this.setOrAsk(await api<SignInResult>('POST', '/api/auth/login', { login, password }));
+  }
+
+  /** Signed in, or two-factor's turn (AuthScreen then asks for the code). */
+  private setOrAsk(r: SignInResult) {
+    if ('needs2fa' in r) this.secondStep = r.ticket;
+    else this.set(r);
+  }
+
+  /** The code from an authenticator app (or a recovery code), to finish signing in. */
+  async finishSecondStep(code: string) {
+    this.set(await api<SignedIn>('POST', '/api/auth/login/2fa', { ticket: this.secondStep, code }));
+    this.secondStep = null;
+  }
+
+  cancelSecondStep() {
+    this.secondStep = null;
+  }
+
+  /**
+   * Sign in with a passkey. The desktop app does it in the system browser (which knows about
+   * Touch ID, Windows Hello and phones) and waits for it, like Google.
+   */
+  async passkeySignIn(signal?: AbortSignal) {
+    const start = await api<{ id: string; options: Parameters<typeof getPasskey>[0] }>('POST', '/api/passkeys/login/start');
+    if (desktop) {
+      await openExternal(`${SERVER}/passkey/${start.id}`);
+      const done = await this.waitForPasskey(start.id, signal);
+      if (done.token && done.user) this.set({ token: done.token, user: done.user });
+      return;
+    }
+    const credential = await getPasskey(start.options);
+    this.set(await api<SignedIn>('POST', '/api/passkeys/login/finish', { id: start.id, credential }));
+  }
+
+  /** Add a passkey to this Biggle ID. */
+  async addPasskey(name: string, signal?: AbortSignal) {
+    const start = await api<{ id: string; options: Parameters<typeof createPasskey>[0] }>('POST', '/api/passkeys/register/start');
+    if (desktop) {
+      await openExternal(`${SERVER}/passkey/${start.id}`);
+      await this.waitForPasskey(start.id, signal);
+      return;
+    }
+    const credential = await createPasskey(start.options);
+    await api('POST', '/api/passkeys/register/finish', { id: start.id, name, credential });
+  }
+
+  private async waitForPasskey(id: string, signal?: AbortSignal): Promise<Partial<SignedIn> & { done?: boolean }> {
+    while (!signal?.aborted) {
+      await new Promise((r) => setTimeout(r, 2000));
+      if (signal?.aborted) break;
+      const r = await api<Partial<SignedIn> & { waiting?: boolean; done?: boolean }>('POST', '/api/passkeys/poll', { id });
+      if (!r.waiting) return r;
+    }
+    throw new DOMException('Cancelled', 'AbortError');
   }
 
   signUpStart(email: string, username: string, password: string, again?: Again) {
@@ -92,7 +152,7 @@ class Account {
   }
 
   async resetFinish(ticket: string, code: string, password?: string) {
-    this.set(await api<SignedIn>('POST', '/api/auth/reset/finish', { ticket, code, password }));
+    this.setOrAsk(await api<SignInResult>('POST', '/api/auth/reset/finish', { ticket, code, password }));
   }
 
   emailStart(email: string, again?: Again) {
@@ -119,12 +179,16 @@ class Account {
     while (!signal.aborted) {
       await new Promise((r) => setTimeout(r, 2000));
       if (signal.aborted) break;
-      const r = await api<Partial<SignedIn> & { waiting?: boolean; needsUsername?: boolean; email?: string | null }>(
+      const r = await api<Partial<SignedIn> & { waiting?: boolean; needsUsername?: boolean; email?: string | null; needs2fa?: true; ticket?: string }>(
         'POST',
         '/api/auth/google/poll',
         { id },
       );
       if (r.needsUsername) return { id, result: 'username', email: r.email };
+      if (r.needs2fa && r.ticket) {
+        this.secondStep = r.ticket;
+        return { id, result: 'done' };
+      }
       if (r.token && r.user) {
         this.set({ token: r.token, user: r.user });
         return { id, result: 'done' };

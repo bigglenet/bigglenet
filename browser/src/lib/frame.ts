@@ -7,6 +7,7 @@ import { api, ApiError, errorText } from './api';
 import { loadDirectory } from './directory';
 import { t } from './i18n.svelte';
 import { renderEmbed } from './loader';
+import { report } from './report.svelte';
 import { RoomLink } from './rooms';
 import { signing } from './signing.svelte';
 import { storageOp } from './storage';
@@ -153,6 +154,14 @@ export function answerCall(scope: PageScope, msg: Record<string, unknown>, reply
       },
       (e) => done({ error: errorText(e) }),
     );
+  } else if (method === 'report') {
+    // A comment or guestbook note someone wants admins to see. The browser asks why.
+    const kind = args[0] === 'note' ? 'note' : args[0] === 'comment' ? 'comment' : null;
+    const id = Number(args[1]);
+    if (!kind || !Number.isInteger(id)) return done({ error: t('That can’t be reported.') });
+    if (needsClick(t('Reporting'))) return;
+    report.open(kind, id, kind === 'note' ? t('a guestbook note on {site}', { site: siteHost(site) }) : t('a comment on {site}', { site: siteHost(site) }));
+    done({ value: true });
   } else if (method === 'webring') {
     // Where this site is in a webring: the sites before and after it, and a random one.
     const ring = Number(args[0]);

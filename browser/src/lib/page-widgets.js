@@ -130,6 +130,12 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}.meta{display:flex;g
           x.onclick = () => call('comments.delete', c.id).then(() => (li.remove(), total--, update()), showError);
           meta.append(x);
         }
+        // Someone else's comment: tell an admin about it (the browser asks why).
+        if (__kit.user() && c.author !== __kit.user().username) {
+          const flag = el('button', { class: 'remove', textContent: '⚑', title: 'Report this comment', 'aria-label': 'Report this comment' });
+          flag.onclick = () => call('report', 'comment', c.id).catch(showError);
+          meta.append(flag);
+        }
         li.append(meta, el('p', { class: 'body', part: 'body', textContent: c.body }));
         return li;
       };

@@ -61,6 +61,11 @@
   import FeedPage from './components/community/FeedPage.svelte';
   import InvitePage from './components/community/InvitePage.svelte';
   import { collect } from './lib/collect.svelte';
+  import { announcements } from './lib/announcement.svelte';
+  import AnnouncementBanner from './components/AnnouncementBanner.svelte';
+  import StatusPage from './components/StatusPage.svelte';
+  import ReportDialog from './components/ReportDialog.svelte';
+  import { report } from './lib/report.svelte';
   import { invite, inviteCodeIn } from './lib/invite.svelte';
   import SitesPage from './components/SitesPage.svelte';
   import StartPage from './components/StartPage.svelte';
@@ -84,7 +89,9 @@
     params.delete('invite');
   }
   history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
-  if (browser.restoreTabs()) {
+  if (browser.tabs.length) {
+    // Already open (the app's code was swapped while running, in development): keep them.
+  } else if (browser.restoreTabs()) {
     // A reload: the same tabs as before.
     if (opening) browser.newTab(opening);
   } else if (opening || browser.privateWindow) {
@@ -213,12 +220,24 @@
   // You need a Biggle ID with a confirmed email (or Google) to use Bigglenet.
   const ready = $derived(!!account.user && !account.needsEmail);
 
+  // The admins' banner, checked every few minutes once signed in.
+  $effect(() => {
+    if (ready) announcements.start();
+  });
+
   // Unread messages and friend requests on the app's icon.
   $effect(() => notices.badge(ready ? social.unread : 0));
   // A notification clicked on a phone (public/sw.js): show that chat.
   navigator.serviceWorker?.addEventListener('message', (e) => {
     if (e.data?.type === 'open-chat' && typeof e.data.chatId === 'number') social.showChat(e.data.chatId);
+    if (e.data?.type === 'open' && typeof e.data.href === 'string' && e.data.href.startsWith('biggle://')) browser.openFromOutside(e.data.href);
   });
+  // Opened from a tapped notification while Bigglenet was closed: show that chat.
+  const chatParam = Number(new URLSearchParams(location.search).get('chat'));
+  if (chatParam) {
+    history.replaceState(null, '', location.pathname);
+    social.showChat(chatParam);
+  }
 
   // What I'm up to, for friends, if I share it: the site in the tab I'm looking at. Said again
   // every few minutes so it doesn't go stale.
@@ -329,6 +348,7 @@
       {#if bookmarks.bar && bookmarks.list.length}
         <div class="bookmarks"><BookmarksBar /></div>
       {/if}
+      <AnnouncementBanner />
     {/if}
     <div class="progress" class:on={browser.active?.loading}></div>
     {#if find.open}<FindBar />{/if}
@@ -385,6 +405,8 @@
                 <CollectionsPage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'invite'}
                 <InvitePage {tab} path={tab.view.path} />
+              {:else if tab.view.page === 'status'}
+                <StatusPage />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
@@ -430,6 +452,7 @@
   <ContextMenu />
   <CommandPalette />
   {#if collect.site}<CollectionPicker />{/if}
+  {#if report.request}<ReportDialog />{/if}
   <ScreenshotTool />
 
   {#if browser.switcher}

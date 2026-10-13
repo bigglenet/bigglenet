@@ -29,7 +29,7 @@ const THREADS_PAGE = 30;
 const POSTS_PAGE = 100;
 const MAX_TITLE = 100;
 const MAX_BODY = 5000;
-const MAX_NOTIFIED = 20;
+const MAX_NOTIFIED = 12;
 
 type Thread = { id: number; board: string; user_id: number | null; title: string; created_at: number; last_at: number; replies: number; pinned: number; locked: number };
 type Post = { id: number; thread_id: number; user_id: number | null; body: string; created_at: number; edited_at: number | null; deleted: number };

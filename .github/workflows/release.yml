@@ -68,6 +68,15 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: npm run dist -w desktop
 
+      # Smaller updates: the browser's own files, signed, for installed apps that only need those
+      # (scripts/web-bundle.mjs). One system makes them for everyone.
+      - name: Make the browser bundle
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: node scripts/web-bundle.mjs desktop/dist/release
+
       - name: Attach the files to the release
         if: startsWith(github.ref, 'refs/tags/')
         env:

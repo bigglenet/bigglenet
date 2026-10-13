@@ -4,6 +4,7 @@
   import { browser, type Tab } from '../lib/browser.svelte';
   import { sites } from '../lib/sites.svelte';
   import { siteHost } from '../lib/url';
+  import AdminDashboard from './AdminDashboard.svelte';
   import Icon from './Icon.svelte';
 
   let { tab }: { tab: Tab } = $props();
@@ -81,6 +82,8 @@
       {#if error}
         <p class="error" role="alert">{error}</p>
       {/if}
+
+      <AdminDashboard {tab} />
 
       <section>
         <h2>Waiting for approval</h2>

@@ -314,6 +314,16 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
             }, showError);
           meta.append(remove);
         }
+        // Someone else's note: tell an admin about it (the browser asks why).
+        if (user && n.author !== user.username) {
+          const flag = document.createElement('button');
+          flag.className = 'remove';
+          flag.title = 'Report this note';
+          flag.setAttribute('aria-label', 'Report this note');
+          flag.textContent = '⚑';
+          flag.onclick = () => call('report', 'note', n.id).catch(showError);
+          meta.append(flag);
+        }
         const body = document.createElement('p');
         body.className = 'body';
         body.setAttribute('part', 'body');

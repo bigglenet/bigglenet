@@ -1,6 +1,6 @@
 // Keeps the Biggle browser itself available offline. Sites (/site/), the API (/api/) and
 // /version.json always go to the network.
-const CACHE = 'bigglenet-shell-v2';
+const CACHE = 'bigglenet-shell-v3';
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.png', '/mark.png', '/wordmark.png'];
 
 self.addEventListener('install', (event) => {
@@ -54,16 +54,37 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// A message notification tapped on a phone (see src/lib/notify.svelte.ts): open Bigglenet at
-// that chat.
+// A push while Bigglenet is closed (server/src/push.ts): a message, a call or a notification.
+self.addEventListener('push', (event) => {
+  let m = {};
+  try {
+    m = event.data ? event.data.json() : {};
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(m.title || 'Bigglenet', {
+      body: m.body || '',
+      tag: m.tag,
+      icon: '/mark.png',
+      badge: '/favicon.png',
+      data: { chatId: m.chatId, href: m.href },
+    }),
+  );
+});
+
+// A notification tapped (see src/lib/notify.svelte.ts, and pushes above): open Bigglenet at that
+// chat or page.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const chatId = event.notification.data?.chatId;
+  const { chatId, href } = event.notification.data || {};
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows[0];
-      if (!open) return self.clients.openWindow('/');
+      if (!open) {
+        if (typeof chatId === 'number') return self.clients.openWindow(`/?chat=${chatId}`);
+        return self.clients.openWindow(href ? `/?open=${encodeURIComponent(href)}` : '/');
+      }
       if (typeof chatId === 'number') open.postMessage({ type: 'open-chat', chatId });
+      else if (href) open.postMessage({ type: 'open', href });
       return open.focus();
     }),
   );

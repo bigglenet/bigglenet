@@ -7,6 +7,7 @@
   import { browser, type Tab } from '../../lib/browser.svelte';
   import { ago } from '../../lib/community';
   import { plural, t } from '../../lib/i18n.svelte';
+  import { report } from '../../lib/report.svelte';
   import Avatar from '../Avatar.svelte';
   import Icon from '../Icon.svelte';
   import Linked from './Linked.svelte';
@@ -249,6 +250,7 @@
                 <button class="link small" onclick={() => ((editingPost = p.id), (editText = p.body))}>{t('Edit')}</button>
               {/if}
               {#if p.canDelete}<button class="link small" onclick={() => takeDown(p)}>{t('Take down')}</button>{/if}
+              {#if !p.mine && !p.deleted && p.author}<button class="link small" onclick={() => report.open('post', p.id, t('a post by {who}', { who: p.author ?? '' }))}>{t('Report')}</button>{/if}
             </div>
             {#if p.deleted}
               <p class="muted">{t('This post was taken down.')}</p>

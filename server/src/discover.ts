@@ -165,14 +165,19 @@ export async function search(req: Request, env: Env): Promise<Response> {
   if (!terms.length) return json({ results: [] });
   const { results } = await env.DB.prepare(
     `SELECT p.site, p.path, p.title, p.description, p.text, p.folded, n.tld, n.title AS site_title FROM site_pages p JOIN names n ON n.name = p.site
-     WHERE n.status = 'live' AND ${terms.map((_, i) => `instr(p.folded, ?${i + 1}) > 0`).join(' AND ')} LIMIT 300`,
+     WHERE n.status = 'live' AND ${terms.map((_, i) => `instr(p.folded, ?${i + 1}) > 0`).join(' AND ')} LIMIT 120`,
   )
     .bind(...terms)
     .all<{ site: string; path: string; title: string | null; description: string | null; text: string; folded: string; tld: string; site_title: string | null }>();
-  const count = (hay: string, needle: string) => hay.split(needle).length - 1;
+  // Workers Free gives each request about 10 ms of CPU, so counting stops at ten.
+  const count = (hay: string, needle: string) => {
+    let n = 0;
+    for (let at = hay.indexOf(needle); at !== -1 && n < 10; at = hay.indexOf(needle, at + needle.length)) n++;
+    return n;
+  };
   const scored = results.map((r) => {
     const title = fold(`${r.title ?? ''} ${r.site_title ?? ''} ${r.site}`);
-    const score = terms.reduce((n, t) => n + 6 * count(title, t) + Math.min(10, count(r.folded, t)), 0) + (r.path === 'index.bhtml' ? 2 : 0);
+    const score = terms.reduce((n, t) => n + 6 * count(title, t) + count(r.folded, t), 0) + (r.path === 'index.bhtml' ? 2 : 0);
     return { r, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -200,9 +205,10 @@ function snippet(description: string | null, text: string, terms: string[]): str
 // --- Indexing: the cron reads changed sites' pages a few at a time ---
 
 const PAGE_RE = /\.(bhtml|html?|txt|md)$/i;
-const MAX_PAGES = 30;
+const MAX_PAGES = 20;
 const MAX_TEXT = 20_000;
-const INDEX_BATCH = 8;
+// A few sites a run: reading pages takes CPU, and Workers Free gives each run about 10 ms.
+const INDEX_BATCH = 3;
 
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', hellip: '…', mdash: '—', ndash: '–', copy: '©' };
 const decode = (s: string) =>
