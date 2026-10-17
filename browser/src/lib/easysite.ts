@@ -24,7 +24,16 @@ export type Block =
   | { id: string; type: 'online' }
   | { id: string; type: 'newsites' }
   | { id: string; type: 'embed'; url: string }
-  | { id: string; type: 'webring'; ring: number | null };
+  | { id: string; type: 'webring'; ring: number | null }
+  | { id: string; type: 'gallery'; images: string[] }
+  | { id: string; type: 'countdown'; title: string; to: string; done: string }
+  | { id: string; type: 'music'; src: string; title: string }
+  | { id: string; type: 'place'; name: string; address: string }
+  | { id: string; type: 'quiz'; title: string; questions: QuizQuestion[] }
+  | { id: string; type: 'buttons'; sites: string[] };
+
+/** A quiz question: its answers, and which one (counting from 1) is right. */
+export type QuizQuestion = { q: string; options: string[]; answer: number };
 
 export type BlockType = Block['type'];
 
@@ -79,6 +88,12 @@ export const BLOCK_NAMES: Record<BlockType, string> = {
   newsites: 'Newest sites',
   embed: 'Another page',
   webring: 'Webring',
+  gallery: 'Photo gallery',
+  countdown: 'Countdown',
+  music: 'Music player',
+  place: 'Place',
+  quiz: 'Quiz',
+  buttons: '88×31 buttons',
 };
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -102,6 +117,23 @@ export function newBlock(type: BlockType): Block {
       return { id, type, url: 'hello.biggle' };
     case 'webring':
       return { id, type, ring: null };
+    case 'gallery':
+      return { id, type, images: [] };
+    case 'countdown': {
+      // A week from now, at the same time, in the maker's own time.
+      const d = new Date(Date.now() + 7 * 86_400_000);
+      d.setSeconds(0, 0);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+      return { id, type, title: t('My big day'), to: local, done: t('It’s here!') };
+    }
+    case 'music':
+      return { id, type, src: '', title: '' };
+    case 'place':
+      return { id, type, name: t('Where to find me'), address: '' };
+    case 'quiz':
+      return { id, type, title: t('How well do you know me?'), questions: [{ q: t('What’s my favourite colour?'), options: [t('Red'), t('Green'), t('Blue')], answer: 1 }] };
+    case 'buttons':
+      return { id, type, sites: ['home.biggle'] };
     default:
       return { id, type } as Block;
   }
@@ -183,6 +215,34 @@ function block(b: Block): string {
     }
     case 'webring':
       return b.ring ? `<biggle-webring ring="${Math.floor(b.ring)}"></biggle-webring>` : '';
+    case 'gallery':
+      return b.images.length ? `<div class="gallery">${b.images.map((src) => `<a href="${esc(src)}"><img src="${esc(src)}" alt=""></a>`).join('')}</div>` : '';
+    case 'countdown': {
+      const at = new Date(b.to);
+      return Number.isNaN(at.getTime()) ? '' : `<biggle-countdown to="${at.toISOString()}" heading="${esc(b.title)}" done="${esc(b.done)}"></biggle-countdown>`;
+    }
+    case 'music':
+      return b.src ? `<figure class="music">${b.title ? `<figcaption>${esc(b.title)}</figcaption>` : ''}<audio controls preload="none" src="${esc(b.src)}"></audio></figure>` : '';
+    case 'place': {
+      const where = b.address.trim() || b.name.trim();
+      return where
+        ? `<a class="place" href="https://www.openstreetmap.org/search?query=${encodeURIComponent(where)}">📍 <strong>${esc(b.name)}</strong>${b.address ? ` <span>${esc(b.address)}</span>` : ''}</a>`
+        : '';
+    }
+    case 'quiz': {
+      const questions = b.questions
+        .map((q) => ({ ...q, options: q.options.map((o) => o.trim()).filter(Boolean) }))
+        .filter((q) => q.q.trim() && q.options.length >= 2);
+      return questions.length
+        ? `<biggle-quiz heading="${esc(b.title)}">${questions
+            .map((q) => `<biggle-question text="${esc(q.q)}" answer="${Math.min(Math.max(1, q.answer), q.options.length)}">${q.options.map((o) => `<option>${esc(o)}</option>`).join('')}</biggle-question>`)
+            .join('')}</biggle-quiz>`
+        : '';
+    }
+    case 'buttons': {
+      const sites = b.sites.map((s) => s.trim().replace(/^biggle:\/\//, '').replace(/\/.*$/, '')).filter((s) => /^[a-z0-9-]+\.(biggle|b)$/i.test(s));
+      return sites.length ? `<biggle-buttons sites="${esc(sites.join(' '))}"></biggle-buttons>` : '';
+    }
   }
 }
 
@@ -288,6 +348,16 @@ a { color: var(--accent); }
   text-align: center;
 }
 .counter { color: var(--muted); font-size: 0.95rem; text-align: center; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 18px 0; }
+.gallery a { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 12px; }
+.gallery img { width: 100%; height: 100%; margin: 0; object-fit: cover; border-radius: 0; transition: transform 0.2s; }
+.gallery a:hover img { transform: scale(1.05); }
+.music { margin: 18px 0; padding: 14px 16px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.music figcaption { margin-bottom: 8px; font-weight: 700; }
+.music audio { width: 100%; }
+.place { display: block; margin: 12px 0; padding: 14px 18px; border-radius: 16px; border: 1px solid var(--line); color: inherit; text-decoration: none; }
+.place span { color: var(--muted); }
+.place:hover { border-color: var(--accent); }
 .center { text-align: center; }
 footer { margin-top: 24px; text-align: center; color: var(--muted); font-size: 0.85rem; }
 `;

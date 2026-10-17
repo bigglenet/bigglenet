@@ -42,6 +42,19 @@ export const PAGE_WORDS = [
   'Show older notes',
   'Take this note down',
   'Report this note',
+  'Say which site: <biggle-button site="hello.biggle">.',
+  'days',
+  'hours',
+  'minutes',
+  'seconds',
+  'It’s here!',
+  'Say when: <biggle-countdown to="2026-12-31T20:00:00Z">.',
+  'A quiz needs at least one question with two answers.',
+  'You got {n} of {total} right!',
+  'Try again',
+  'Next',
+  'See my score',
+  'Question {n} of {total}',
 ];
 
 /** The page words in the visitor's language (nothing for English: pages fall back to it). */

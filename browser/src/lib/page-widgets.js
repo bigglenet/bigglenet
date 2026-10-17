@@ -482,6 +482,132 @@ a:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.name{font-we
     },
   );
 
+  // --- <biggle-button site="hello.biggle">: a site's 88×31 button, linking to it ---
+
+  /** "hello.biggle" or "biggle://hello.biggle/…" → its key ("hello", or "hello.b"). */
+  const siteOf = (raw) => {
+    const m = /^(?:biggle:\/\/)?([a-z0-9-]+)\.(biggle|b)\b/i.exec(String(raw || '').trim());
+    return m ? { key: m[2].toLowerCase() === 'b' ? `${m[1].toLowerCase()}.b` : m[1].toLowerCase(), host: `${m[1].toLowerCase()}.${m[2].toLowerCase()}` } : null;
+  };
+  const button = (raw) => {
+    const s = siteOf(raw);
+    if (!s) return null;
+    return el(
+      'a',
+      { href: `biggle://${s.host}/`, part: 'button', title: s.host, class: 'b88' },
+      el('img', { src: `${init.server}/site/${encodeURIComponent(s.key)}/.button`, width: 88, height: 31, alt: s.host, loading: 'lazy' }),
+    );
+  };
+  const BUTTON_CSS = `:host{display:inline-block;margin:4px}.b88{display:inline-block;line-height:0}.b88 img{image-rendering:pixelated}.b88:hover img{outline:2px solid var(--accent,#2563eb)}`;
+
+  tag('biggle-button', BUTTON_CSS, (host, root, showError) => {
+    const b = button(host.getAttribute('site'));
+    if (!b) return showError(w('Say which site: <biggle-button site="hello.biggle">.'));
+    root.append(b);
+  });
+
+  // --- <biggle-buttons sites="a.biggle b.biggle">: a row of them ---
+
+  tag('biggle-buttons', BUTTON_CSS + `:host{display:block;margin:20px 0}.row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}`, (host, root) => {
+    const row = el('div', { class: 'row', part: 'buttons' });
+    for (const raw of (host.getAttribute('sites') || '').split(/[\s,]+/).filter(Boolean).slice(0, 60)) {
+      const b = button(raw);
+      if (b) row.append(b);
+    }
+    root.append(row);
+  });
+
+  // --- <biggle-countdown to="2026-12-31T20:00:00Z" heading="New year" done="Happy new year!"> ---
+
+  tag(
+    'biggle-countdown',
+    `.box{text-align:center}.parts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.part{min-width:64px;padding:10px 8px;border-radius:12px;background:color-mix(in srgb,var(--accent,#2563eb) 12%,transparent)}
+.n{display:block;font-size:2em;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.u{font-size:.8em;opacity:.75}.done{font-size:1.4em;font-weight:800}`,
+    (host, root, showError) => {
+      const to = Date.parse(host.getAttribute('to') || '');
+      if (!to) return showError(w('Say when: <biggle-countdown to="2026-12-31T20:00:00Z">.'));
+      const box = el('div', { class: 'card box', part: 'countdown' });
+      const heading = host.getAttribute('heading');
+      if (heading) box.append(el('h3', { part: 'title', textContent: heading }));
+      const body = el('div');
+      box.append(body);
+      root.append(box);
+      const units = [[86400, w('days')], [3600, w('hours')], [60, w('minutes')], [1, w('seconds')]];
+      const draw = () => {
+        let left = Math.round((to - Date.now()) / 1000);
+        if (left <= 0) {
+          body.replaceChildren(el('p', { class: 'done', part: 'done', textContent: host.getAttribute('done') || w('It’s here!') }));
+          clearInterval(timer);
+          return;
+        }
+        body.replaceChildren(
+          el('div', { class: 'parts' }, ...units.map(([size, label]) => {
+            const n = Math.floor(left / size);
+            left -= n * size;
+            return el('span', { class: 'part', part: 'part' }, el('span', { class: 'n', textContent: n.toLocaleString(init.locale || undefined) }), el('span', { class: 'u', textContent: label }));
+          })),
+        );
+      };
+      const timer = setInterval(draw, 1000);
+      draw();
+    },
+  );
+
+  // --- <biggle-quiz heading="…"> with <biggle-question text="…" answer="2"><option>…</option></biggle-question> ---
+
+  tag(
+    'biggle-quiz',
+    `.q{margin:0 0 12px;font-weight:700;font-size:1.1em}.opts{display:grid;gap:8px}
+.opt{width:100%;padding:10px 14px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:12px;background:none;color:inherit;text-align:left}
+.opt.right{border-color:#2f9e44;background:color-mix(in srgb,#2f9e44 18%,transparent)}.opt.wrong{border-color:#e03131;background:color-mix(in srgb,#e03131 15%,transparent)}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.score{font-size:1.3em;font-weight:800;text-align:center;margin:8px 0}`,
+    (host, root, showError) => {
+      const questions = [...host.querySelectorAll('biggle-question')]
+        .map((q) => ({ text: q.getAttribute('text') || '', answer: Number(q.getAttribute('answer')) || 1, options: [...q.querySelectorAll('option')].map((o) => o.textContent.trim()).filter(Boolean) }))
+        .filter((q) => q.text && q.options.length >= 2);
+      if (!questions.length) return showError(w('A quiz needs at least one question with two answers.'));
+      const box = el('div', { class: 'card', part: 'quiz' });
+      root.append(box);
+      let at = 0;
+      let score = 0;
+      const show = () => {
+        box.replaceChildren();
+        if (host.getAttribute('heading')) box.append(el('h3', { part: 'title', textContent: host.getAttribute('heading') }));
+        if (at >= questions.length) {
+          box.append(
+            el('p', { class: 'score', part: 'score', textContent: w('You got {n} of {total} right!', { n: score, total: questions.length }) }),
+            el('div', { class: 'foot' }, el('span'), Object.assign(el('button', { class: 'btn', part: 'button', textContent: w('Try again') }), { onclick: () => ((at = 0), (score = 0), show()) })),
+          );
+          return;
+        }
+        const q = questions[at];
+        const opts = el('div', { class: 'opts' });
+        const next = el('button', { class: 'btn', part: 'button', textContent: at + 1 < questions.length ? w('Next') : w('See my score'), hidden: true });
+        next.onclick = () => (at++, show());
+        q.options.forEach((text, i) => {
+          const b = el('button', { class: 'opt', part: 'option', textContent: text });
+          b.onclick = () => {
+            if (!next.hidden) return;
+            const right = i + 1 === q.answer;
+            if (right) score++;
+            b.classList.add(right ? 'right' : 'wrong');
+            opts.children[q.answer - 1]?.classList.add('right');
+            next.hidden = false;
+            next.focus();
+          };
+          opts.append(b);
+        });
+        box.append(
+          el('p', { class: 'q', part: 'question', textContent: q.text }),
+          opts,
+          el('div', { class: 'foot' }, el('span', { class: 'muted', textContent: w('Question {n} of {total}', { n: at + 1, total: questions.length }) }), next),
+        );
+      };
+      show();
+    },
+  );
+
   // An embedded page (inside a <biggle-embed>) doesn't run as its own page.
   if (init.embedded) document.documentElement.dataset.embedded = '';
 })();

@@ -45,12 +45,15 @@
   const ADD: BlockType[] = [
     'heading', 'text', 'image', 'button', 'divider', 'greeting', 'counter', 'visits', 'guestbook',
     'poll', 'comments', 'like', 'contact', 'wall', 'leaderboard', 'online', 'newsites', 'embed', 'webring',
+    'gallery', 'countdown', 'music', 'place', 'quiz', 'buttons',
   ];
   const AUTOSAVE_MS = 800;
 
   let savedJson = $state(JSON.stringify(site));
   let pane = $state<'edit' | 'preview'>('edit');
   let uploadFor = $state<string | null>(null);
+  /** What the file picker is choosing: a picture, pictures for a gallery, or a song. */
+  let uploadKind = $state<'image' | 'gallery' | 'music'>('image');
   let upload = $state<HTMLInputElement>();
   let iframe = $state<HTMLIFrameElement>();
 
@@ -67,7 +70,7 @@
     }
   });
   // Pictures uploaded to the site, for the preview picture and icon.
-  const images = $derived([...new Set(site.blocks.flatMap((b) => (b.type === 'image' && b.src ? [b.src] : [])))]);
+  const images = $derived([...new Set(site.blocks.flatMap((b) => (b.type === 'image' && b.src ? [b.src] : b.type === 'gallery' ? b.images : [])))]);
   const dirty = $derived(json !== savedJson);
   const enc = encodeURIComponent;
 
@@ -138,27 +141,43 @@
     const block = newBlock(type);
     site.blocks = [...site.blocks, block];
     if (type === 'image') pickImage(block.id);
+    if (type === 'gallery') pickFile(block.id, 'gallery');
+    if (type === 'music') pickFile(block.id, 'music');
   }
 
   function pickImage(id: string) {
+    pickFile(id, 'image');
+  }
+
+  function pickFile(id: string, kind: 'image' | 'gallery' | 'music') {
     uploadFor = id;
-    upload?.click();
+    uploadKind = kind;
+    // Let the input take its new accept/multiple before it opens.
+    queueMicrotask(() => upload?.click());
   }
 
   async function uploadImage() {
-    const file = upload?.files?.[0];
+    const files = [...(upload?.files ?? [])];
     const id = uploadFor;
-    if (!file || !id) return;
-    const path = 'images/' + file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+/, '');
-    try {
-      await apiFetch('PUT', `/api/sites/${enc(name)}/files/${path}`, file, file.type || 'application/octet-stream');
-      const block = site.blocks.find((b) => b.id === id);
-      if (block?.type === 'image') {
-        block.src = path;
-        if (!block.alt) block.alt = file.name.replace(/\.[^.]+$/, '');
+    if (!files.length || !id) return;
+    for (const file of files.slice(0, 24)) {
+      const folder = uploadKind === 'music' ? 'music/' : 'images/';
+      const path = folder + file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+/, '');
+      try {
+        await apiFetch('PUT', `/api/sites/${enc(name)}/files/${path}`, file, file.type || 'application/octet-stream');
+        const block = site.blocks.find((b) => b.id === id);
+        if (block?.type === 'image') {
+          block.src = path;
+          if (!block.alt) block.alt = file.name.replace(/\.[^.]+$/, '');
+        } else if (block?.type === 'gallery' && !block.images.includes(path)) {
+          block.images = [...block.images, path].slice(0, 24);
+        } else if (block?.type === 'music') {
+          block.src = path;
+          if (!block.title) block.title = file.name.replace(/\.[^.]+$/, '');
+        }
+      } catch (e) {
+        onsaving({ saving: false, error: `${file.name}: ${errorText(e)}`, dirty: true });
       }
-    } catch (e) {
-      onsaving({ saving: false, error: errorText(e), dirty: true });
     }
     if (upload) upload.value = '';
   }
@@ -315,6 +334,66 @@
               {#each rings ?? [] as r (r.id)}<option value={r.id}>{r.name}</option>{/each}
             </select>
             <p class="hint">{t('Links to the sites before and after yours in the ring. Add your site to the ring in Nox → Webrings first.')}</p>
+          {:else if b.type === 'gallery'}
+            <div class="thumbs">
+              {#each b.images as src (src)}
+                <span class="thumb">
+                  <img src={`${base}${src}`} alt="" />
+                  <button class="mini" aria-label={t('Remove picture')} onclick={() => (b.images = b.images.filter((x) => x !== src))}><Icon name="close" size={11} /></button>
+                </span>
+              {/each}
+            </div>
+            <button class="pick" onclick={() => pickFile(b.id, 'gallery')}>{t('Add pictures')}</button>
+          {:else if b.type === 'countdown'}
+            <input bind:value={b.title} placeholder={t('What’s coming?')} aria-label={t('Countdown title')} />
+            <input type="datetime-local" bind:value={b.to} aria-label={t('When')} />
+            <input bind:value={b.done} placeholder={t('It’s here!')} aria-label={t('What it says when the time comes')} />
+          {:else if b.type === 'music'}
+            <div class="image-row">
+              <button class="pick" onclick={() => pickFile(b.id, 'music')}>{b.src ? t('Change song') : t('Choose a song')}</button>
+              <input bind:value={b.title} placeholder={t('Song name')} aria-label={t('Song name')} />
+            </div>
+            <p class="hint">{t('An MP3 of up to 1 MB (about a minute). Visitors press play.')}</p>
+          {:else if b.type === 'place'}
+            <input bind:value={b.name} placeholder={t('Name of the place')} aria-label={t('Name of the place')} />
+            <input bind:value={b.address} placeholder={t('Address or town')} aria-label={t('Address or town')} />
+            <p class="hint">{t('Visitors can open it on a map, in their web browser.')}</p>
+          {:else if b.type === 'quiz'}
+            <input bind:value={b.title} placeholder={t('Quiz title')} aria-label={t('Quiz title')} />
+            {#each b.questions as q, qi (qi)}
+              <div class="question">
+                <div class="block-head">
+                  <span>{t('Question {n}', { n: qi + 1 })}</span>
+                  <button class="mini" aria-label={t('Remove question {n}', { n: qi + 1 })} onclick={() => (b.questions = b.questions.filter((_, x) => x !== qi))}><Icon name="close" size={12} /></button>
+                </div>
+                <input bind:value={q.q} placeholder={t('The question')} aria-label={t('Question {n}', { n: qi + 1 })} />
+                <textarea
+                  rows="3"
+                  aria-label={t('Answers, one per line')}
+                  placeholder={t('Answers, one per line')}
+                  value={q.options.join('\n')}
+                  oninput={(e) => (q.options = e.currentTarget.value.split('\n').slice(0, 6))}
+                ></textarea>
+                <label class="right">
+                  {t('Right answer')}
+                  <select bind:value={q.answer}>
+                    {#each q.options as o, oi (oi)}<option value={oi + 1}>{o || t('Answer {n}', { n: oi + 1 })}</option>{/each}
+                  </select>
+                </label>
+              </div>
+            {/each}
+            {#if b.questions.length < 20}
+              <button class="pick" onclick={() => (b.questions = [...b.questions, { q: '', options: ['', ''], answer: 1 }])}>{t('Add a question')}</button>
+            {/if}
+          {:else if b.type === 'buttons'}
+            <textarea
+              rows="3"
+              aria-label={t('Sites, one per line')}
+              placeholder={t('friend.biggle')}
+              value={b.sites.join('\n')}
+              oninput={(e) => (b.sites = e.currentTarget.value.split('\n').slice(0, 60))}
+            ></textarea>
+            <p class="hint">{t('Links to these sites with their 88×31 buttons, like the old web. One site per line.')}</p>
           {:else}
             <p class="hint">{t('A line between sections.')}</p>
           {/if}
@@ -327,7 +406,7 @@
         {/each}
       </div>
     </section>
-    <input bind:this={upload} type="file" accept="image/*" hidden onchange={uploadImage} />
+    <input bind:this={upload} type="file" accept={uploadKind === 'music' ? 'audio/mpeg,.mp3' : 'image/*'} multiple={uploadKind === 'gallery'} hidden onchange={uploadImage} />
   </div>
 
   <div class="preview" style:background={previewBg}>
@@ -487,6 +566,41 @@
   .image-row {
     display: flex;
     flex-direction: column;
+  }
+  .thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .thumb {
+    position: relative;
+  }
+  .thumb img {
+    display: block;
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  .thumb .mini {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--card);
+    border-radius: 999px;
+  }
+  .question {
+    margin: 6px 0 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  label.right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
   }
   .pick {
     margin-bottom: 8px;
