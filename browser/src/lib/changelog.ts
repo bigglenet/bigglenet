@@ -6,7 +6,7 @@ export type Release = { version: string; date: string; changes: string[] };
 export const CHANGELOG: Release[] = [
   {
     version: '1.0.0',
-    date: '2026-10-13',
+    date: '2026-10-17',
     changes: [
       'Bigglenet in Turkish: pick it in Settings → Language, or it follows your computer.',
       'Make as many sites as you like.',
