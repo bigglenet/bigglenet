@@ -228,6 +228,7 @@ const tr: Record<string, string> = {
   'Changed since you looked': 'Son baktığından beri değişti',
   'changed {when}': 'değişti: {when}',
   'Chat details': 'Sohbet ayrıntıları',
+  'Chat messages keep a readable width in the narrow chat sidebar.': 'Sohbet mesajları dar sohbet kenar çubuğunda okunabilir genişliğini koruyor.',
   'Chat with your friends': 'Arkadaşlarınla sohbet et',
   'chat.biggle: group chats, nicknames for friends, and voice and video calls. The chat button opens it in a sidebar.': 'chat.biggle: grup sohbetleri, arkadaşlar için takma adlar, sesli ve görüntülü aramalar. Sohbet düğmesi onu bir kenar çubuğunda açar.',
   'Chat: replies, reactions, editing and deleting, photos, files and voice messages, time capsules, link previews, sharing your screen, and watching or listening together in a call.': 'Sohbet: cevaplar, tepkiler, düzenleme ve silme, fotoğraflar, dosyalar ve sesli mesajlar, zaman kapsülleri, bağlantı önizlemeleri, ekran paylaşımı ve aramada birlikte izleyip dinleme.',

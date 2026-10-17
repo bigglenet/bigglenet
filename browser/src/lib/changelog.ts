@@ -5,6 +5,11 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.1.1',
+    date: '2026-10-17',
+    changes: ['Chat messages keep a readable width in the narrow chat sidebar.'],
+  },
+  {
     version: '1.1.0',
     date: '2026-10-17',
     changes: [
