@@ -5,6 +5,19 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.1.0',
+    date: '2026-10-17',
+    changes: [
+      'Remix any site from its ⋯ menu: you get your own copy to change. You choose whether people may remix yours.',
+      'Every site has an 88×31 button, like on the old web. Collect stamps from sites you like; they show on your profile.',
+      'New blocks in the easy editor: photo gallery, countdown, music player, place, quiz and 88×31 buttons.',
+      'The weekly challenge: a new theme each week, enter one of your sites and vote for your favourite. The winner is the site of the day.',
+      'Badges on your profile for what you do on the Bigglenet.',
+      'Games to play together on games.biggle: tic-tac-toe, chess, and draw & guess. Start one from any chat.',
+      'The easy editor’s preview doesn’t stay blank any more.',
+    ],
+  },
+  {
     version: '1.0.2',
     date: '2026-10-17',
     changes: ['English is the language unless you pick another in Settings → Language.'],

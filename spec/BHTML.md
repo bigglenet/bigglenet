@@ -64,6 +64,10 @@ These only do something in Biggle. In a normal browser they show their fallback 
 | `<biggle-new-sites limit="5"></biggle-new-sites>` | The newest sites on the Bigglenet, as links |
 | `<biggle-status user="ethem"></biggle-status>` | Someone's status, like 📚 Revising |
 | `<biggle-webring ring="3"></biggle-webring>` | Links to the sites before and after yours in a webring, and a random one. Start or join a ring in Nox → Webrings; the ring's page shows its number |
+| `<biggle-button site="hello.biggle"></biggle-button>` | A site's 88×31 button, linking to it. Every site has one at `/.button`: its own `button.png` (or `.gif`, `.jpg`, `.webp`), or one made from its name |
+| `<biggle-buttons sites="a.biggle b.biggle"></biggle-buttons>` | A row of them |
+| `<biggle-countdown to="2026-12-31T20:00:00Z" heading="New year" done="Happy new year!"></biggle-countdown>` | Days, hours, minutes and seconds until a moment, then the `done` text |
+| `<biggle-quiz heading="…"><biggle-question text="Best colour?" answer="2"><option>Red</option><option>Blue</option></biggle-question></biggle-quiz>` | A quiz, one question at a time, with a score at the end. `answer` counts from 1 |
 
 Each tag draws itself in the page's colours (it uses `--accent`) and can be styled with `::part()`. Anything that writes as the visitor, like a comment, a vote or a like, needs them to click: a page can't do it by itself.
 
@@ -75,6 +79,7 @@ Available as `window.biggle` before any of the page's own scripts run.
 biggle.url               // "biggle://hello.biggle/about.bhtml?x=1"
 biggle.site              // "hello"
 biggle.params.get("x")   // "1" (a URLSearchParams of the query)
+biggle.lang              // "en" or "tr": the language the visitor uses Bigglenet in
 await biggle.me()        // { username: "ethem" } or null
 await biggle.sites()     // [{ name: "hello", title: "Hello, Bigglenet" }, …] every .biggle site
 biggle.go("other.bhtml") // navigate (relative, biggle:// or https://)

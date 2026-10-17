@@ -1,0 +1,23 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Tic-tac-toe</title>
+  <link rel="stylesheet" href="games.css">
+  <script src="game.js" defer></script>
+  <script src="tictactoe.js" defer></script>
+</head>
+<body>
+  <main>
+    <a class="back" href="./" data-say="back">← All games</a>
+    <h1 data-say="ttt">Tic-tac-toe</h1>
+    <a class="btn" id="new" hidden></a>
+    <div id="game">
+      <div id="invite"></div>
+      <div class="players" id="players"></div>
+      <p id="status"></p>
+      <div class="ttt" id="board"></div>
+      <div class="actions"><button class="btn" id="again" hidden></button></div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Games</title>
+  <link rel="stylesheet" href="games.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>🎲 <span data-say="title">Games</span></h1>
+    <p class="muted" data-say="pick">Pick a game</p>
+    <div class="games">
+      <a class="card game-card" href="tictactoe.bhtml"><span class="icon">⭕</span><strong data-say="ttt">Tic-tac-toe</strong><span class="muted" data-say="tttAbout"></span><span class="btn" data-say="play">Play</span></a>
+      <a class="card game-card" href="chess.bhtml"><span class="icon">♞</span><strong data-say="chess">Chess</strong><span class="muted" data-say="chessAbout"></span><span class="btn" data-say="play">Play</span></a>
+      <a class="card game-card" href="draw.bhtml"><span class="icon">🎨</span><strong data-say="draw">Draw &amp; guess</strong><span class="muted" data-say="drawAbout"></span><span class="btn" data-say="play">Play</span></a>
+    </div>
+  </main>
+</body>
+</html>

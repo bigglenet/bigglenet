@@ -645,8 +645,9 @@
     flex-direction: column;
     gap: 2px;
     padding: 12px;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: var(--surface);
+    background: var(--card);
     text-align: center;
   }
   .badge-emoji {

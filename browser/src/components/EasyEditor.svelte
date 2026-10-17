@@ -410,7 +410,10 @@
   </div>
 
   <div class="preview" style:background={previewBg}>
-    <iframe bind:this={iframe} {srcdoc} title={t('Preview of {x}.biggle', { x: name })} sandbox="allow-scripts allow-modals"></iframe>
+    <!-- A new frame for each version: a frame whose page is swapped in place sometimes stays blank. -->
+    {#key srcdoc}
+      <iframe bind:this={iframe} {srcdoc} title={t('Preview of {x}.biggle', { x: name })} sandbox="allow-scripts allow-modals"></iframe>
+    {/key}
   </div>
 </div>
 

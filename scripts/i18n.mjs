@@ -45,8 +45,10 @@ const LISTS = [
   ['components/SettingsPage.svelte', 'const UPDATE_TEXT'],
   ['components/SettingsPage.svelte', "{#each [['system'"],
   ['../../server/src/board.ts', 'const BOARDS'],
+  ['lib/badges.ts', 'export const BADGE_INFO'],
+  ['components/chat/ChatComposer.svelte', 'const GAMES'],
 ];
-const SKIP_KEYS = new Set(['id', 'href', 'icon', 'color', 'bg', 'accent', 'stack', 'light', 'dark', 'version', 'date']);
+const SKIP_KEYS = new Set(['id', 'href', 'icon', 'color', 'bg', 'accent', 'stack', 'light', 'dark', 'version', 'date', 'emoji', 'page']);
 
 const texts = new Map();
 const add = (text, file) => text.trim() && (texts.get(text) ?? texts.set(text, new Set()).get(text)).add(file);
@@ -78,7 +80,8 @@ for (const [file, start] of LISTS) {
     const text = unquote(m);
     const key = block.slice(0, m.index).trimEnd().match(/(\w+)\s*:$/);
     if (key && SKIP_KEYS.has(key[1])) continue;
-    if (text && (/^[A-Z]/.test(text) || text.includes(' ')) && !text.startsWith('#')) add(text, file);
+    // Page tags' words are all shown as they are; elsewhere, only things that read like text.
+    if (text && (start.includes('PAGE_WORDS') || /^[A-Z]/.test(text) || text.includes(' ')) && !text.startsWith('#')) add(text, file);
   }
 }
 

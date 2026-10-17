@@ -181,6 +181,21 @@
   .entry {
     align-items: center;
   }
+  .entry .text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  form.row {
+    flex-wrap: nowrap;
+  }
+  form.row select {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
   .entry.won {
     outline: 2px solid var(--accent);
     border-radius: 12px;

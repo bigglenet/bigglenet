@@ -563,50 +563,56 @@ a:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.name{font-we
 .opt.right{border-color:#2f9e44;background:color-mix(in srgb,#2f9e44 18%,transparent)}.opt.wrong{border-color:#e03131;background:color-mix(in srgb,#e03131 15%,transparent)}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.score{font-size:1.3em;font-weight:800;text-align:center;margin:8px 0}`,
     (host, root, showError) => {
-      const questions = [...host.querySelectorAll('biggle-question')]
-        .map((q) => ({ text: q.getAttribute('text') || '', answer: Number(q.getAttribute('answer')) || 1, options: [...q.querySelectorAll('option')].map((o) => o.textContent.trim()).filter(Boolean) }))
-        .filter((q) => q.text && q.options.length >= 2);
-      if (!questions.length) return showError(w('A quiz needs at least one question with two answers.'));
-      const box = el('div', { class: 'card', part: 'quiz' });
-      root.append(box);
-      let at = 0;
-      let score = 0;
-      const show = () => {
-        box.replaceChildren();
-        if (host.getAttribute('heading')) box.append(el('h3', { part: 'title', textContent: host.getAttribute('heading') }));
-        if (at >= questions.length) {
-          box.append(
-            el('p', { class: 'score', part: 'score', textContent: w('You got {n} of {total} right!', { n: score, total: questions.length }) }),
-            el('div', { class: 'foot' }, el('span'), Object.assign(el('button', { class: 'btn', part: 'button', textContent: w('Try again') }), { onclick: () => ((at = 0), (score = 0), show()) })),
-          );
-          return;
-        }
-        const q = questions[at];
-        const opts = el('div', { class: 'opts' });
-        const next = el('button', { class: 'btn', part: 'button', textContent: at + 1 < questions.length ? w('Next') : w('See my score'), hidden: true });
-        next.onclick = () => (at++, show());
-        q.options.forEach((text, i) => {
-          const b = el('button', { class: 'opt', part: 'option', textContent: text });
-          b.onclick = () => {
-            if (!next.hidden) return;
-            const right = i + 1 === q.answer;
-            if (right) score++;
-            b.classList.add(right ? 'right' : 'wrong');
-            opts.children[q.answer - 1]?.classList.add('right');
-            next.hidden = false;
-            next.focus();
-          };
-          opts.append(b);
-        });
-        box.append(
-          el('p', { class: 'q', part: 'question', textContent: q.text }),
-          opts,
-          el('div', { class: 'foot' }, el('span', { class: 'muted', textContent: w('Question {n} of {total}', { n: at + 1, total: questions.length }) }), next),
-        );
-      };
-      show();
+      // The questions are inside the tag, so wait until the page has been read.
+      if (document.readyState === 'loading') return document.addEventListener('DOMContentLoaded', () => quiz(host, root, showError), { once: true });
+      quiz(host, root, showError);
     },
   );
+
+  function quiz(host, root, showError) {
+    const questions = [...host.querySelectorAll('biggle-question')]
+      .map((q) => ({ text: q.getAttribute('text') || '', answer: Number(q.getAttribute('answer')) || 1, options: [...q.querySelectorAll('option')].map((o) => o.textContent.trim()).filter(Boolean) }))
+      .filter((q) => q.text && q.options.length >= 2);
+    if (!questions.length) return showError(w('A quiz needs at least one question with two answers.'));
+    const box = el('div', { class: 'card', part: 'quiz' });
+    root.append(box);
+    let at = 0;
+    let score = 0;
+    const show = () => {
+      box.replaceChildren();
+      if (host.getAttribute('heading')) box.append(el('h3', { part: 'title', textContent: host.getAttribute('heading') }));
+      if (at >= questions.length) {
+        box.append(
+          el('p', { class: 'score', part: 'score', textContent: w('You got {n} of {total} right!', { n: score, total: questions.length }) }),
+          el('div', { class: 'foot' }, el('span'), Object.assign(el('button', { class: 'btn', part: 'button', textContent: w('Try again') }), { onclick: () => ((at = 0), (score = 0), show()) })),
+        );
+        return;
+      }
+      const q = questions[at];
+      const opts = el('div', { class: 'opts' });
+      const next = el('button', { class: 'btn', part: 'button', textContent: at + 1 < questions.length ? w('Next') : w('See my score'), hidden: true });
+      next.onclick = () => (at++, show());
+      q.options.forEach((text, i) => {
+        const b = el('button', { class: 'opt', part: 'option', textContent: text });
+        b.onclick = () => {
+          if (!next.hidden) return;
+          const right = i + 1 === q.answer;
+          if (right) score++;
+          b.classList.add(right ? 'right' : 'wrong');
+          opts.children[q.answer - 1]?.classList.add('right');
+          next.hidden = false;
+          next.focus();
+        };
+        opts.append(b);
+      });
+      box.append(
+        el('p', { class: 'q', part: 'question', textContent: q.text }),
+        opts,
+        el('div', { class: 'foot' }, el('span', { class: 'muted', textContent: w('Question {n} of {total}', { n: at + 1, total: questions.length }) }), next),
+      );
+    };
+    show();
+  }
 
   // An embedded page (inside a <biggle-embed>) doesn't run as its own page.
   if (init.embedded) document.documentElement.dataset.embedded = '';

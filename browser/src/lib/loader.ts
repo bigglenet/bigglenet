@@ -155,6 +155,7 @@ function page(u: SiteUrl, body: string, user: BiggleUser | null, base?: string, 
     dark: siteSettings.dark(siteKey(u)),
     embedded,
     locale: i18n.locale ?? null,
+    lang: i18n.lang,
     words: pageWords(),
   };
   const initJson = JSON.stringify(init).replace(/</g, '\\u003c');

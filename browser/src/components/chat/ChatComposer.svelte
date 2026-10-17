@@ -9,6 +9,8 @@
   import { duration } from '../../lib/chatformat';
   import { chats, fileLabel, type Chat, type ChatMessage } from '../../lib/chats.svelte';
   import { i18n, t } from '../../lib/i18n.svelte';
+  import { browser } from '../../lib/browser.svelte';
+  import { menu } from '../../lib/contextmenu.svelte';
   import { social } from '../../lib/social.svelte';
   import Icon from '../Icon.svelte';
 
@@ -75,6 +77,34 @@
       return undefined;
     }
     return at;
+  }
+
+  // A game on games.biggle (sites/games), in a room of its own: the link goes in the chat, and
+  // it opens here too.
+  const GAMES = [
+    { page: 'tictactoe', label: 'Tic-tac-toe', icon: 'tabs' },
+    { page: 'chess', label: 'Chess', icon: 'trophy' },
+    { page: 'draw', label: 'Draw & guess', icon: 'edit' },
+  ] as const;
+
+  function pickGame(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    menu.show(
+      r.left,
+      r.top - 8 - GAMES.length * 36,
+      GAMES.map((g) => ({ label: t(g.label), icon: g.icon, action: () => startGame(g.page, t(g.label)) })),
+    );
+  }
+
+  async function startGame(page: string, name: string) {
+    const code = Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+    const link = `biggle://games.biggle/${page}.bhtml?room=${code}`;
+    try {
+      await chats.send(chat.id, t('Let’s play {game}! {link}', { game: name, link }), {});
+      browser.newTab(link, { after: browser.activeId });
+    } catch (err) {
+      error = errorText(err);
+    }
   }
 
   async function send(e?: SubmitEvent) {
@@ -320,6 +350,9 @@
         }}
       >
         <Icon name="hourglass" size={17} />
+      </button>
+      <button type="button" class="icon tool" aria-label={t('Play a game')} title={t('Play a game')} onclick={pickGame}>
+        <Icon name="gamepad" size={18} />
       </button>
       <input bind:this={picker} type="file" multiple hidden onchange={pick} />
     {/if}

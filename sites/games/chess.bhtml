@@ -1,0 +1,26 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Chess</title>
+  <link rel="stylesheet" href="games.css">
+  <script src="game.js" defer></script>
+  <script src="chess.js" defer></script>
+</head>
+<body>
+  <main>
+    <a class="back" href="./" data-say="back">← All games</a>
+    <h1 data-say="chess">Chess</h1>
+    <a class="btn" id="new" hidden></a>
+    <div id="game">
+      <div id="invite"></div>
+      <div class="players" id="players"></div>
+      <p id="status"></p>
+      <div class="board" id="board"></div>
+      <div class="actions">
+        <button class="btn" id="again" hidden></button>
+        <button class="ghost" id="resign" hidden></button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

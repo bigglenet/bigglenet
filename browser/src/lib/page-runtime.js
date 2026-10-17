@@ -710,6 +710,8 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       url: init.url,
       site: init.site,
       params: new URLSearchParams(init.search),
+      /** The visitor's language in Bigglenet: "en" or "tr". */
+      lang: init.lang || 'en',
       me: async () => user && { ...user },
       go: (href) => go(href),
       sites: () => call('sites'),

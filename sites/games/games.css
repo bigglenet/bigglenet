@@ -1,0 +1,77 @@
+/* games.biggle */
+:root {
+  --bg: #13111c;
+  --card: #1d1a2b;
+  --line: #2e2a44;
+  --ink: #f2efff;
+  --muted: #a49fc2;
+  --accent: #8b6cf0;
+  --x: #ff7a59;
+  --o: #4cc9f0;
+  color-scheme: dark;
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; padding: 28px 16px 40px; background: radial-gradient(circle at 20% 0%, #2a2150, var(--bg) 60%); color: var(--ink); }
+main { max-width: 720px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 2.2rem; letter-spacing: -0.03em; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.back { display: inline-block; margin-bottom: 14px; text-decoration: none; font-weight: 600; }
+.card { padding: 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
+.game-card { display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: inherit; transition: transform 0.15s, border-color 0.15s; }
+.game-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.game-card .icon { font-size: 44px; }
+.game-card strong { font-size: 1.2rem; }
+.btn, button { font: inherit; cursor: pointer; }
+.btn { display: inline-block; padding: 12px 20px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+.ghost { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--ink); }
+.ghost:hover { border-color: var(--accent); }
+#invite { margin: 14px 0; }
+#invite p { margin: 0 0 6px; font-size: 0.9rem; }
+.invite-row { display: flex; gap: 8px; }
+.invite-row input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-size: 0.85rem; }
+.players { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 10px 0; }
+.player { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.player.turn { color: var(--accent); }
+.chip { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--line); font-size: 0.85rem; }
+#status { min-height: 1.5em; margin: 8px 0; font-size: 1.15rem; font-weight: 700; }
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+[hidden] { display: none !important; }
+
+/* Tic-tac-toe */
+.ttt { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 8px; width: min(360px, 100%); aspect-ratio: 1; margin: 12px 0; }
+.ttt button { border: 0; border-radius: 16px; background: var(--card); color: var(--ink); font-size: clamp(2.5rem, 12vw, 4rem); font-weight: 800; }
+.ttt button:not(:disabled):hover { background: var(--line); }
+.ttt .x { color: var(--x); }
+.ttt .o { color: var(--o); }
+.ttt .win { background: color-mix(in srgb, var(--accent) 35%, var(--card)); }
+
+/* Chess */
+.board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: min(480px, 100%, calc(100vh - 260px)); aspect-ratio: 1; margin: 12px 0; border-radius: 10px; overflow: hidden; border: 2px solid var(--line); }
+.board button { position: relative; border: 0; padding: 0; font-size: clamp(1.4rem, 6.5vw, 2.6rem); line-height: 1; font-variant-emoji: text; }
+.board .light { background: #e9e3ff; color: #111; }
+.board .dark { background: #8f7fd1; color: #111; }
+.board .sel { box-shadow: inset 0 0 0 4px #ffd43b; }
+.board .last { background-image: linear-gradient(rgba(255, 212, 59, 0.35), rgba(255, 212, 59, 0.35)); }
+.board .check { background-image: radial-gradient(circle, rgba(255, 60, 60, 0.75), transparent 70%); }
+.board .target::after { content: ''; position: absolute; inset: 38%; border-radius: 50%; background: rgba(20, 10, 60, 0.35); }
+.board .target.take::after { inset: 4%; background: none; border: 4px solid rgba(20, 10, 60, 0.35); }
+.board .w { color: #fff; -webkit-text-stroke: 1px #222; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
+
+/* Draw & guess */
+.draw-wrap { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .draw-wrap { grid-template-columns: 1fr 220px; } }
+canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: 16px; background: #fff; touch-action: none; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tools .dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); }
+.tools .dot.on { border-color: #fff; }
+.scores { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.scores li { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 10px; background: var(--card); }
+.scores li.drawing { outline: 2px solid var(--accent); }
+.feed { height: 180px; overflow: auto; margin: 8px 0; padding: 8px; border-radius: 10px; background: var(--card); font-size: 0.9rem; }
+.feed p { margin: 0 0 4px; }
+.feed .good { color: #69db7c; font-weight: 700; }
+form.guess { display: flex; gap: 6px; }
+form.guess input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }

@@ -1,0 +1,35 @@
+<!bhtml 1>
+<html lang="en">
+<head>
+  <title>Draw &amp; guess</title>
+  <link rel="stylesheet" href="games.css">
+  <script src="game.js" defer></script>
+  <script src="draw.js" defer></script>
+</head>
+<body>
+  <main>
+    <a class="back" href="./" data-say="back">← All games</a>
+    <h1 data-say="draw">Draw &amp; guess</h1>
+    <a class="btn" id="new" hidden></a>
+    <div id="game">
+      <div id="invite"></div>
+      <p id="status"></p>
+      <div class="draw-wrap">
+        <div>
+          <canvas id="canvas" width="800" height="600"></canvas>
+          <div class="tools" id="tools" hidden></div>
+        </div>
+        <div>
+          <ul class="scores" id="scores"></ul>
+          <div class="feed" id="feed" aria-live="polite"></div>
+          <form class="guess" id="guess" hidden>
+            <input id="guess-text" maxlength="40" autocomplete="off">
+            <button class="ghost">↵</button>
+          </form>
+          <div class="actions"><button class="btn" id="next" hidden></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
