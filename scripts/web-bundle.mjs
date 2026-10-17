@@ -35,7 +35,7 @@ const manifest = join(out, 'bundle.json');
 writeFileSync(manifest, JSON.stringify({ version, shell, files }, null, 1));
 
 if (process.env.TAURI_SIGNING_PRIVATE_KEY) {
-  execFileSync('npx', ['tauri', 'signer', 'sign', join('..', manifest)], { cwd: 'desktop', stdio: 'inherit', shell: process.platform === 'win32' });
+  execFileSync('node', [join('scripts', 'sign.mjs'), manifest], { stdio: 'inherit' });
   console.log(`Signed bundle.json: ${files.length} files for ${version} (shell ${shell}).`);
 } else {
   console.warn('TAURI_SIGNING_PRIVATE_KEY is not set, so bundle.json is not signed (apps will ignore it).');

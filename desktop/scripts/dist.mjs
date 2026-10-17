@@ -45,7 +45,8 @@ if (process.platform === 'darwin') {
 }
 
 if (process.env.TAURI_SIGNING_PRIVATE_KEY) {
-  for (const file of updates) run('npx', ['tauri', 'signer', 'sign', file]);
+  // Signatures every installed app can check (scripts/sign.mjs).
+  run('node', ['../scripts/sign.mjs', ...updates]);
 } else {
   console.warn('TAURI_SIGNING_PRIVATE_KEY is not set, so the update files are not signed.');
 }
