@@ -407,7 +407,8 @@
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: min(78%, 560px);
+    /* At least 240px wide (or the whole width) in a narrow sidebar, so bubbles don't squeeze. */
+    max-width: max(min(78%, 560px), min(100%, 240px));
     margin-top: 2px;
   }
   .msg.first {

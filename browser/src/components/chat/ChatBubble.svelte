@@ -249,7 +249,7 @@
     font-size: 14.5px;
     line-height: 1.4;
     white-space: pre-wrap;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     user-select: text;
   }
   .mine .bubble {
@@ -286,7 +286,7 @@
     text-align: left;
     text-decoration: underline;
     text-underline-offset: 2px;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     cursor: pointer;
   }
   .quote {
