@@ -5,6 +5,11 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.0.2',
+    date: '2026-10-17',
+    changes: ['English is the language unless you pick another in Settings → Language.'],
+  },
+  {
     version: '1.0.1',
     date: '2026-10-17',
     changes: ['The desktop app can update itself again: “Digest method not supported” is gone.'],

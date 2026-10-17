@@ -1,6 +1,6 @@
 // The desktop app's own words (the menu bar, the tray, right-click menus) in the language the
 // Biggle browser uses. The browser says which when it starts and when it's changed (app:language);
-// until then, the last one it said, or the computer's.
+// until then, the last one it said, or English.
 import { app, ipcMain } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -55,14 +55,12 @@ const TR = {
 const file = () => join(app.getPath('userData'), 'language.json');
 let lang = null;
 
-// Worked out when first needed (the computer's language can only be asked once the app is ready).
 function current() {
   if (lang) return lang;
   try {
     lang = JSON.parse(readFileSync(file(), 'utf8')).lang === 'tr' ? 'tr' : 'en';
   } catch {
-    if (!app.isReady()) return 'en';
-    lang = /^tr\b/i.test(app.getPreferredSystemLanguages()[0] ?? app.getLocale()) ? 'tr' : 'en';
+    lang = 'en';
   }
   return lang;
 }

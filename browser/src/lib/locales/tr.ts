@@ -387,6 +387,7 @@ const tr: Record<string, string> = {
   'Ends (if you like)': 'Bitiş (istersen)',
   'Engine': 'Motor',
   'English': 'English',
+  'English is the language unless you pick another in Settings → Language.': 'Ayarlar → Dil’den başka bir dil seçmediğin sürece dil İngilizce.',
   'Enter your code': 'Kodunu gir',
   'Event': 'Etkinlik',
   'Events': 'Etkinlikler',

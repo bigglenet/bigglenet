@@ -1,6 +1,7 @@
 // Languages: English, and Turkish (locales/tr.ts). Text is written in English and passed through
 // t(); the Turkish list maps each English text to its translation. Anything not translated yet
-// shows in English. Pick the language in Settings → Language ("System" follows the computer).
+// shows in English. English is the default; pick Turkish (or "Same as this device") in
+// Settings → Language.
 import tr from './locales/tr';
 import { registerSync, syncChanged } from './sync.svelte';
 
@@ -17,9 +18,9 @@ function systemLang(): Lang {
 function loadChoice(): LangChoice {
   try {
     const saved = localStorage.getItem(KEY);
-    return saved === 'en' || saved === 'tr' ? saved : 'system';
+    return saved === 'en' || saved === 'tr' || saved === 'system' ? saved : 'en';
   } catch {
-    return 'system';
+    return 'en';
   }
 }
 
@@ -33,7 +34,8 @@ class I18n {
   set(choice: LangChoice) {
     this.choice = choice;
     try {
-      if (choice === 'system') localStorage.removeItem(KEY);
+      // English unless someone picks otherwise.
+      if (choice === 'en') localStorage.removeItem(KEY);
       else localStorage.setItem(KEY, choice);
     } catch {}
     document.documentElement.lang = this.lang;
