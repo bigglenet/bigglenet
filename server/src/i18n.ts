@@ -292,6 +292,22 @@ const TR: Record<string, string> = {
   'Add a passkey': 'Geçiş anahtarı ekle',
   'Use Touch ID, Windows Hello or your phone.': 'Touch ID, Windows Hello ya da telefonunu kullan.',
   'Use Touch ID, Windows Hello or your phone, so you can sign in without a password.': 'Şifresiz giriş yapabilmek için Touch ID, Windows Hello ya da telefonunu kullan.',
+  // Remixing, stamps and the weekly challenge (sites.ts, stamps.ts, challenges.ts).
+  "{1} is hosted somewhere else, so it can't be remixed.": '{1} başka bir yerde barınıyor, bu yüzden remiks yapılamaz.',
+  "{1}'s owner doesn't let people remix it.": '{1} sitesinin sahibi remiks yapılmasına izin vermiyor.',
+  'Only the owner can change that.': 'Bunu yalnızca sahibi değiştirebilir.',
+  'That’s the most stamps one person can collect.': 'Bir kişinin toplayabileceği en fazla pul bu.',
+  'Give the challenge a theme.': 'Yarışmaya bir tema ver.',
+  'A challenge is already on. Wait for it to end.': 'Zaten süren bir yarışma var. Bitmesini bekle.',
+  'That challenge doesn’t exist.': 'Bu yarışma yok.',
+  'That challenge is over.': 'Bu yarışma bitti.',
+  'Enter one of your own sites.': 'Kendi sitelerinden birini katıl.',
+  '{1} isn’t live yet. Enter it once an admin approves it.': '{1} henüz yayında değil. Bir yönetici onaylayınca katıl.',
+  'That site is already in.': 'Bu site zaten yarışmada.',
+  'That site isn’t in this challenge.': 'Bu site bu yarışmada değil.',
+  'You can’t vote for your own site.': 'Kendi sitene oy veremezsin.',
+  '{1} remixed your site': '{1} siteni remiksledi',
+  'Your site won the weekly challenge “{1}”!': 'Siten haftalık yarışmayı kazandı: “{1}”!',
 };
 
 /** The languages the Bigglenet speaks; English unless the request asks for Turkish first. */

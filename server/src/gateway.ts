@@ -2,6 +2,7 @@
 // site's own host, or (for sites made in the Biggle editor) straight from the database.
 import { blobBytes, CORS, fail, json, redirect, SITE_KEY_RE, siteAddress } from './http';
 import { checkPreviewToken } from './sites';
+import { siteButton } from './stamps';
 
 type Site = { name: string; url: string | null; title: string | null; status: string; live: number; direct: number; own_window: number; tld: string };
 
@@ -44,6 +45,8 @@ const readOnly = (req: Request) => req.method === 'GET' || req.method === 'HEAD'
 export async function gateway(req: Request, env: Env, name: string, rest: string, search: string): Promise<Response> {
   const site = await resolve(env, name);
   if (!site || site.status !== 'live') return fail(404, 'no_such_name', `${siteAddress(name)} doesn't exist.`);
+  // Every site's 88×31 button, wherever its files are (stamps.ts).
+  if (rest === '/.button') return siteButton(env, site);
   // A direct link: the browser loads the website itself, so just say where it is.
   if (site.url && site.direct) return direct(site.url, site.title, site.own_window, rest, search);
   // Only live apps can be sent things (forms, logging a result…); other sites are read-only.

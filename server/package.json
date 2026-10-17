@@ -6,6 +6,7 @@
     "dev": "mkdir -p ../browser/dist && wrangler dev --port 8787",
     "deploy": "wrangler d1 migrations apply bigglenet --remote && wrangler d1 migrations apply bigglenet-files --remote && wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply bigglenet --local && wrangler d1 migrations apply bigglenet-files --local",
+    "dev:reset": "rm -rf .wrangler/state && npm run db:migrate && node scripts/dev-seed.mjs",
     "db:migrate:remote": "wrangler d1 migrations apply bigglenet --remote && wrangler d1 migrations apply bigglenet-files --remote",
     "name": "node scripts/admin.mjs name",
     "promote": "node scripts/admin.mjs promote",

@@ -29,7 +29,11 @@ export type NotificationKind =
   | 'achievement'
   | 'co-owner'
   | 'report'
-  | 'announcement';
+  | 'announcement'
+  /** Someone made a site as a copy of yours. */
+  | 'remixed'
+  /** Your site won the weekly challenge (challenges.ts). */
+  | 'challenge-won';
 
 type Row = { id: number; kind: string; data: string; read: number; created_at: number };
 

@@ -79,6 +79,8 @@ function pushFor(event: LiveEvent): PushMessage | null {
       guestbook: [`${s(n.data.author)} signed your guestbook`, `biggle://sites/${s(n.data.site)}`],
       comment: [`${s(n.data.author)} commented on your site`, `biggle://sites/${s(n.data.site)}`],
       'co-owner': [`${s(n.data.from)} added you as an editor of a site`, `biggle://sites/${s(n.data.site)}`],
+      remixed: [`${s(n.data.username)} remixed your site`, `biggle://${s(n.data.remix)}.biggle/`],
+      'challenge-won': [`Your site won the weekly challenge “${s(n.data.title)}”!`, 'biggle://challenge'],
     };
     const t = text[n.kind];
     return t ? { title: 'Bigglenet', body: t[0], href: t[1], tag: `n-${n.kind}`, ours: true } : null;

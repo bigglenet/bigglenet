@@ -34,6 +34,8 @@
 //   /api/passkeys*, /passkey/:id      passkeys (passkeys.ts)
 //   /api/push                        web push (push.ts)
 //   /api/admin/backups*, /api/admin/restore   restore points and copies of the database (backups.ts)
+//   /api/stamps*, /site/:name/.button  buttons and stamps (stamps.ts)
+//   /api/challenge*                  the weekly challenge (challenges.ts)
 //   /api/live                        WebSocket for live updates
 import * as account from './account';
 import * as admin from './admin';
@@ -58,6 +60,8 @@ import * as google from './google';
 import { serveFile } from './files';
 import { fail, HttpError, preflight } from './http';
 import { langOf, translateError } from './i18n';
+import * as challenges from './challenges';
+import * as stamps from './stamps';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
 import * as invites from './invites';
@@ -303,6 +307,16 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/api\/admin\/backups\/(\d+)\/restore$/, backups.restoreBackup],
   ['POST', /^\/api\/admin\/restore$/, backups.undoRestore],
 
+  ['GET', /^\/api\/stamps$/, stamps.myStamps],
+  ['POST', /^\/api\/stamps\/([^/]+)$/, stamps.collectStamp],
+  ['DELETE', /^\/api\/stamps\/([^/]+)$/, stamps.returnStamp],
+
+  ['GET', /^\/api\/challenge$/, challenges.current],
+  ['POST', /^\/api\/challenge$/, challenges.start],
+  ['POST', /^\/api\/challenge\/(\d+)\/enter$/, challenges.enter],
+  ['DELETE', /^\/api\/challenge\/(\d+)\/enter$/, challenges.enter],
+  ['POST', /^\/api\/challenge\/(\d+)\/vote$/, challenges.vote],
+
   ['GET', /^\/api\/live$/, connect],
 ];
 
@@ -369,6 +383,8 @@ export default {
     const minute = at.getUTCMinutes();
     if (at.getUTCHours() === 3 && minute === 0) ctx.waitUntil(backups.markRestorePoint(env));
     else if (at.getUTCHours() === 3 && minute === 31) ctx.waitUntil(fixPresence(env));
+    // Every 10 minutes, whether a weekly challenge has ended, instead of reminders.
+    else if (minute % 10 === 4) ctx.waitUntil(challenges.finishChallenges(env));
     else ctx.waitUntil(minute % 2 === 0 ? events.remindSoon(env) : discover.indexSome(env));
   },
 } satisfies ExportedHandler<Env>;

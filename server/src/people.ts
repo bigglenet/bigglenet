@@ -12,6 +12,8 @@ import { requireUser, type User } from './auth';
 import { deleteFile, fileResponse, putFile } from './files';
 import { HttpError, json, readJson, str } from './http';
 import { notify } from './live';
+import { badgesOf } from './badges';
+import { stampsOf } from './stamps';
 
 const MAX_BIO = 300;
 const MAX_STATUS = 60;
@@ -104,6 +106,7 @@ export async function profile(req: Request, env: Env, username: string): Promise
     env.DB.prepare('SELECT c.id, c.name, c.emoji FROM clubs c JOIN club_members m ON m.club_id = c.id WHERE m.user_id = ? AND c.open = 1 ORDER BY c.name LIMIT 20').bind(p.id),
   ]);
   const status = (friendship.results[0] as { status?: string } | undefined)?.status ?? null;
+  const { badges, fresh } = await badgesOf(env, p.id, p.created_at, isMe);
   return json({
     username: p.username,
     bio: p.bio,
@@ -126,10 +129,12 @@ export async function profile(req: Request, env: Env, username: string): Promise
     })),
     collections: collections.results as { id: string; title: string; sites: number }[],
     clubs: clubs.results as { id: number; name: string; emoji: string | null }[],
+    badges,
+    stamps: await stampsOf(env, p.id),
     friendship: status,
     blocked: iBlocked.results.length > 0,
     me: isMe,
-    ...(isMe ? { shareActivity: !!p.share_activity } : {}),
+    ...(isMe ? { shareActivity: !!p.share_activity, freshBadges: fresh } : {}),
   });
 }
 

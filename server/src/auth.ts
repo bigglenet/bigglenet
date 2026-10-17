@@ -5,6 +5,7 @@ import { langOf } from './i18n';
 import { HttpError, json, readJson, str, USERNAME_RE } from './http';
 import { useInvite } from './invites';
 import { signedInOrSecondStep } from './twofactor';
+import { sawToday } from './badges';
 
 export type User = {
   id: number;
@@ -339,7 +340,10 @@ export async function logout(req: Request, env: Env): Promise<Response> {
 }
 
 export async function me(req: Request, env: Env): Promise<Response> {
-  return json({ user: publicUser(await requireUser(req, env)) });
+  const user = await requireUser(req, env);
+  // Days in a row count towards a badge (badges.ts).
+  await sawToday(env, user.id);
+  return json({ user: publicUser(user) });
 }
 
 // --- Add or change the email on an account ---

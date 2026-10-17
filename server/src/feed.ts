@@ -20,7 +20,8 @@ export type ActivityKind =
   | 'event-new'
   | 'thread-new'
   | 'collection-new'
-  | 'joined';
+  | 'joined'
+  | 'challenge-won';
 
 /** Something `userId` did, for their friends' feeds. */
 export async function record(env: Env, userId: number, kind: ActivityKind, data: Record<string, unknown> = {}, site: string | null = null) {

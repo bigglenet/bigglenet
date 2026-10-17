@@ -19,6 +19,7 @@ const RESERVED = new Set([
   'admin', 'api', 'app', 'www', 'mail', 'biggle', 'bigglenet', 'home', 'hello', 'help', 'support',
   'start', 'sites', 'root', 'system', 'official', 'staff', 'mod', 'news', 'status', 'security', 'nox', 'requests', 'chat',
   'newtab', 'settings', 'bookmarks', 'history', 'downloads', 'u', 'feed', 'board', 'clubs', 'events', 'collections', 'invite',
+  'games', 'challenge', 'stamps', 'badges',
 ]);
 
 /** The two address endings. Only admins and people they trust can use .b. */
@@ -66,6 +67,8 @@ export type SiteRow = {
   review_note: string | null;
   created_at: number;
   updated_at: number;
+  remix_of: string | null;
+  remixable: number;
 };
 
 function checkPath(raw: string): { path: string; type: string } {
@@ -185,6 +188,9 @@ const publicSite = (s: SiteRow) => ({
   note: s.review_note,
   createdAt: s.created_at,
   updatedAt: s.updated_at,
+  /** The site this one started as a copy of, and whether others may copy this one. */
+  remixOf: s.remix_of ?? null,
+  remixable: s.remixable !== 0,
 });
 
 async function notifyAdmins(env: Env) {
@@ -246,11 +252,14 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
   const about = str(body.about).trim().slice(0, 300);
   const template = (TEMPLATES as string[]).includes(str(body.template)) ? (str(body.template) as Template) : 'page';
 
-  const files = body.files && typeof body.files === 'object' ? starterFiles(body.files) : templateFiles(template, title, about);
+  // A remix starts as a copy of another site's published files.
+  const remix = body.remix === undefined ? null : await remixSource(env, user, str(body.remix));
+  const files = remix ? {} : body.files && typeof body.files === 'object' ? starterFiles(body.files) : templateFiles(template, title, about);
   const enc = new TextEncoder();
   try {
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO names (name, tld, title, owner_id, status) VALUES (?, ?, ?, ?, 'pending')").bind(key, tld, title, user.id),
+      env.DB.prepare("INSERT INTO names (name, tld, title, owner_id, status, remix_of) VALUES (?, ?, ?, ?, 'pending', ?)").bind(key, tld, title, user.id, remix?.name ?? null),
+      ...(remix ? [env.DB.prepare('INSERT INTO site_files (site, path, type, content, size) SELECT ?, path, type, content, size FROM site_files WHERE site = ?').bind(key, remix.name)] : []),
       ...Object.entries(files).map(([path, text]) => {
         const bytes = enc.encode(text);
         return env.DB.prepare('INSERT INTO site_files (site, path, type, content, size) VALUES (?, ?, ?, ?, ?)').bind(
@@ -267,7 +276,20 @@ export async function createSite(req: Request, env: Env): Promise<Response> {
     throw e;
   }
   await notifyAdmins(env);
+  if (remix?.owner_id && remix.owner_id !== user.id) {
+    await addNotification(env, remix.owner_id, 'remixed', { username: user.username, site: remix.name, remix: key });
+  }
   return json({ site: publicSite(await getSite(env, key)) }, 201);
+}
+
+/** The site a remix copies: live, made of files kept here, and its owner lets people remix it. */
+async function remixSource(env: Env, user: User, raw: string): Promise<SiteRow> {
+  const key = raw.trim().toLowerCase().replace(/^biggle:\/\//, '').replace(/[/?#].*$/, '').replace(/\.biggle$/, '');
+  const site = await env.DB.prepare('SELECT * FROM names WHERE name = ?').bind(key).first<SiteRow>();
+  if (!site || (site.status !== 'live' && site.owner_id !== user.id)) throw new HttpError(404, 'no_such_site', `${siteAddress(key)} doesn't exist.`);
+  if (site.url) throw new HttpError(400, 'not_remixable', `${siteAddress(key)} is hosted somewhere else, so it can't be remixed.`);
+  if (!site.remixable && site.owner_id !== user.id && !user.is_admin) throw new HttpError(403, 'not_remixable', `${siteAddress(key)}'s owner doesn't let people remix it.`);
+  return site;
 }
 
 /** Starting files sent by the editor (the easy editor builds its own). */
@@ -396,6 +418,10 @@ export async function updateSite(req: Request, env: Env, name: string): Promise<
   const body = await readJson(req);
   const title = str(body.title).trim().slice(0, 80);
   if (title) await env.DB.prepare('UPDATE names SET title = ?, updated_at = unixepoch() WHERE name = ?').bind(title, site.name).run();
+  if (typeof body.remixable === 'boolean') {
+    if (!owner) throw new HttpError(403, 'not_yours', 'Only the owner can change that.');
+    await env.DB.prepare('UPDATE names SET remixable = ? WHERE name = ?').bind(body.remixable ? 1 : 0, site.name).run();
+  }
   // Switching endings moves the site to its other address.
   const key = body.tld === undefined ? site.name : await moveSite(env, site.name, checkTld(user, body.tld));
   return json({ site: publicSite(await getSite(env, key)) });
