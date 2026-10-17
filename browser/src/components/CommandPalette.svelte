@@ -84,6 +84,7 @@
       c('new-event', t('Plan an event'), 'plus', () => go('biggle://events/new')),
       c('board', t('The board (forums)'), 'chat', () => go('biggle://board.biggle')),
       c('collections', t('My collections'), 'star', () => go('biggle://collections')),
+      c('challenge', t('Weekly challenge'), 'star', () => go('biggle://challenge')),
       c('bar', bookmarks.bar ? t('Hide the bookmarks bar') : t('Show the bookmarks bar'), 'star', () => bookmarks.showBar(!bookmarks.bar), `${shift}${mod}B`),
       c('game', browser.gameMode ? t('Leave game mode') : t('Game mode'), 'gamepad', () => setGameMode(!browser.gameMode), `${shift}${mod}F`),
       c('perf', perf.on ? t('Hide the performance overlay') : t('Show the performance overlay (FPS)'), 'gauge', () => perf.toggle()),

@@ -57,6 +57,7 @@
   import ClubsPage from './components/community/ClubsPage.svelte';
   import CollectionPicker from './components/community/CollectionPicker.svelte';
   import CollectionsPage from './components/community/CollectionsPage.svelte';
+  import ChallengePage from './components/community/ChallengePage.svelte';
   import EventsPage from './components/community/EventsPage.svelte';
   import FeedPage from './components/community/FeedPage.svelte';
   import InvitePage from './components/community/InvitePage.svelte';
@@ -412,6 +413,8 @@
                 <InvitePage {tab} path={tab.view.path} />
               {:else if tab.view.page === 'status'}
                 <StatusPage />
+              {:else if tab.view.page === 'challenge'}
+                <ChallengePage {tab} />
               {:else if tab.view.page === 'sites' && tab.view.path}
                 <SiteEditor {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}

@@ -11,6 +11,9 @@ export type MySite = {
   note: string | null;
   createdAt: number;
   updatedAt: number;
+  /** The site this one was remixed from, and whether others may remix this one. */
+  remixOf?: string | null;
+  remixable?: boolean;
   /** Visits (one per person per day): in all, and in the last 7 days. */
   visits?: number;
   week?: number;
@@ -26,6 +29,8 @@ class Sites {
   reviews = $state(0);
   /** Bumped when the review queue changes, so the admin page can reload it. */
   reviewsChanged = $state(0);
+  /** A site to remix: My sites opens its form for it (Toolbar's ⋯ menu sets it). */
+  remixing = $state<string | null>(null);
 
   async refreshMine() {
     if (!account.token) return;

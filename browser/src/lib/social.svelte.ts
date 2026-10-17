@@ -6,6 +6,7 @@ import { chats, fileLabel, type ChatMessage, type Reaction } from './chats.svelt
 import { t } from './i18n.svelte';
 import { SERVER } from './config';
 import { follows } from './follows.svelte';
+import { stamps } from './stamps.svelte';
 import { notices } from './notify.svelte';
 import { notifications, type Notification } from './notifications.svelte';
 import { people, type Activity, type Status } from './people.svelte';
@@ -93,6 +94,7 @@ class Social {
     people.start();
     notifications.refresh();
     follows.refresh();
+    stamps.refresh();
     sync.pull();
     this.connect();
   }
@@ -113,6 +115,7 @@ class Social {
     people.reset();
     notifications.reset();
     follows.reset();
+    stamps.reset();
   }
 
   private connect() {

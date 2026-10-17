@@ -20,6 +20,8 @@
   import BookmarkButton from './BookmarkButton.svelte';
   import { collect } from '../lib/collect.svelte';
   import { follows } from '../lib/follows.svelte';
+  import { sites as mySites } from '../lib/sites.svelte';
+  import { stamps } from '../lib/stamps.svelte';
   import { report } from '../lib/report.svelte';
   import Icon from './Icon.svelte';
   import NotificationBell from './NotificationBell.svelte';
@@ -132,6 +134,8 @@
           ? { label: t('Remove the offline copy'), icon: 'wifi', action: () => offline.remove(key) }
           : { label: t('Save for offline'), icon: 'wifi', action: () => saveForOffline(t0) },
         { label: t('Add to collection…'), icon: 'star', action: () => collect.open(key) },
+        { label: t('Remix this site…'), icon: 'copy', action: () => ((mySites.remixing = key), browser.newTab('biggle://sites', { after: t0.id })) },
+        { label: stamps.has(key) ? t('Stamp collected') : t('Collect this site’s stamp'), icon: 'check', action: () => stamps.collect(key) },
         follows.has(key)
           ? { label: t('Unfollow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) }
           : { label: t('Follow this site'), icon: 'bell', action: () => follows.toggle(key, (m) => browser.say(m)) },

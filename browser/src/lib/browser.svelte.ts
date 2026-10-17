@@ -760,6 +760,7 @@ function internalTitle(page: InternalPage, path: string): string {
   if (page === 'collections') return path ? t('Collection') : t('Collections');
   if (page === 'invite') return t('Invite');
   if (page === 'status') return t('Status');
+  if (page === 'challenge') return t('Weekly challenge');
   if (page === 'settings') return t('Settings');
   if (page === 'bookmarks') return t('Bookmarks');
   if (page === 'history') return t('History');

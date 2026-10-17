@@ -4,6 +4,7 @@ import { account } from './account.svelte';
 import { api, apiFetch } from './api';
 import { SERVER } from './config';
 import { t } from './i18n.svelte';
+import { celebrate } from './badges';
 
 export type Status = { text: string; emoji: string; until: number | null };
 export type Activity = { text: string; at: number };
@@ -21,6 +22,11 @@ export type Profile = {
   /** Their listed collections and open clubs. */
   collections?: { id: string; title: string; sites: number }[];
   clubs?: { id: number; name: string; emoji: string | null }[];
+  /** Badges they've earned, and the stamps they've collected (sites' 88×31 buttons). */
+  badges?: { badge: string; at: number }[];
+  stamps?: { site: string; title: string | null }[];
+  /** Your own profile: badges you've only just earned. */
+  freshBadges?: string[];
   friendship: 'friends' | 'incoming' | 'outgoing' | null;
   blocked: boolean;
   me: boolean;
@@ -78,6 +84,7 @@ class People {
       ]);
       this.shareActivity = !!me.shareActivity;
       this.learn(me.username, me);
+      celebrate(me.freshBadges);
       this.blocked = blocks.blocked;
     } catch {}
   }
@@ -97,6 +104,7 @@ class People {
   async profile(username: string): Promise<Profile> {
     const p = await api<Profile>('GET', `/api/users/${encodeURIComponent(username)}`);
     this.learn(p.username, p);
+    celebrate(p.freshBadges);
     return p;
   }
 

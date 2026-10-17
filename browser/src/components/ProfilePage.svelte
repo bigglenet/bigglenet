@@ -3,8 +3,10 @@
   // buttons to add them, message them or block them. Your own has an Edit button.
   import { account } from '../lib/account.svelte';
   import { errorText } from '../lib/api';
+  import { BADGE_INFO } from '../lib/badges';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { chats } from '../lib/chats.svelte';
+  import { SERVER } from '../lib/config';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { people, squareImage, type Profile } from '../lib/people.svelte';
   import { report } from '../lib/report.svelte';
@@ -279,6 +281,44 @@
               </li>
             {/each}
           </ul>
+        </section>
+      {/if}
+
+      {#if profile.badges?.length}
+        <section>
+          <h2>{t('Badges')}</h2>
+          <ul class="badges">
+            {#each profile.badges as b (b.badge)}
+              {@const info = BADGE_INFO[b.badge]}
+              {#if info}
+                <li title={`${t(info.about)} · ${new Date(b.at * 1000).toLocaleDateString(i18n.locale)}`}>
+                  <span class="badge-emoji" aria-hidden="true">{info.emoji}</span>
+                  <strong>{t(info.name)}</strong>
+                  <span class="muted small">{t(info.about)}</span>
+                </li>
+              {/if}
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
+      {#if profile.stamps?.length}
+        <section>
+          <h2>{t('Stamps')} <span class="muted small">{profile.stamps.length}</span></h2>
+          <ul class="stamps">
+            {#each profile.stamps as s (s.site)}
+              <li>
+                <button onclick={() => browser.go(tab, siteHome(s.site))} title={s.title ? `${siteHost(s.site)} · ${s.title}` : siteHost(s.site)}>
+                  <img src={`${SERVER}/site/${encodeURIComponent(s.site)}/.button`} width="88" height="31" alt={siteHost(s.site)} loading="lazy" />
+                </button>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {:else if profile.me}
+        <section>
+          <h2>{t('Stamps')}</h2>
+          <p class="muted">{t('Collect a site’s stamp from its ⋯ menu. Your stamps show here, as the sites’ buttons.')}</p>
         </section>
       {/if}
 
@@ -591,6 +631,49 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+  .badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .badges li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--surface);
+    text-align: center;
+  }
+  .badge-emoji {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+  .stamps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .stamps button {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .stamps img {
+    display: block;
+    image-rendering: pixelated;
+  }
+  .stamps button:hover img {
+    outline: 2px solid var(--accent);
   }
   .achievements {
     display: grid;

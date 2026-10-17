@@ -78,6 +78,8 @@
         return { text: t('{who} started a thread on the board: {title}', { who: i.user, title: s(d.title) }), href: `biggle://board.biggle/thread/${d.thread}` };
       case 'collection-new':
         return { text: t('{who} made a collection: {title}', { who: i.user, title: s(d.title) }), href: `biggle://collections/${d.collection}` };
+      case 'challenge-won':
+        return { text: t('{site} by {who} won the weekly challenge “{title}”', { who: i.user, site, title: s(d.title) }), href: 'biggle://challenge' };
       case 'joined':
         return {
           text: d.via ? t('{who} joined the Bigglenet, invited by {via}', { who: i.user, via: s(d.via) }) : t('{who} joined the Bigglenet', { who: i.user }),
@@ -94,6 +96,7 @@
     { href: 'biggle://events', label: 'Events', icon: 'clock' },
     { href: 'biggle://board.biggle', label: 'The board', icon: 'chat' },
     { href: 'biggle://collections', label: 'Collections', icon: 'star' },
+    { href: 'biggle://challenge', label: 'Weekly challenge', icon: 'trophy' },
   ] as const;
 </script>
 

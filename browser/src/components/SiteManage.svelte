@@ -10,6 +10,7 @@
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { overlays } from '../lib/overlays.svelte';
   import { social } from '../lib/social.svelte';
+  import { SERVER } from '../lib/config';
   import { siteHost } from '../lib/url';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
@@ -29,6 +30,8 @@
     club = null,
     tags = [],
     webrings = [],
+    remixOf = null,
+    remixable = true,
     canManage,
     head,
     images,
@@ -46,11 +49,14 @@
     /** How it's found in Nox: its tags, and the webrings it's in. */
     tags?: string[];
     webrings?: { id: number; name: string }[];
+    /** The site it was remixed from, and whether others may remix it. */
+    remixOf?: string | null;
+    remixable?: boolean;
     canManage: boolean;
     /** The code site's head, or null for easy sites (the easy editor has its own). */
     head: HeadMeta | null;
     images: string[];
-    start?: 'people' | 'stats' | 'sharing' | 'nox';
+    start?: 'people' | 'stats' | 'sharing' | 'nox' | 'button';
     onhead: (meta: HeadMeta) => void;
     onchange: () => void;
     onleave: () => void;
@@ -58,7 +64,27 @@
   } = $props();
 
   // svelte-ignore state_referenced_locally
-  let section = $state<'people' | 'stats' | 'sharing' | 'nox'>(start);
+  let section = $state<'people' | 'stats' | 'sharing' | 'nox' | 'button'>(start);
+  const buttonCode = $derived(`<biggle-button site="${siteHost(name)}"></biggle-button>`);
+
+  async function copyButtonCode() {
+    try {
+      await navigator.clipboard.writeText(buttonCode);
+      browser.say(t('Copied. Paste it into your pages.'));
+    } catch {
+      browser.say(t('Couldn’t copy it.'));
+    }
+  }
+
+  async function setRemixable(on: boolean) {
+    error = '';
+    try {
+      await api('PATCH', `/api/sites/${enc(name)}`, { remixable: on });
+      onchange();
+    } catch (e) {
+      error = errorText(e);
+    }
+  }
   let adding = $state('');
   let error = $state('');
   let busy = $state(false);
@@ -178,6 +204,7 @@
         <button role="tab" aria-selected={section === 'sharing'} onclick={() => (section = 'sharing')}>{t('Sharing')}</button>
       {/if}
       <button role="tab" aria-selected={section === 'nox'} onclick={() => (section = 'nox')}>Nox</button>
+      <button role="tab" aria-selected={section === 'button'} onclick={() => (section = 'button')}>{t('Button and remixes')}</button>
     </div>
 
     <div class="body">
@@ -294,6 +321,27 @@
           <p class="muted">{t('Not in any webrings.')}</p>
         {/if}
         <button class="link" onclick={() => (onclose(), browser.newTab('biggle://nox/webrings', { after: browser.activeId }))}>{t('Find a webring to join')}</button>
+        {#if error}<p class="bad">{error}</p>{/if}
+      {:else if section === 'button'}
+        <div class="button-row">
+          <img src={`${SERVER}/site/${enc(name)}/.button`} width="88" height="31" alt={t('{site}’s button', { site: siteHost(name) })} />
+          <p class="muted">{t('Every site has an 88×31 button, like on the old web. To draw your own, add a picture called button.png that’s 88×31 pixels.')}</p>
+        </div>
+        <p class="muted">{t('Put it on other pages with this code, or add a Buttons block in the easy editor:')}</p>
+        <div class="code-row">
+          <code>{buttonCode}</code>
+          <button class="ghost small" onclick={copyButtonCode}>{t('Copy')}</button>
+        </div>
+        <h3>{t('Remixes')}</h3>
+        {#if remixOf}
+          <p>{t('This site is a remix of {site}.', { site: siteHost(remixOf) })}</p>
+        {/if}
+        {#if canManage}
+          <label class="check">
+            <input type="checkbox" checked={remixable} onchange={(e) => setRemixable(e.currentTarget.checked)} />
+            {t('Let people remix this site (make their own copy of it to change)')}
+          </label>
+        {/if}
         {#if error}<p class="bad">{error}</p>{/if}
       {:else if section === 'sharing' && head}
         <p class="muted">{t('What people see when they share a link to your site, and the icon on its tab. This changes the head of index.bhtml.')}</p>
@@ -466,6 +514,37 @@
   }
   textarea {
     resize: vertical;
+  }
+  label.check {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .button-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .button-row img {
+    flex: none;
+    image-rendering: pixelated;
+  }
+  .code-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .code-row code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: 12px;
+    white-space: nowrap;
   }
   label {
     display: flex;

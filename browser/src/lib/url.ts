@@ -24,7 +24,8 @@ export type InternalPage =
   | 'events'
   | 'collections'
   | 'invite'
-  | 'status';
+  | 'status'
+  | 'challenge';
 /** The address each built-in page answers to. The new tab page is biggle://newtab (or biggle://start). */
 const INTERNAL_HOSTS: Record<string, InternalPage> = {
   newtab: 'start',
@@ -45,6 +46,7 @@ const INTERNAL_HOSTS: Record<string, InternalPage> = {
   collections: 'collections',
   invite: 'invite',
   status: 'status',
+  challenge: 'challenge',
 };
 
 /** Built-in pages that look like sites: biggle://chat.biggle and biggle://board.biggle. */

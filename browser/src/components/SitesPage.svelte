@@ -12,7 +12,9 @@
 
   let { tab }: { tab: Tab } = $props();
 
-  let mode = $state<'create' | 'import' | null>(null);
+  let mode = $state<'create' | 'import' | 'remix' | null>(null);
+  /** The site being remixed (from a site's ⋯ menu, through sites.remixing). */
+  let remixFrom = $state<string | null>(null);
   let name = $state('');
   let title = $state('');
   let theme = $state<Theme>('sunset');
@@ -59,13 +61,26 @@
     return () => clearTimeout(timer);
   });
 
+  $effect(() => {
+    const source = sites.remixing;
+    if (!source) return;
+    sites.remixing = null;
+    remixFrom = source;
+    mode = 'remix';
+    error = '';
+    name = `${source.replace(/\.b$/, '')}-remix`.slice(0, 40);
+    title = t('Remix of {site}', { site: siteHost(source) });
+  });
+
   async function create(e: SubmitEvent) {
     e.preventDefault();
     busy = true;
     error = '';
     try {
       const siteTitle = title.trim() || clean;
-      const body = withCode
+      const body = mode === 'remix'
+        ? { name: clean, tld, title: siteTitle, remix: remixFrom }
+        : withCode
         ? { name: clean, tld, title: siteTitle, template: 'page' }
         : { name: clean, tld, title: siteTitle, files: renderFiles(starterSite(siteTitle, theme)) };
       const r = await api<{ site: MySite }>('POST', '/api/sites', body);
@@ -240,8 +255,11 @@
       {/if}
 
       {#if mode}
-        <form class="create" onsubmit={mode === 'create' ? create : importIt}>
-          <h2>{mode === 'create' ? t('Make a new site') : t('Import a website')}</h2>
+        <form class="create" onsubmit={mode === 'import' ? importIt : create}>
+          <h2>{mode === 'create' ? t('Make a new site') : mode === 'remix' ? t('Remix {site}', { site: siteHost(remixFrom ?? '') }) : t('Import a website')}</h2>
+          {#if mode === 'remix'}
+            <p class="muted">{t('You get your own copy of its pages to change however you like. It says where it came from.')}</p>
+          {/if}
 
           {#if mode === 'import'}
             <div class="from" role="radiogroup" aria-label={t('Import from')}>
@@ -318,7 +336,7 @@
             </span>
             <span id="name-hint" class="hint" class:ok={availability?.ok} class:bad={availability && !availability.ok}>
               {#if availability}
-                {availability.ok ? `${siteHost(availability.name, tld)} is free` : availability.reason}
+                {availability.ok ? t('{site} is free', { site: siteHost(availability.name, tld) }) : availability.reason}
               {:else}
                 {t('Letters, numbers and dashes.')}
               {/if}
@@ -339,10 +357,10 @@
             <legend>{t('Pick a look')} <em>{t('(you can change it any time)')}</em></legend>
             <div class="themes">
               {#each THEMES as look (look.id)}
-                <label class="theme" class:picked={theme === look.id} title={look.name}>
-                  <input type="radio" name="theme" value={look.id} bind:group={theme} aria-label={t('{x} theme', { x: look.name })} />
+                <label class="theme" class:picked={theme === look.id} title={t(look.name)}>
+                  <input type="radio" name="theme" value={look.id} bind:group={theme} aria-label={t('{x} theme', { x: t(look.name) })} />
                   <span class="swatch" style:background={look.bg}><i style:background={look.accent}></i></span>
-                  <span>{look.name}</span>
+                  <span>{t(look.name)}</span>
                 </label>
               {/each}
             </div>
@@ -364,7 +382,7 @@
           <div class="actions">
             <button type="button" class="ghost" disabled={busy} onclick={() => (mode = null)}>{t('Cancel')}</button>
             <button class="primary" disabled={busy || availability?.ok === false}>
-              {#if mode === 'create'}{busy ? t('Making it…') : t('Make my site')}{:else}{busy ? t('Importing…') : t('Import')}{/if}
+              {#if mode === 'create'}{busy ? t('Making it…') : t('Make my site')}{:else if mode === 'remix'}{busy ? t('Making it…') : t('Make my remix')}{:else}{busy ? t('Importing…') : t('Import')}{/if}
             </button>
           </div>
         </form>

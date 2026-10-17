@@ -124,6 +124,10 @@ export function describe(n: Notification): { text: string; href: string | null; 
       return { text: t('New report: {what}', { what: s(d.summary) }), href: 'biggle://admin/reports', icon: 'alert' };
     case 'announcement':
       return { text: s(d.text), href: null, icon: 'bell' };
+    case 'remixed':
+      return { text: t('{who} remixed {site}', { who: s(d.username), site: siteHost(site) }), href: siteHome(s(d.remix)), icon: 'globe' };
+    case 'challenge-won':
+      return { text: t('{site} won the weekly challenge “{title}”!', { site: siteHost(site), title: s(d.title) }), href: 'biggle://challenge', icon: 'star' };
     default:
       return { text: t('Something happened on the Bigglenet.'), href: null, icon: 'bell' };
   }

@@ -586,6 +586,8 @@
       club={info.club}
       tags={info.tags}
       webrings={info.webrings}
+      remixOf={info.site.remixOf ?? null}
+      remixable={info.site.remixable ?? true}
       canManage={info.canManage}
       {head}
       {images}
