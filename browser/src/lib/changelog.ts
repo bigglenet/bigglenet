@@ -5,6 +5,13 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-10-18',
+    changes: [
+      'Adopt a pet on the new tab page. It eats a snack for every different site you visit each day, grows up as it eats, and shows on your profile for your friends to see.',
+    ],
+  },
+  {
     version: '1.1.1',
     date: '2026-10-17',
     changes: ['Chat messages keep a readable width in the narrow chat sidebar.'],

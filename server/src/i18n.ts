@@ -307,6 +307,8 @@ const TR: Record<string, string> = {
   'That site isn’t in this challenge.': 'Bu site bu yarışmada değil.',
   'You can’t vote for your own site.': 'Kendi sitene oy veremezsin.',
   '{1} remixed your site': '{1} siteni remiksledi',
+  'Give your pet a name (up to 20 letters).': 'Evcil hayvanına bir ad ver (en fazla 20 harf).',
+  'Pick one of the pets and colours.': 'Hayvanlardan ve renklerden birini seç.',
   'Your site won the weekly challenge “{1}”!': 'Siten haftalık yarışmayı kazandı: “{1}”!',
 };
 

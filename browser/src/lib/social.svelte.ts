@@ -7,6 +7,7 @@ import { t } from './i18n.svelte';
 import { SERVER } from './config';
 import { follows } from './follows.svelte';
 import { stamps } from './stamps.svelte';
+import { pets } from './pet.svelte';
 import { notices } from './notify.svelte';
 import { notifications, type Notification } from './notifications.svelte';
 import { people, type Activity, type Status } from './people.svelte';
@@ -116,6 +117,7 @@ class Social {
     notifications.reset();
     follows.reset();
     stamps.reset();
+    pets.reset();
   }
 
   private connect() {

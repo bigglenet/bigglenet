@@ -46,6 +46,9 @@ const LISTS = [
   ['components/SettingsPage.svelte', "{#each [['system'"],
   ['../../server/src/board.ts', 'const BOARDS'],
   ['lib/badges.ts', 'export const BADGE_INFO'],
+  ['lib/pet.svelte.ts', 'export const PET_KINDS'],
+  ['lib/pet.svelte.ts', 'export const STAGE_NAMES'],
+  ['lib/pet.svelte.ts', 'export const MOOD_NAMES'],
   ['components/chat/ChatComposer.svelte', 'const GAMES'],
 ];
 const SKIP_KEYS = new Set(['id', 'href', 'icon', 'color', 'bg', 'accent', 'stack', 'light', 'dark', 'version', 'date', 'emoji', 'page']);

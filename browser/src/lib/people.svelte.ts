@@ -5,6 +5,7 @@ import { api, apiFetch } from './api';
 import { SERVER } from './config';
 import { t } from './i18n.svelte';
 import { celebrate } from './badges';
+import type { Pet } from './pet.svelte';
 
 export type Status = { text: string; emoji: string; until: number | null };
 export type Activity = { text: string; at: number };
@@ -25,6 +26,8 @@ export type Profile = {
   /** Badges they've earned, and the stamps they've collected (sites' 88×31 buttons). */
   badges?: { badge: string; at: number }[];
   stamps?: { site: string; title: string | null }[];
+  /** Their pet, if they have one. */
+  pet?: Pet | null;
   /** Your own profile: badges you've only just earned. */
   freshBadges?: string[];
   friendship: 'friends' | 'incoming' | 'outgoing' | null;

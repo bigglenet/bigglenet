@@ -36,6 +36,7 @@
 //   /api/admin/backups*, /api/admin/restore   restore points and copies of the database (backups.ts)
 //   /api/stamps*, /site/:name/.button  buttons and stamps (stamps.ts)
 //   /api/challenge*                  the weekly challenge (challenges.ts)
+//   /api/pet                         your pet (pets.ts)
 //   /api/live                        WebSocket for live updates
 import * as account from './account';
 import * as admin from './admin';
@@ -62,6 +63,7 @@ import { fail, HttpError, preflight } from './http';
 import { langOf, translateError } from './i18n';
 import * as challenges from './challenges';
 import * as stamps from './stamps';
+import * as pets from './pets';
 import { fetchForImport } from './importer';
 import { receive } from './inbox';
 import * as invites from './invites';
@@ -310,6 +312,10 @@ const routes: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/api\/stamps$/, stamps.myStamps],
   ['POST', /^\/api\/stamps\/([^/]+)$/, stamps.collectStamp],
   ['DELETE', /^\/api\/stamps\/([^/]+)$/, stamps.returnStamp],
+
+  ['GET', /^\/api\/pet$/, pets.myPet],
+  ['PUT', /^\/api\/pet$/, pets.savePet],
+  ['DELETE', /^\/api\/pet$/, pets.letGo],
 
   ['GET', /^\/api\/challenge$/, challenges.current],
   ['POST', /^\/api\/challenge$/, challenges.start],

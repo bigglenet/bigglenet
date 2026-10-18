@@ -13,6 +13,7 @@ import { deleteFile, fileResponse, putFile } from './files';
 import { HttpError, json, readJson, str } from './http';
 import { notify } from './live';
 import { badgesOf } from './badges';
+import { petOf } from './pets';
 import { stampsOf } from './stamps';
 
 const MAX_BIO = 300;
@@ -131,6 +132,7 @@ export async function profile(req: Request, env: Env, username: string): Promise
     clubs: clubs.results as { id: number; name: string; emoji: string | null }[],
     badges,
     stamps: await stampsOf(env, p.id),
+    pet: await petOf(env, p.id, isMe),
     friendship: status,
     blocked: iBlocked.results.length > 0,
     me: isMe,

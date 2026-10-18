@@ -9,11 +9,13 @@
   import { SERVER } from '../lib/config';
   import { i18n, plural, t } from '../lib/i18n.svelte';
   import { people, squareImage, type Profile } from '../lib/people.svelte';
+  import { MOOD_NAMES, STAGE_NAMES } from '../lib/pet.svelte';
   import { report } from '../lib/report.svelte';
   import { social } from '../lib/social.svelte';
   import { siteHome, siteHost } from '../lib/url';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import Pet from './Pet.svelte';
 
   let { tab, path }: { tab: Tab; path: string } = $props();
 
@@ -264,6 +266,26 @@
         </div>
       {/if}
       {#if error}<p class="error" role="alert">{error}</p>{/if}
+
+      {#if profile.pet}
+        {@const pet = profile.pet}
+        <section>
+          <h2>{profile.me ? t('My pet') : t('{name}’s pet', { name: profile.username })}</h2>
+          <div class="pet">
+            <Pet kind={pet.kind} colour={pet.colour} stage={pet.stage} mood={pet.mood} name={pet.name} size={96} />
+            <div class="text">
+              <strong>{pet.name}</strong>
+              <span class="muted small">{t(STAGE_NAMES[pet.stage])} · {plural(pet.snacks, '{n} snack', '{n} snacks')}</span>
+              <span class="muted small">{t(MOOD_NAMES[pet.mood])}</span>
+            </div>
+          </div>
+        </section>
+      {:else if profile.me}
+        <section>
+          <h2>{t('My pet')}</h2>
+          <p class="muted">{t('Adopt a pet on the new tab page. It grows as you visit sites.')}</p>
+        </section>
+      {/if}
 
       {#if profile.sites.length}
         <section>
@@ -631,6 +653,16 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+  .pet {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .pet .text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .badges {
     display: grid;
