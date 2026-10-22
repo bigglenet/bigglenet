@@ -8,8 +8,10 @@ const where = gate();
 registerServiceWorker();
 
 // Outside the desktop app and the installed phone app, only show how to get Bigglenet.
+// The page and its language (Turkish is downloaded only if it's used) load side by side.
+const language = import('./lib/i18n.svelte').then((m) => m.languageReady);
 if (where === 'ok') {
-  import('./App.svelte').then(({ default: App }) => mount(App, { target }));
+  Promise.all([import('./App.svelte'), language]).then(([{ default: App }]) => mount(App, { target }));
 } else {
-  import('./components/GatePage.svelte').then(({ default: GatePage }) => mount(GatePage, { target, props: { gate: where } }));
+  Promise.all([import('./components/GatePage.svelte'), language]).then(([{ default: GatePage }]) => mount(GatePage, { target, props: { gate: where } }));
 }

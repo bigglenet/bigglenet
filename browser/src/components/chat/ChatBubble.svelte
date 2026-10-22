@@ -286,7 +286,10 @@
     text-align: left;
     text-decoration: underline;
     text-underline-offset: 2px;
-    overflow-wrap: break-word;
+    /* A link is a button, which can't be split across lines like text: long addresses break
+       anywhere, so they stay inside the bubble. */
+    max-width: 100%;
+    overflow-wrap: anywhere;
     cursor: pointer;
   }
   .quote {

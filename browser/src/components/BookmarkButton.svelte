@@ -15,12 +15,21 @@
   let name = $state('');
   let root = $state<HTMLElement>();
   let field = $state<HTMLInputElement>();
+  // On a narrow screen the panel may start off the left edge: moved right that far.
+  let panel = $state<HTMLElement>();
+  let nudge = $state(0);
+  $effect(() => {
+    if (!panel) return;
+    const left = panel.getBoundingClientRect().left;
+    nudge = left < 12 ? 12 - left : 0;
+  });
 
   function show() {
     if (!tab || !bookmarks.canBookmark(tab.url)) return;
     added = !marked;
     const bookmark = marked ?? bookmarks.add(tab.url, tab.title, tab.icon);
     name = bookmark.title;
+    nudge = 0;
     open = bookmark;
     setTimeout(() => field?.select());
   }
@@ -76,6 +85,8 @@
       <!-- Not a form: it sits inside the address bar's. -->
       <div
         class="panel"
+        bind:this={panel}
+        style:transform={nudge ? `translateX(${nudge}px)` : null}
         role="dialog"
         aria-label={t('Bookmark')}
         tabindex="-1"
@@ -86,7 +97,7 @@
           }
         }}
       >
-        <strong>{added ? 'Bookmarked' : t('Edit bookmark')}</strong>
+        <strong>{added ? t('Bookmarked') : t('Edit bookmark')}</strong>
         <label>
           <span>{t('Name')}</span>
           <input bind:this={field} bind:value={name} maxlength="120" />
@@ -129,7 +140,7 @@
     top: calc(100% + 8px);
     right: 0;
     z-index: 40;
-    width: 300px;
+    width: min(300px, calc(100vw - 24px));
     display: flex;
     flex-direction: column;
     gap: 10px;

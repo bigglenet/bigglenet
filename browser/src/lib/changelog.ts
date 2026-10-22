@@ -5,6 +5,16 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.2.1',
+    date: '2026-10-22',
+    changes: [
+      'Bigglenet opens faster, most of all on phones.',
+      'Site of the day, and the feed, clubs, events and board buttons, can be shown or hidden on their own in the new tab page’s Customize.',
+      'The bookmark box stays on the screen on phones.',
+      'Long links in chat stay inside the message.',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-10-18',
     changes: [

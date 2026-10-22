@@ -25,16 +25,18 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname === '/version.json') return;
 
   if (request.mode === 'navigate') {
-    // Network first, so updates show up straight away.
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put('/', copy));
-          return res;
-        })
-        .catch(() => caches.match('/')),
-    );
+    // The saved copy straight away, so opening the app never waits on the network; a fresh copy
+    // is saved alongside for next time. New versions are offered by the app itself
+    // (updates.svelte.ts), which clears the saved copy before reloading.
+    const fresh = fetch(request).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((cache) => cache.put('/', copy));
+      }
+      return res;
+    });
+    event.waitUntil(fresh.catch(() => {}));
+    event.respondWith(caches.match('/').then((hit) => hit || fresh));
     return;
   }
 

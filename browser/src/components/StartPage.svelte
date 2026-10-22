@@ -30,7 +30,7 @@
   type Today = { name: string; tld: 'biggle' | 'b'; title: string | null; about: string | null } | null;
   let today = $state<Today>(null);
   $effect(() => {
-    if (!settings.shown.featured) return;
+    if (!settings.shown.today) return;
     api<{ site: Today }>('GET', '/api/discover/today').then(
       (r) => (today = r.site),
       () => {},
@@ -123,14 +123,18 @@
           </span>
           <Icon name="forward" />
         </button>
-        {#if today}
+      {/if}
+
+      {#if settings.shown.today && today}
           <button class="today" onclick={() => browser.go(tab, siteHome(today!.name, today!.tld))}>
             <span class="today-label">{t('Site of the day')}</span>
             <strong>{siteHost(today.name, today.tld)}</strong>
             {#if today.title}<span class="today-title">{today.title}</span>{/if}
             {#if today.about}<span class="today-about">{today.about}</span>{/if}
           </button>
-        {/if}
+      {/if}
+
+      {#if settings.shown.places}
         <nav class="places" aria-label={t('Community')}>
           <button onclick={() => browser.go(tab, 'biggle://feed')}><Icon name="users" size={17} /> {t('Feed')}</button>
           <button onclick={() => browser.go(tab, 'biggle://clubs')}><Icon name="users" size={17} /> {t('Clubs')}</button>

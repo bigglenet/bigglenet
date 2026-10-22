@@ -1739,6 +1739,12 @@ const tr: Record<string, string> = {
   'Happy': 'Mutlu',
   'Hungry': 'Aç',
   'Lonely': 'Yalnız',
+  'Feed, clubs, events and the board': 'Akış, kulüpler, etkinlikler ve pano',
+  'Bookmarked': 'Yer imlerine eklendi',
+  'Bigglenet opens faster, most of all on phones.': 'Bigglenet artık daha hızlı açılıyor, en çok da telefonlarda.',
+  'Site of the day, and the feed, clubs, events and board buttons, can be shown or hidden on their own in the new tab page’s Customize.': 'Günün sitesi ile akış, kulüpler, etkinlikler ve pano düğmeleri, yeni sekme sayfasındaki Özelleştir’den ayrı ayrı gösterilip gizlenebilir.',
+  'The bookmark box stays on the screen on phones.': 'Yer imi kutusu telefonlarda ekranın dışına taşmıyor.',
+  'Long links in chat stay inside the message.': 'Sohbetteki uzun bağlantılar mesajın içinde kalıyor.',
 };
 
 export default tr;

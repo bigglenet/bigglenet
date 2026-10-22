@@ -23,52 +23,32 @@
   import { perf } from './lib/perf.svelte';
   import { i18n, t } from './lib/i18n.svelte';
   import './lib/theme.svelte';
-  import AdminPage from './components/AdminPage.svelte';
   import CommandPalette, { palette } from './components/CommandPalette.svelte';
   import ContextMenu from './components/ContextMenu.svelte';
   import { menu } from './lib/contextmenu.svelte';
-  import DownloadsPage from './components/DownloadsPage.svelte';
   import PerfOverlay from './components/PerfOverlay.svelte';
-  import ReaderView from './components/ReaderView.svelte';
   import ScreenshotTool, { canScreenshot, shot } from './components/ScreenshotTool.svelte';
-  import AdminPages from './components/AdminPages.svelte';
   import BookmarksBar from './components/BookmarksBar.svelte';
-  import BookmarksPage from './components/BookmarksPage.svelte';
   import FindBar from './components/FindBar.svelte';
   import GuestbookDialog from './components/GuestbookDialog.svelte';
-  import HistoryPage from './components/HistoryPage.svelte';
-  import ProfilePage from './components/ProfilePage.svelte';
   import ScreenPicker from './components/ScreenPicker.svelte';
-  import RequestsPage from './components/RequestsPage.svelte';
-  import SettingsPage from './components/SettingsPage.svelte';
   import AuthScreen from './components/AuthScreen.svelte';
   import ErrorPage from './components/ErrorPage.svelte';
   import ExternalPrompt from './components/ExternalPrompt.svelte';
   import CallToasts from './components/CallToasts.svelte';
   import CallWindow from './components/CallWindow.svelte';
   import ChatApp from './components/chat/ChatApp.svelte';
-  import NoxPage from './components/NoxPage.svelte';
   import PageFrame from './components/PageFrame.svelte';
   import SiteView from './components/SiteView.svelte';
   import SiteWindow from './components/SiteWindow.svelte';
   import WebFrame from './components/WebFrame.svelte';
-  import SiteEditor from './components/SiteEditor.svelte';
-  import BoardPage from './components/community/BoardPage.svelte';
-  import ClubsPage from './components/community/ClubsPage.svelte';
   import CollectionPicker from './components/community/CollectionPicker.svelte';
-  import CollectionsPage from './components/community/CollectionsPage.svelte';
-  import ChallengePage from './components/community/ChallengePage.svelte';
-  import EventsPage from './components/community/EventsPage.svelte';
-  import FeedPage from './components/community/FeedPage.svelte';
-  import InvitePage from './components/community/InvitePage.svelte';
   import { collect } from './lib/collect.svelte';
   import { announcements } from './lib/announcement.svelte';
   import AnnouncementBanner from './components/AnnouncementBanner.svelte';
-  import StatusPage from './components/StatusPage.svelte';
   import ReportDialog from './components/ReportDialog.svelte';
   import { report } from './lib/report.svelte';
   import { invite, inviteCodeIn } from './lib/invite.svelte';
-  import SitesPage from './components/SitesPage.svelte';
   import StartPage from './components/StartPage.svelte';
   import TabBar from './components/TabBar.svelte';
   import TabSwitcher from './components/TabSwitcher.svelte';
@@ -76,6 +56,31 @@
   import UpdateBanner from './components/UpdateBanner.svelte';
   import WindowControls from './components/WindowControls.svelte';
   import Icon from './components/Icon.svelte';
+  import Lazy from './components/Lazy.svelte';
+
+  // Pages loaded when they're first opened (Lazy.svelte), so the app starts faster.
+  const pages = {
+    AdminPages: () => import('./components/AdminPages.svelte'),
+    AdminPage: () => import('./components/AdminPage.svelte'),
+    NoxPage: () => import('./components/NoxPage.svelte'),
+    RequestsPage: () => import('./components/RequestsPage.svelte'),
+    SettingsPage: () => import('./components/SettingsPage.svelte'),
+    BookmarksPage: () => import('./components/BookmarksPage.svelte'),
+    HistoryPage: () => import('./components/HistoryPage.svelte'),
+    DownloadsPage: () => import('./components/DownloadsPage.svelte'),
+    ProfilePage: () => import('./components/ProfilePage.svelte'),
+    FeedPage: () => import('./components/community/FeedPage.svelte'),
+    ClubsPage: () => import('./components/community/ClubsPage.svelte'),
+    BoardPage: () => import('./components/community/BoardPage.svelte'),
+    EventsPage: () => import('./components/community/EventsPage.svelte'),
+    CollectionsPage: () => import('./components/community/CollectionsPage.svelte'),
+    InvitePage: () => import('./components/community/InvitePage.svelte'),
+    StatusPage: () => import('./components/StatusPage.svelte'),
+    ChallengePage: () => import('./components/community/ChallengePage.svelte'),
+    SitesPage: () => import('./components/SitesPage.svelte'),
+    SiteEditor: () => import('./components/SiteEditor.svelte'),
+    ReaderView: () => import('./components/ReaderView.svelte'),
+  };
 
   // ?open=biggle://… opens that address in the first tab; ?private=1 makes the window private.
   const params = new URLSearchParams(location.search);
@@ -380,45 +385,45 @@
           >
             {#if tab.view.type === 'internal'}
               {#if tab.view.page === 'admin' && tab.view.path === 'pages'}
-                <AdminPages {tab} />
+                <Lazy load={pages.AdminPages} {tab} />
               {:else if tab.view.page === 'admin'}
-                <AdminPage {tab} />
+                <Lazy load={pages.AdminPage} {tab} />
               {:else if tab.view.page === 'nox'}
-                <NoxPage {tab} path={tab.view.path} />
+                <Lazy load={pages.NoxPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'requests'}
-                <RequestsPage />
+                <Lazy load={pages.RequestsPage} />
               {:else if tab.view.page === 'settings'}
-                <SettingsPage {tab} path={tab.view.path} />
+                <Lazy load={pages.SettingsPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'bookmarks'}
-                <BookmarksPage {tab} />
+                <Lazy load={pages.BookmarksPage} {tab} />
               {:else if tab.view.page === 'history'}
-                <HistoryPage {tab} />
+                <Lazy load={pages.HistoryPage} {tab} />
               {:else if tab.view.page === 'downloads'}
-                <DownloadsPage />
+                <Lazy load={pages.DownloadsPage} />
               {:else if tab.view.page === 'profile'}
-                <ProfilePage {tab} path={tab.view.path} />
+                <Lazy load={pages.ProfilePage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'chat'}
                 <ChatApp {tab} path={tab.view.path} />
               {:else if tab.view.page === 'feed'}
-                <FeedPage {tab} />
+                <Lazy load={pages.FeedPage} {tab} />
               {:else if tab.view.page === 'clubs'}
-                <ClubsPage {tab} path={tab.view.path} />
+                <Lazy load={pages.ClubsPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'board'}
-                <BoardPage {tab} path={tab.view.path} />
+                <Lazy load={pages.BoardPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'events'}
-                <EventsPage {tab} path={tab.view.path} />
+                <Lazy load={pages.EventsPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'collections'}
-                <CollectionsPage {tab} path={tab.view.path} />
+                <Lazy load={pages.CollectionsPage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'invite'}
-                <InvitePage {tab} path={tab.view.path} />
+                <Lazy load={pages.InvitePage} {tab} path={tab.view.path} />
               {:else if tab.view.page === 'status'}
-                <StatusPage />
+                <Lazy load={pages.StatusPage} />
               {:else if tab.view.page === 'challenge'}
-                <ChallengePage {tab} />
+                <Lazy load={pages.ChallengePage} {tab} />
               {:else if tab.view.page === 'sites' && tab.view.path}
-                <SiteEditor {tab} name={tab.view.path} />
+                <Lazy load={pages.SiteEditor} {tab} name={tab.view.path} />
               {:else if tab.view.page === 'sites'}
-                <SitesPage {tab} />
+                <Lazy load={pages.SitesPage} {tab} />
               {:else}
                 <StartPage {tab} />
               {/if}
@@ -435,7 +440,7 @@
             {:else}
               <div class="asleep"><p>{t('This tab was asleep to save memory.')}</p></div>
             {/if}
-            {#if tab.reader}<ReaderView {tab} />{/if}
+            {#if tab.reader}<Lazy load={pages.ReaderView} {tab} />{/if}
           </section>
         {/each}
         {#if browser.split && browser.inSplit(browser.activeId)}

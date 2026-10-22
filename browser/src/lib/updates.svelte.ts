@@ -95,7 +95,12 @@ class Updates {
     this.installing = true;
     try {
       if (desktop) await desktop.updates.install();
-      else location.reload();
+      else {
+        // The service worker (public/sw.js) opens the saved copy of the app: drop it, so this
+        // reload gets the new version.
+        await globalThis.caches?.open('bigglenet-shell-v3').then((cache) => cache.delete('/')).catch(() => {});
+        location.reload();
+      }
     } catch (e) {
       this.installing = false;
       this.status = 'failed';

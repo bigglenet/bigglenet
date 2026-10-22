@@ -2,14 +2,18 @@
 // t(); the Turkish list maps each English text to its translation. Anything not translated yet
 // shows in English. English is the default; pick Turkish (or "Same as this device") in
 // Settings → Language.
-import tr from './locales/tr';
 import { registerSync, syncChanged } from './sync.svelte';
 
 export type Lang = 'en' | 'tr';
 export type LangChoice = 'system' | Lang;
 
 const KEY = 'biggle:lang';
-const DICTIONARIES: Record<Lang, Record<string, string>> = { en: {}, tr };
+// Turkish is only downloaded for people who use it (see languageReady).
+const DICTIONARIES: Record<Lang, Record<string, string>> = { en: {}, tr: {} };
+
+async function loadLanguage(lang: Lang) {
+  if (lang === 'tr' && !Object.keys(DICTIONARIES.tr).length) DICTIONARIES.tr = (await import('./locales/tr')).default;
+}
 
 function systemLang(): Lang {
   return (navigator.languages ?? [navigator.language]).some((l) => /^tr\b/i.test(l)) ? 'tr' : 'en';
@@ -31,7 +35,8 @@ class I18n {
   /** For dates and numbers. */
   locale = $derived(this.lang === 'tr' ? 'tr-TR' : undefined);
 
-  set(choice: LangChoice) {
+  async set(choice: LangChoice) {
+    await loadLanguage(choice === 'system' ? systemLang() : choice);
     this.choice = choice;
     try {
       // English unless someone picks otherwise.
@@ -44,6 +49,8 @@ class I18n {
 }
 
 export const i18n = new I18n();
+/** Settles once the language in use can be shown; the app waits for it before it starts. */
+export const languageReady = loadLanguage(i18n.lang).catch(() => {});
 
 registerSync('settings', 'language', {
   get: () => i18n.choice,

@@ -5,7 +5,7 @@ import { t } from './i18n.svelte';
 import { registerSync, syncChanged } from './sync.svelte';
 import { START, fromInput } from './url';
 
-export type Section = 'clock' | 'search' | 'shortcuts' | 'pet' | 'featured' | 'latest';
+export type Section = 'clock' | 'search' | 'shortcuts' | 'pet' | 'featured' | 'today' | 'places' | 'latest';
 export type Shortcut = { name: string; url: string };
 export type Backdrop = 'plain' | 'sunset' | 'ocean' | 'forest' | 'candy' | 'lavender';
 
@@ -15,6 +15,8 @@ export const SECTIONS: { id: Section; label: string }[] = [
   { id: 'shortcuts', label: 'My shortcuts' },
   { id: 'pet', label: 'My pet' },
   { id: 'featured', label: 'home.biggle and "Make your own site"' },
+  { id: 'today', label: 'Site of the day' },
+  { id: 'places', label: 'Feed, clubs, events and the board' },
   { id: 'latest', label: 'Latest sites' },
 ];
 
@@ -36,7 +38,7 @@ type Saved = { newTab: string | null; shown: Record<Section, boolean>; shortcuts
 const DEFAULTS: Saved = {
   newTab: null,
   // Every site is in Nox's index (biggle://nox); the start page can show the newest few.
-  shown: { clock: false, search: true, shortcuts: true, pet: true, featured: true, latest: false },
+  shown: { clock: false, search: true, shortcuts: true, pet: true, featured: true, today: true, places: true, latest: false },
   shortcuts: [],
   backdrop: 'plain',
 };
@@ -45,7 +47,8 @@ const DEFAULTS: Saved = {
 function parse(saved: Partial<Saved> | null): Saved {
   return {
     newTab: typeof saved?.newTab === 'string' ? saved.newTab : null,
-    shown: { ...DEFAULTS.shown, ...saved?.shown },
+    // Site of the day and the community links used to come with "featured": they start as it was.
+    shown: { ...DEFAULTS.shown, today: saved?.shown?.featured ?? true, places: saved?.shown?.featured ?? true, ...saved?.shown },
     shortcuts: Array.isArray(saved?.shortcuts) ? saved.shortcuts.filter((s) => s && typeof s.url === 'string') : [],
     backdrop: BACKDROPS.some((b) => b.id === saved?.backdrop) ? saved!.backdrop! : 'plain',
   };
