@@ -31,7 +31,7 @@
     shortcutError = '';
     const url = toAddress(shortcutText);
     if (!url) {
-      shortcutError = t("That isn't a Bigglenet address.");
+      shortcutError = t("That isn't a bnet address.");
       return;
     }
     if (settings.shortcuts.length >= MAX_SHORTCUTS) {

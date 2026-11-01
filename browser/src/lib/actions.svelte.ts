@@ -49,7 +49,7 @@ export function setGameMode(on: boolean) {
 /** Save a .biggle site so it opens without a connection. */
 export async function saveForOffline(tab: Tab) {
   const u = parse(tab.url);
-  if (u?.kind !== 'site') return browser.say(t('Only Bigglenet sites can be saved for offline.'));
+  if (u?.kind !== 'site') return browser.say(t('Only bnet sites can be saved for offline.'));
   const site = siteKey(u);
   browser.say(t('Saving {site} for offline…', { site: u.name }));
   try {

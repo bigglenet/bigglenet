@@ -1,4 +1,4 @@
--- Bigglenet 1.0, part 5: the activity feed, invite links, clubs, the board (board.biggle),
+-- bnet 1.0, part 5: the activity feed, invite links, clubs, the board (board.biggle),
 -- events and collections.
 
 -- What people have been doing, for biggle://feed: your friends' new sites, site updates,

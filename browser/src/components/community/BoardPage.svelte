@@ -142,7 +142,7 @@
     <header class="top">
       <h1>{t('The board')}</h1>
     </header>
-    <p class="muted intro">{t('Old-school forums for everyone on the Bigglenet. Pick a board, start a thread, reply to one.')}</p>
+    <p class="muted intro">{t('Old-school forums for everyone on bnet. Pick a board, start a thread, reply to one.')}</p>
     {#if error}<p class="bad">{error}</p>{/if}
     {#if boards}
       <ul class="list">

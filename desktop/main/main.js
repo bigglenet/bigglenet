@@ -1,4 +1,4 @@
-// The Bigglenet desktop app (Electron). Its window shows the Biggle browser, the same web app as
+// The bnet desktop app (Electron). Its window shows the Biggle browser, the same web app as
 // on phones (browser/), loaded from the app's own files. .biggle and .b pages run inside it just
 // as on the web; sites straight from the internet get real Chromium pages over their tab
 // (sites.js).
@@ -18,6 +18,11 @@ import { activeFiles, watchBoot } from './webbundle.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
+
+// The app is called bnet. Its files keep their old names (the app bundle, the installer and the
+// data folder), so updates and everything saved carry on: only the name people see changed.
+app.setPath('userData', app.getPath('userData'));
+app.setName('bnet');
 
 // Where the browser is served from. On Windows it's the address the older app used, so what it
 // saved carries over (see migrate.js). In development, Vite's server (npm run dev in browser/).
@@ -56,7 +61,7 @@ const windowOf = (event) => BrowserWindow.fromWebContents(event.sender);
 let watchClose = () => {};
 
 if (!setupLinks(getMain)) {
-  // Bigglenet is already open; the link (if any) went to it.
+  // bnet is already open; the link (if any) went to it.
   app.quit();
 } else {
   // Windows shows notifications under this name (the installer's shortcuts use the same one).
@@ -158,7 +163,7 @@ function start() {
   });
   ipcMain.handle('window:close', (event) => windowOf(event)?.close());
   ipcMain.handle('window:is-maximized', (event) => !!windowOf(event)?.isMaximized());
-  // Bigglenet is the app in use: one of its windows (or a site popped out of one) has focus.
+  // bnet is the app in use: one of its windows (or a site popped out of one) has focus.
   ipcMain.handle('window:is-focused', () => !!BrowserWindow.getFocusedWindow());
   ipcMain.handle('window:focus', (event) => {
     const win = windowOf(event);
@@ -213,7 +218,7 @@ function createWindow(open, opts = {}) {
     ...(opts.x !== undefined ? { x: opts.x, y: opts.y } : {}),
     minWidth: 420,
     minHeight: 400,
-    title: 'Bigglenet',
+    title: 'bnet',
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#161616' : '#e7e4dd',
     // The tabs are the title bar: next to the window buttons on macOS, with the browser's own
@@ -261,6 +266,6 @@ function createWindow(open, opts = {}) {
   return main;
 }
 
-// Closing the window quits, on every system (as before), unless Bigglenet runs in the background
+// Closing the window quits, on every system (as before), unless bnet runs in the background
 // (background.js), where closing the last window only hides it.
 app.on('window-all-closed', () => app.quit());

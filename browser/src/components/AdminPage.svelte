@@ -78,7 +78,7 @@
     <h1>{t('Admin')}</h1>
 
     {#if !isAdmin}
-      <p class="muted">{t('This page is only for Bigglenet admins.')}</p>
+      <p class="muted">{t('This page is only for bnet admins.')}</p>
     {:else}
       {#if error}
         <p class="error" role="alert">{error}</p>

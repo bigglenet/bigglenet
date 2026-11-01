@@ -1,5 +1,5 @@
 // Updates: the newest release's latest.json says which file each kind of install updates from,
-// and each file is signed with the release key (minisign.js). Older Bigglenet apps (built with
+// and each file is signed with the release key (minisign.js). Older bnet apps (built with
 // Tauri) read the same feed, so they update to this one the same way.
 import { app, ipcMain, net } from 'electron';
 import { execFile, spawn } from 'node:child_process';

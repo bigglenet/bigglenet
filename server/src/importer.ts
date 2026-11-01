@@ -18,13 +18,13 @@ export async function fetchForImport(req: Request, env: Env): Promise<Response> 
     throw new HttpError(400, 'bad_url', "That isn't a web address.");
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new HttpError(400, 'bad_url', 'Only http and https addresses can be imported.');
-  if (url.hostname === new URL(req.url).hostname) throw new HttpError(400, 'bad_url', "That's already on the Bigglenet.");
+  if (url.hostname === new URL(req.url).hostname) throw new HttpError(400, 'bad_url', "That's already on bnet.");
 
   let res: Response;
   try {
     res = await fetch(url, {
       // Ask the way the person's own browser would, so sites send what they'd send them.
-      headers: { 'User-Agent': req.headers.get('User-Agent') ?? 'Mozilla/5.0 (compatible; Bigglenet)', Accept: '*/*' },
+      headers: { 'User-Agent': req.headers.get('User-Agent') ?? 'Mozilla/5.0 (compatible; bnet)', Accept: '*/*' },
       redirect: 'follow',
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

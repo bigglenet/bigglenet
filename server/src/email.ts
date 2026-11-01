@@ -3,15 +3,15 @@ import { HttpError } from './http';
 import { translate } from './i18n';
 
 const SUBJECTS = {
-  signup: 'Your Bigglenet sign-up code',
-  verify: 'Confirm your email for Bigglenet',
-  reset: 'Reset your Bigglenet password',
+  signup: 'Your bnet sign-up code',
+  verify: 'Confirm your email for bnet',
+  reset: 'Reset your bnet password',
 };
 
 const LINES = {
   signup: 'Here is the code to finish making your Biggle ID.',
   verify: 'Here is the code to confirm this email address for your Biggle ID.',
-  reset: 'Here is the code to reset your Bigglenet password.',
+  reset: 'Here is the code to reset your bnet password.',
 };
 
 /**
@@ -32,7 +32,7 @@ export async function sendCode(env: Env, to: string, code: string, purpose: keyo
   if (env.EMAIL_DEV_MODE === '1') return code;
   const line = translate(LINES[purpose], lang);
   const note = translate("It works for 15 minutes. If you didn't ask for this, you can ignore this email.", lang);
-  const text = `${line}\n\n${code}\n\n${note}\n\nBigglenet`;
+  const text = `${line}\n\n${code}\n\n${note}\n\nbnet`;
   const html = `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:440px;margin:0 auto;padding:32px 24px;color:#222">
   <p style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0 0 16px">b.net</p>
   <p style="margin:0 0 20px;color:#555">${line}</p>
@@ -45,7 +45,7 @@ export async function sendCode(env: Env, to: string, code: string, purpose: keyo
     res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Bigglenet <${env.MAIL_FROM}>`, to: [to], subject: translate(SUBJECTS[purpose], lang), html, text }),
+      body: JSON.stringify({ from: `bnet <${env.MAIL_FROM}>`, to: [to], subject: translate(SUBJECTS[purpose], lang), html, text }),
     });
   } catch {
     res = new Response(null, { status: 599 });

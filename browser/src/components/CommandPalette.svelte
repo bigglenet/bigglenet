@@ -76,7 +76,7 @@
       c('settings', t('Settings'), 'settings', () => go('biggle://settings')),
       c('profile', t('My profile'), 'users', () => go(`biggle://u/${account.user?.username ?? ''}`)),
       c('sites', t('My sites'), 'globe', () => go('biggle://sites')),
-      c('nox', t('Search the Bigglenet with Nox'), 'search', () => go('biggle://nox')),
+      c('nox', t('Search bnet with Nox'), 'search', () => go('biggle://nox')),
       c('chat', t('Chats'), 'chat', () => (social.open = true)),
       c('feed', t('Feed: what friends are up to'), 'users', () => go('biggle://feed')),
       c('clubs', t('Clubs'), 'users', () => go('biggle://clubs')),

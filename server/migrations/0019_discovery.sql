@@ -1,4 +1,4 @@
--- Bigglenet 1.0, part 6: finding sites. Tags, following, webrings, the site of the day and
+-- bnet 1.0, part 6: finding sites. Tags, following, webrings, the site of the day and
 -- searching what pages say (discover.ts).
 
 -- Up to three tags per site, from a fixed list (discover.ts TAGS).

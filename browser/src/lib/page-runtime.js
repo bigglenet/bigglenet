@@ -11,7 +11,7 @@
 
   const post = (msg) => parent.postMessage({ biggle: 1, ...msg }, '*');
 
-  // Addresses starting with "/" mean the top of this site, not of the Bigglenet server.
+  // Addresses starting with "/" mean the top of this site, not of bnet server.
   const serverOrigin = new URL(init.server).origin;
   function inSite(href) {
     try {
@@ -80,12 +80,12 @@
     });
   }
 
-  // For the Bigglenet tags (page-widgets.js, in the same closure, out of the page's reach).
+  // For bnet tags (page-widgets.js, in the same closure, out of the page's reach).
   const pushes = new Set();
   __kit.call = call;
   __kit.post = post;
   __kit.init = init;
-  /** The Bigglenet tags' text in the visitor's language: w('Hi, {name}', { name }). */
+  /** The bnet tags' text in the visitor's language: w('Hi, {name}', { name }). */
   const w = (text, params) => {
     const out = (init.words && init.words[text]) || text;
     return params ? out.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m)) : out;
@@ -710,13 +710,13 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       url: init.url,
       site: init.site,
       params: new URLSearchParams(init.search),
-      /** The visitor's language in Bigglenet: "en" or "tr". */
+      /** The visitor's language in bnet: "en" or "tr". */
       lang: init.lang || 'en',
       me: async () => user && { ...user },
       go: (href) => go(href),
       sites: () => call('sites'),
       copy: (text) => call('copy', String(text)).then(() => {}),
-      // A token this site's own server can check with the Bigglenet (GET /api/identity/verify)
+      // A token this site's own server can check with bnet (GET /api/identity/verify)
       // to know who is signed in. null when nobody is.
       idToken: () => call('idToken'),
       // This site's visit counts: { visits, visitors, today, week }.
@@ -736,7 +736,7 @@ li{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,currentColo
       }),
       // Give the visitor an achievement (shown on their profile). Resolves { new }.
       achieve: (key, title, description) => call('achieve', String(key), String(title ?? ''), description == null ? null : String(description)),
-      // How many people are on the Bigglenet right now.
+      // How many people are on bnet right now.
       online: () => call('online').then((r) => r.online),
     }),
   });

@@ -16,7 +16,7 @@ import { attachContextMenu } from './menus.js';
 import { READER_SCRIPT } from './reader.js';
 
 // All sites share one storage area, kept apart from the browser's own. Private tabs get one that
-// lives only until Bigglenet quits.
+// lives only until bnet quits.
 const PARTITION = 'persist:sites';
 const PRIVATE_PARTITION = 'sites-private';
 
@@ -26,7 +26,7 @@ const ASKABLE = new Set(['media', 'geolocation', 'notifications', 'midi', 'midiS
 
 const isMac = process.platform === 'darwin';
 
-// Bigglenet's own shortcuts still work while a site has the keyboard, by the same names the
+// bnet's own shortcuts still work while a site has the keyboard, by the same names the
 // browser uses (browser/src/lib/keys.ts).
 const SHORTCUTS = new Set([
   't', 'shift+t', 'w', 'l', 'r', '[', ']', '1', '2', '3', '4', '5', '6', '7', '8', '9',

@@ -73,10 +73,10 @@ const WINDOW_RELAY = 2;
  * whose engine only understands "require-corp".
  */
 async function needsOwnWindow(req: Request, url: URL): Promise<number> {
-  if (url.host === new URL(req.url).host) throw new HttpError(400, 'bad_url', "A direct link can't point at the Bigglenet itself.");
+  if (url.host === new URL(req.url).host) throw new HttpError(400, 'bad_url', "A direct link can't point at bnet itself.");
   let res: Response;
   try {
-    res = await fetch(url, { headers: { 'User-Agent': 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)' } });
+    res = await fetch(url, { headers: { 'User-Agent': 'bnet/1 (+https://bigglenet.ethembeldagli.dev)' } });
   } catch {
     throw new HttpError(400, 'unreachable', "Couldn't reach that website.");
   }

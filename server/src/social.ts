@@ -27,7 +27,7 @@ async function findUser(env: Env, username: string): Promise<{ id: number; usern
   const user = await env.DB.prepare('SELECT id, username FROM users WHERE username = ?')
     .bind(username.trim().toLowerCase())
     .first<{ id: number; username: string }>();
-  if (!user) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
+  if (!user) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on bnet.`);
   return user;
 }
 

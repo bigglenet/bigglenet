@@ -28,7 +28,7 @@ export type FileInfo = { type: string; size: number; name: string | null; owner:
 export async function putFile(env: Env, key: string, body: ArrayBuffer | Uint8Array, type: string, about: { name?: string; owner?: number } = {}) {
   const bytes = body instanceof Uint8Array ? body : new Uint8Array(body);
   const used = await env.FILES_DB.prepare('SELECT COALESCE(SUM(size), 0) AS n FROM files WHERE key != ?').bind(key).first<{ n: number }>();
-  if ((used?.n ?? 0) + bytes.byteLength > SPACE) throw new HttpError(507, 'no_space', 'The Bigglenet is out of room for files right now. Try again later.');
+  if ((used?.n ?? 0) + bytes.byteLength > SPACE) throw new HttpError(507, 'no_space', 'The bnet is out of room for files right now. Try again later.');
   const pieces = Math.max(1, Math.ceil(bytes.byteLength / PIECE));
   await env.FILES_DB.prepare('DELETE FROM file_pieces WHERE key = ?').bind(key).run();
   try {
@@ -103,7 +103,7 @@ export async function fileResponse(env: Env, key: string, headers: Record<string
       'Content-Type': file.type,
       'Access-Control-Allow-Origin': '*',
       'X-Content-Type-Options': 'nosniff',
-      // A file can't run as a page on the Bigglenet's own address.
+      // A file can't run as a page on bnet's own address.
       'Content-Security-Policy': "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox",
       ...headers,
     },

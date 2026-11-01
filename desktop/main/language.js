@@ -6,8 +6,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const TR = {
-  'Open Bigglenet': 'Bigglenet’i aç',
-  'Quit Bigglenet': 'Bigglenet’ten çık',
+  'Open bnet': 'bnet’i aç',
+  'Quit bnet': 'bnet’ten çık',
   'Check for Updates…': 'Güncellemeleri Denetle…',
   File: 'Dosya',
   'New Tab': 'Yeni Sekme',

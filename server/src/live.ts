@@ -43,7 +43,7 @@ export function notify(env: Env, userId: number, event: LiveEvent): Promise<void
 
 /**
  * What a push notification says for an event, when it's worth one (a message, a call, a
- * notification), or null. Sent while someone has Bigglenet closed (push.ts).
+ * notification), or null. Sent while someone has bnet closed (push.ts).
  */
 function pushFor(event: LiveEvent): PushMessage | null {
   if (event.type === 'chat-message') {
@@ -83,7 +83,7 @@ function pushFor(event: LiveEvent): PushMessage | null {
       'challenge-won': [`Your site won the weekly challenge “${s(n.data.title)}”!`, 'biggle://challenge'],
     };
     const t = text[n.kind];
-    return t ? { title: 'Bigglenet', body: t[0], href: t[1], tag: `n-${n.kind}`, ours: true } : null;
+    return t ? { title: 'bnet', body: t[0], href: t[1], tag: `n-${n.kind}`, ours: true } : null;
   }
   return null;
 }
@@ -92,7 +92,7 @@ export function isOnline(env: Env, userId: number): Promise<boolean> {
   return liveFor(env, userId).online();
 }
 
-// Friends who are online hear straight away (others see it when they next open Bigglenet). At most
+// Friends who are online hear straight away (others see it when they next open bnet). At most
 // PRESENCE_FANOUT of them, to stay within the Workers limit on calls per request.
 const PRESENCE_FANOUT = 40;
 

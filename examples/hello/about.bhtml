@@ -12,9 +12,9 @@
     <p><a href="./" class="back">← Back to hello</a></p>
     <h1>About hello.biggle</h1>
     <p class="said" hidden>You typed: <strong id="said"></strong></p>
-    <p>This was the very first site on the Bigglenet. It's a little folder of files: two <code>.bhtml</code> pages, a stylesheet, a script and a smiley.</p>
+    <p>This was the very first site on bnet. It's a little folder of files: two <code>.bhtml</code> pages, a stylesheet, a script and a smiley.</p>
 
-    <h2 id="rules">The rules of the Bigglenet</h2>
+    <h2 id="rules">The rules of bnet</h2>
     <ol>
       <li>Pages start with <code>&lt;!bhtml 1&gt;</code>, so they only open in Biggle.</li>
       <li>Scripts, styles and pictures only load from Biggle sites. No trackers, no ads.</li>

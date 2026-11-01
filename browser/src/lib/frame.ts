@@ -1,5 +1,5 @@
 // Answers the things a page can ask the browser for: biggle.storage, biggle.sites(), idToken(),
-// copy(), visits(), rooms, leaderboards, achievements, and the Bigglenet tags (<biggle-guestbook>,
+// copy(), visits(), rooms, leaderboards, achievements, and bnet tags (<biggle-guestbook>,
 // <biggle-comments>, <biggle-poll>, <biggle-like>, <biggle-wall>, <biggle-contact>…). Shared by
 // browser tabs and the site editor's preview. The site is always the browser's own idea of it,
 // never what the page says.
@@ -93,7 +93,7 @@ export function answerCall(scope: PageScope, msg: Record<string, unknown>, reply
         if (method === 'newSites') list = list.sort((a, b) => (b.created ?? 0) - (a.created ?? 0)).slice(0, Math.min(20, Number(args[0]) || 5));
         done({ value: list });
       },
-      () => done({ error: t("Can't reach the Bigglenet right now.") }),
+      () => done({ error: t("Can't reach bnet right now.") }),
     );
   } else if (method === 'visits') {
     ask(api('GET', `${at}/visits`));

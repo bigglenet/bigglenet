@@ -74,12 +74,12 @@
 
 <div class="info" bind:this={root} role="dialog" aria-label={t('About this site')}>
   <header>
-    <strong>{u?.kind === 'site' ? siteHost(u.name, u.tld) : t('A Bigglenet page')}</strong>
+    <strong>{u?.kind === 'site' ? siteHost(u.name, u.tld) : t('A bnet page')}</strong>
     {#if direct}<span class="muted">{t('Straight from {host}', { host: new URL(direct).host })}</span>{/if}
   </header>
-  <p class="line"><Icon name="shield" size={14} /> {direct ? t('Ads and trackers are blocked.') : t('No ads or trackers: Bigglenet sites can’t load them.')}</p>
+  <p class="line"><Icon name="shield" size={14} /> {direct ? t('Ads and trackers are blocked.') : t('No ads or trackers: bnet sites can’t load them.')}</p>
   {#if tab.private}
-    <p class="line private"><Icon name="incognito" size={14} /> {t('Private tab: no history, and what sites keep goes when you close Bigglenet.')}</p>
+    <p class="line private"><Icon name="incognito" size={14} /> {t('Private tab: no history, and what sites keep goes when you close bnet.')}</p>
   {/if}
 
   <div class="row">

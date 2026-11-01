@@ -322,9 +322,9 @@
             <input bind:value={b.board} placeholder="main" aria-label={t('Leaderboard name (your game uses it)')} />
             <p class="hint">{t('Shows the best scores your game sends with biggle.scores.submit("{board}", score).', { board: b.board || 'main' })}</p>
           {:else if b.type === 'online'}
-            <p class="hint">{t('How many people are on the Bigglenet right now.')}</p>
+            <p class="hint">{t('How many people are on bnet right now.')}</p>
           {:else if b.type === 'newsites'}
-            <p class="hint">{t('The five newest sites on the Bigglenet.')}</p>
+            <p class="hint">{t('The five newest sites on bnet.')}</p>
           {:else if b.type === 'embed'}
             <input bind:value={b.url} placeholder={t('friend.biggle/page')} aria-label={t('Page to show')} />
             <p class="hint">{t('Shows another .biggle page inside yours.')}</p>

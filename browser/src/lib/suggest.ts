@@ -1,5 +1,5 @@
 // Address bar suggestions as you type: switch to an open tab, a bookmark, somewhere you've been,
-// a site on the Bigglenet, or a Nox search.
+// a site on bnet, or a Nox search.
 import type { IconName } from '../components/Icon.svelte';
 import type { Bookmark } from './bookmarks.svelte';
 import type { Tab } from './browser.svelte';

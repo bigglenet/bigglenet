@@ -1,5 +1,5 @@
 <script lang="ts">
-  // A new version is ready (restart or reload), or Bigglenet was just updated (what's new).
+  // A new version is ready (restart or reload), or bnet was just updated (what's new).
   import { t } from '../lib/i18n.svelte';
   import { browser } from '../lib/browser.svelte';
   import { overlays } from '../lib/overlays.svelte';
@@ -20,7 +20,7 @@
 <div class="update" role="status">
   {#if ready}
     <span class="text">
-      <strong>{updates.version ? t('Bigglenet {version} is ready', { version: updates.version }) : t('A new Bigglenet is ready')}</strong>
+      <strong>{updates.version ? t('bnet {version} is ready', { version: updates.version }) : t('A new bnet is ready')}</strong>
       <span>{updates.version ? t('Restart to start using it.') : t('Reload to start using it.')}</span>
     </span>
     <button class="go" disabled={updates.installing} onclick={() => updates.apply()}>
@@ -31,7 +31,7 @@
     </button>
   {:else}
     <span class="text">
-      <strong>{t('Bigglenet is now {justUpdated}', { justUpdated: updates.justUpdated })}</strong>
+      <strong>{t('bnet is now {justUpdated}', { justUpdated: updates.justUpdated })}</strong>
       <span>{t('See what’s changed.')}</span>
     </span>
     <button class="go" onclick={whatsNew}>{t('What’s new')}</button>

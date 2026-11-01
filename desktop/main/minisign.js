@@ -1,4 +1,4 @@
-// Checks minisign signatures: the ones on Bigglenet's updates (made with the release signing key,
+// Checks minisign signatures: the ones on bnet's updates (made with the release signing key,
 // see "Release" in the README). The same key signed the older Tauri releases, so their update
 // feed and ours are one and the same.
 import { createHash, createPublicKey, verify } from 'node:crypto';

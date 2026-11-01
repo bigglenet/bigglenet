@@ -37,7 +37,7 @@ export async function receive(message: ForwardableEmailMessage, env: Env) {
   if (!(await confirmByMail(env, from, codes))) {
     console.log('Join email matched nothing', { subject: subject.slice(0, 80), codes });
     message.setReject(
-      `Bigglenet isn't waiting for that code from ${from}. Open Bigglenet, tap "Open my email app" again and send ` +
+      `bnet isn't waiting for that code from ${from}. Open bnet, tap "Open my email app" again and send ` +
         'the email it writes, from the same address you typed in. Codes last 15 minutes.',
     );
   }

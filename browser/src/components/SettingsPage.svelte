@@ -46,7 +46,7 @@
   const releases = $derived(showAll ? CHANGELOG : CHANGELOG.slice(0, 4));
   const date = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { dateStyle: 'medium' });
 
-  // Notifications while Bigglenet is closed: web push on the web, running in the background on desktop.
+  // Notifications while bnet is closed: web push on the web, running in the background on desktop.
   let pushBusy = $state(false);
   let pushError = $state('');
   let background = $state(false);
@@ -191,7 +191,7 @@
         <input type="checkbox" checked={couch.enabled} onchange={(e) => couch.setEnabled(e.currentTarget.checked)} />
         <span>
           <strong>{t('Get around with a game controller')}</strong><br />
-          <span class="muted">{t('The D-pad moves, A presses, B goes back, LB and RB switch tabs. On a game, press Home to use it for Bigglenet.')}</span>
+          <span class="muted">{t('The D-pad moves, A presses, B goes back, LB and RB switch tabs. On a game, press Home to use it for bnet.')}</span>
         </span>
       </label>
     </section>
@@ -218,7 +218,7 @@
         <input type="checkbox" checked={people.shareActivity} onchange={(e) => people.update({ shareActivity: e.currentTarget.checked }).catch(() => {})} />
         <span>
           <strong>{t('Let friends see what I’m up to')}</strong><br />
-          <span class="muted">{t('Like “Playing GTA V”: the site you’re on in Bigglenet. Private tabs are never shared.')}</span>
+          <span class="muted">{t('Like “Playing GTA V”: the site you’re on in bnet. Private tabs are never shared.')}</span>
         </span>
       </label>
       <h3>{t('Blocked people')}</h3>
@@ -242,17 +242,17 @@
         <input type="checkbox" checked={notices.enabled} onchange={(e) => notices.setEnabled(e.currentTarget.checked)} />
         <span>
           <strong>{t('Tell me when someone messages or calls me')}</strong><br />
-          <span class="muted">{t('While Bigglenet is open but you’re using something else.')}</span>
+          <span class="muted">{t('While bnet is open but you’re using something else.')}</span>
         </span>
       </label>
       {#if notices.enabled}
         {#if notices.permission === 'default'}
           <div class="current">
-            <span>{t('Your browser needs to allow Bigglenet’s notifications first.')}</span>
+            <span>{t('Your browser needs to allow bnet’s notifications first.')}</span>
             <button class="primary" onclick={() => notices.allow()}>{t('Allow notifications')}</button>
           </div>
         {:else if notices.permission === 'denied'}
-          <p class="error">{t('Your browser is blocking Bigglenet’s notifications. Allow them in its site settings, then come back.')}</p>
+          <p class="error">{t('Your browser is blocking bnet’s notifications. Allow them in its site settings, then come back.')}</p>
         {:else if notices.permission === 'unsupported'}
           <p class="muted small">{t('This browser can’t show notifications.')}</p>
         {:else}
@@ -263,7 +263,7 @@
         <label class="choice">
           <input type="checkbox" checked={push.on} disabled={pushBusy} onchange={(e) => setPush(e.currentTarget.checked)} />
           <span>
-            <strong>{t('Notify me even when Bigglenet is closed')}</strong><br />
+            <strong>{t('Notify me even when bnet is closed')}</strong><br />
             <span class="muted">{t('Messages, calls and reminders on this device, like other apps.')}</span>
           </span>
         </label>
@@ -273,24 +273,24 @@
           <input type="checkbox" checked={background} onchange={(e) => setBackground(e.currentTarget.checked)} />
           <span>
             <strong>{t('Keep running in the background')}</strong><br />
-            <span class="muted">{isMac ? t('After you close the window, Bigglenet stays in the menu bar and still tells you about messages, calls and reminders.') : t('After you close the window, Bigglenet stays in the system tray and still tells you about messages, calls and reminders.')}</span>
+            <span class="muted">{isMac ? t('After you close the window, bnet stays in the menu bar and still tells you about messages, calls and reminders.') : t('After you close the window, bnet stays in the system tray and still tells you about messages, calls and reminders.')}</span>
           </span>
         </label>
       {/if}
-      <p class="muted small" style:margin-top="12px">{!desktop ? t('New messages are also counted on Bigglenet’s icon.') : isMac ? t('New messages are also counted on Bigglenet’s icon in the Dock.') : t('New messages are also counted on Bigglenet’s icon in the taskbar.')}</p>
+      <p class="muted small" style:margin-top="12px">{!desktop ? t('New messages are also counted on bnet’s icon.') : isMac ? t('New messages are also counted on bnet’s icon in the Dock.') : t('New messages are also counted on bnet’s icon in the taskbar.')}</p>
     </section>
 
     <section id="updates">
       <h2>{t('Updates')}</h2>
       <div class="update-row">
         <div>
-          <strong>{t('Bigglenet {current}', { current: updates.current })}</strong>
+          <strong>{t('bnet {current}', { current: updates.current })}</strong>
           <p class="muted small">
             {#if updates.status === 'ready'}
-              {updates.version ? `Bigglenet ${updates.version} is ready.` : 'A new version is ready.'}
+              {updates.version ? `bnet ${updates.version} is ready.` : 'A new version is ready.'}
               {desktop ? t('Restart to start using it.') : t('Reload to start using it.')}
             {:else if updates.status === 'downloading'}
-              Downloading Bigglenet {updates.version}…
+              Downloading bnet {updates.version}…
             {:else if updates.status === 'failed'}
               {UPDATE_TEXT.failed} {updates.error}
             {:else if UPDATE_TEXT[updates.status]}
@@ -328,7 +328,7 @@
         <button class="ghost" onclick={() => browser.go(tab, 'biggle://requests')}><Icon name="idea" size={15} /> {t('Request a feature')}</button>
         <a class="ghost" href="https://github.com/bigglenet/bigglenet/releases" target="_blank" rel="noreferrer"><Icon name="external" size={14} /> {t('All releases')}</a>
       </div>
-      <p class="muted small">{t('Made by the Bigglenet. Open source, MIT licence.')}</p>
+      <p class="muted small">{t('Made by bnet. Open source, MIT licence.')}</p>
     </section>
 
     <section id="whats-new">

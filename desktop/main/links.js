@@ -1,4 +1,4 @@
-// biggle:// links from other apps, and keeping to one copy of Bigglenet: opening a link while it's
+// biggle:// links from other apps, and keeping to one copy of bnet: opening a link while it's
 // running hands the link to the window that's already open.
 import { app, ipcMain } from 'electron';
 import { execFile } from 'node:child_process';
@@ -50,7 +50,7 @@ export function setupLinks(getMain) {
   return true;
 }
 
-/** Make biggle:// links open Bigglenet. macOS reads it from the app's Info.plist. */
+/** Make biggle:// links open bnet. macOS reads it from the app's Info.plist. */
 function register() {
   if (process.platform === 'win32') {
     app.setAsDefaultProtocolClient(SCHEME);
@@ -62,7 +62,7 @@ function register() {
       mkdirSync(dir, { recursive: true });
       writeFileSync(
         join(dir, 'bigglenet-handler.desktop'),
-        `[Desktop Entry]\nType=Application\nName=Bigglenet\nExec="${exec}" %u\nTerminal=false\nNoDisplay=true\nMimeType=x-scheme-handler/${SCHEME};\n`,
+        `[Desktop Entry]\nType=Application\nName=bnet\nExec="${exec}" %u\nTerminal=false\nNoDisplay=true\nMimeType=x-scheme-handler/${SCHEME};\n`,
       );
       execFile('xdg-mime', ['default', 'bigglenet-handler.desktop', `x-scheme-handler/${SCHEME}`], () => {});
       execFile('update-desktop-database', [dir], () => {});

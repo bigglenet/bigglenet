@@ -1,5 +1,5 @@
 <script lang="ts">
-  // biggle://status: whether the Bigglenet is up, which versions are running, and how fast the
+  // biggle://status: whether bnet is up, which versions are running, and how fast the
   // server is answering (server/src/moderation.ts status).
   import { SERVER } from '../lib/config';
   import { i18n, t } from '../lib/i18n.svelte';
@@ -58,7 +58,7 @@
     <Icon name={health === 'up' ? 'check' : health === 'checking' ? 'clock' : 'alert'} size={22} />
     <div class="grow">
       <strong>
-        {health === 'up' ? t('The Bigglenet is up') : health === 'down' ? t('The Bigglenet isn’t answering') : health === 'offline' ? t('You’re offline') : t('Checking…')}
+        {health === 'up' ? t('The bnet is up') : health === 'down' ? t('The bnet isn’t answering') : health === 'offline' ? t('You’re offline') : t('Checking…')}
       </strong>
       {#if last?.ms != null}<p class="muted small">{t('Answered in {ms} ms', { ms: last.ms })}{last.database != null ? ` · ${t('database {ms} ms', { ms: last.database })}` : ''}</p>{/if}
     </div>

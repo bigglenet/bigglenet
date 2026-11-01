@@ -1,4 +1,4 @@
-// The Bigglenet server. The Biggle browser's own files (the PWA) are static assets;
+// The bnet server. The Biggle browser's own files (the PWA) are static assets;
 // this Worker only runs for /api/* and /site/*.
 //
 //   /api/names, /api/resolve/:name   Biggle DNS

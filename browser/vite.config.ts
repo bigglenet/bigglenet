@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
-// The Bigglenet version (the same for the website and the apps), from the root package.json.
+// The bnet version (the same for the website and the apps), from the root package.json.
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 // Each build gets an id. The web app compares it with /version.json to notice new deploys.

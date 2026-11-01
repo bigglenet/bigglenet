@@ -4,7 +4,7 @@
   // sites you follow (server/src/discover.ts).
   //   nox?q=…            search
   //   nox?tag=games      sites with a tag
-  //   nox/week           This week on the Bigglenet
+  //   nox/week           This week on bnet
   //   nox/webrings[/id]  webrings
   //   nox/following      sites you follow
   import { api } from '../lib/api';
@@ -95,7 +95,7 @@
 <div class="start">
   <div class="inner">
     <h1>Nox</h1>
-    <p class="muted">{t('Search the Bigglenet.')}</p>
+    <p class="muted">{t('Search bnet.')}</p>
 
     <form class="search" onsubmit={submit}>
       <input bind:value={query} placeholder={t('Search sites and what they say, or type an address')} aria-label={t('Search')} spellcheck="false" />
@@ -126,7 +126,7 @@
             {/each}
           </div>
           <div class="index-head">
-            <h2>{tag ? tagName(tag) : t('Every site on the Bigglenet')} · {matched.length}</h2>
+            <h2>{tag ? tagName(tag) : t('Every site on bnet')} · {matched.length}</h2>
             <div class="order" role="radiogroup" aria-label={t('Order')}>
               {#each ORDERS as [value, label] (value)}
                 <button role="radio" aria-checked={order === value} class:on={order === value} onclick={() => (order = value)}>{t(label)}</button>
@@ -163,7 +163,7 @@
           {#if pages === null}
             <p class="muted left">{t('Looking through pages…')}</p>
           {:else if pages.length === 0}
-            <p class="muted left">{matched.length ? t('No pages say that.') : t('Nothing on the Bigglenet matches that.')}</p>
+            <p class="muted left">{matched.length ? t('No pages say that.') : t('Nothing on bnet matches that.')}</p>
           {:else}
             <ol class="pages">
               {#each pages as p (p.site + p.path)}

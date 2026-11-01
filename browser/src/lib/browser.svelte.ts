@@ -122,7 +122,7 @@ class Browser {
   privateWindow = $state(false);
   /** A short note at the bottom: "Pinned tabs stay open…" */
   toast = $state('');
-  /** What happens when Bigglenet starts: a new tab, or the tabs from last time. */
+  /** What happens when bnet starts: a new tab, or the tabs from last time. */
   startup = $state<'newtab' | 'restore'>(localStorage.getItem(STARTUP) === 'restore' ? 'restore' : 'newtab');
   /** Minutes in the background before a tab sleeps; 0 never. */
   sleepAfter = $state(Number(localStorage.getItem(SLEEP_AFTER) ?? 30) || 0);

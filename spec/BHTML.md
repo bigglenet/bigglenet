@@ -1,6 +1,6 @@
 # BHTML 1
 
-BHTML is the page format of the Bigglenet. It is normal HTML, CSS and JavaScript with a few rules that make it a Biggle-only format.
+BHTML is the page format of bnet. It is normal HTML, CSS and JavaScript with a few rules that make it a Biggle-only format.
 
 ## The header
 
@@ -15,7 +15,7 @@ Whitespace and a UTF-8 byte-order mark before it are allowed. The Biggle browser
 ```html
 <!bhtml 1>
 <title>My site</title>
-<h1>Hello, Bigglenet</h1>
+<h1>Hello, bnet</h1>
 <a href="about.bhtml">About me</a>
 ```
 
@@ -27,7 +27,7 @@ biggle://<name>.biggle/<path>?<query>#<fragment>
 
 - `<name>` is 1–63 characters of `a-z`, `0-9` and `-`, and can't start or end with `-`.
 - A path ending in `/` loads `index.bhtml` in that folder.
-- Names are handed out by the Bigglenet admin. Each name points at a normal `https://` folder where the site's files live (bring your own host).
+- Names are handed out by bnet admin. Each name points at a normal `https://` folder where the site's files live (bring your own host).
 
 Relative links (`about.bhtml`, `../img/cat.png`, `?page=2`) work like on the normal web. Links to other Biggle sites use the full `biggle://` address.
 
@@ -60,8 +60,8 @@ These only do something in Biggle. In a normal browser they show their fallback 
 | `<biggle-wall id="main" height="400"></biggle-wall>` | A wall anyone signed in can draw on, live: everyone sees each line as it's drawn. The site's owner can clear it |
 | `<biggle-contact label="Say hi"></biggle-contact>` | A button to message whoever made the site. It arrives in a chat if you're friends, otherwise in their notifications |
 | `<biggle-embed src="biggle://other.biggle/" height="360"></biggle-embed>` | Another Biggle page inside this one. It runs on its own and can't ask the browser for anything; its links open in the browser |
-| `<biggle-online></biggle-online>` | How many people are on the Bigglenet right now |
-| `<biggle-new-sites limit="5"></biggle-new-sites>` | The newest sites on the Bigglenet, as links |
+| `<biggle-online></biggle-online>` | How many people are on bnet right now |
+| `<biggle-new-sites limit="5"></biggle-new-sites>` | The newest sites on bnet, as links |
 | `<biggle-status user="ethem"></biggle-status>` | Someone's status, like 📚 Revising |
 | `<biggle-webring ring="3"></biggle-webring>` | Links to the sites before and after yours in a webring, and a random one. Start or join a ring in Nox → Webrings; the ring's page shows its number |
 | `<biggle-button site="hello.biggle"></biggle-button>` | A site's 88×31 button, linking to it. Every site has one at `/.button`: its own `button.png` (or `.gif`, `.jpg`, `.webp`), or one made from its name |
@@ -79,14 +79,14 @@ Available as `window.biggle` before any of the page's own scripts run.
 biggle.url               // "biggle://hello.biggle/about.bhtml?x=1"
 biggle.site              // "hello"
 biggle.params.get("x")   // "1" (a URLSearchParams of the query)
-biggle.lang              // "en" or "tr": the language the visitor uses Bigglenet in
+biggle.lang              // "en" or "tr": the language the visitor uses bnet in
 await biggle.me()        // { username: "ethem" } or null
-await biggle.sites()     // [{ name: "hello", title: "Hello, Bigglenet" }, …] every .biggle site
+await biggle.sites()     // [{ name: "hello", title: "Hello, bnet" }, …] every .biggle site
 biggle.go("other.bhtml") // navigate (relative, biggle:// or https://)
 await biggle.copy("text") // copy to the clipboard (call it from a click)
 await biggle.idToken()   // proof of who's signed in, for your own server (see below), or null
 await biggle.visits()    // { visits: 120, visitors: 31, today: 4, week: 22 } for this site
-await biggle.online()    // 42: how many people are on the Bigglenet right now
+await biggle.online()    // 42: how many people are on bnet right now
 
 // High scores, per board. submit() keeps each person's best; call it after a game.
 await biggle.scores.submit("main", 1200)  // { top: [{ username, score, at }, …], mine: 1200, rank: 3 }
@@ -108,7 +108,7 @@ Use `biggle.url` instead of `location`. Inside Biggle, `location` doesn't contai
 
 Storage is limited to 1 MB per site. `localStorage` works too (kept per site by the browser, also 1 MB), and `sessionStorage` and cookies last for the visit.
 
-**Knowing who's signed in, on your server.** `biggle.me()` is fine for showing a name, but your server can't trust what the page says. Send it `await biggle.idToken()` instead (for example as `Authorization: Biggle <token>`), and have the server ask the Bigglenet:
+**Knowing who's signed in, on your server.** `biggle.me()` is fine for showing a name, but your server can't trust what the page says. Send it `await biggle.idToken()` instead (for example as `Authorization: Biggle <token>`), and have the server ask bnet:
 
 ```
 GET https://bigglenet.ethembeldagli.dev/api/identity/verify?site=<your site name>&token=<token>
@@ -152,7 +152,7 @@ If you need a library, put a copy of it in your site's files.
 
 ## Hosting a site
 
-The easiest way is the site editor built into Biggle (`biggle://sites`): it hosts your files on the Bigglenet and gives you a name. New sites wait for an admin's approval before anyone else can see them.
+The easiest way is the site editor built into Biggle (`biggle://sites`): it hosts your files on bnet and gives you a name. New sites wait for an admin's approval before anyone else can see them.
 
 To host a site yourself, upload your files to any static host. On Cloudflare Pages, add a `_headers` file so normal browsers show the source instead of rendering it:
 

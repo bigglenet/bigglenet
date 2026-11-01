@@ -144,13 +144,13 @@ export function starterSite(title: string, theme: Theme): EasySite {
     version: 1,
     emoji: '👋',
     title,
-    tagline: t('Welcome to my corner of the Bigglenet.'),
+    tagline: t('Welcome to my corner of bnet.'),
     theme,
     font: 'sans',
     blocks: [
       { id: newId(), type: 'greeting' },
       { id: newId(), type: 'text', text: t('This is my site. I made it with the Biggle site editor.\nChange anything here, add pictures and buttons, and pick a look you like.') },
-      { id: newId(), type: 'button', label: t('Explore the Bigglenet'), url: 'home.biggle' },
+      { id: newId(), type: 'button', label: t('Explore bnet'), url: 'home.biggle' },
       { id: newId(), type: 'counter' },
     ],
   };
@@ -206,9 +206,9 @@ function block(b: Block): string {
     case 'leaderboard':
       return `<biggle-leaderboard board="${esc(b.board.replace(/[^a-z0-9_-]/gi, '') || 'main')}" heading="${esc(b.title)}"></biggle-leaderboard>`;
     case 'online':
-      return `<p class="counter">${esc(t('On the Bigglenet right now: {count}')).replace('{count}', '<strong><biggle-online></biggle-online></strong>')}</p>`;
+      return `<p class="counter">${esc(t('On bnet right now: {count}')).replace('{count}', '<strong><biggle-online></biggle-online></strong>')}</p>`;
     case 'newsites':
-      return `<h2>${esc(t('New on the Bigglenet'))}</h2><biggle-new-sites></biggle-new-sites>`;
+      return `<h2>${esc(t('New on bnet'))}</h2><biggle-new-sites></biggle-new-sites>`;
     case 'embed': {
       const target = linkTarget(b.url);
       return target.startsWith('biggle://') ? `<biggle-embed src="${esc(target)}"></biggle-embed>` : '';
@@ -267,7 +267,7 @@ export function renderIndex(site: EasySite): string {
     </header>
     ${site.blocks.map(block).filter(Boolean).join('\n    ')}
   </main>
-  <footer>Made on the Bigglenet</footer>${
+  <footer>Made on bnet</footer>${
     counter
       ? `
   <script>

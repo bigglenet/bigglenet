@@ -41,7 +41,7 @@ export async function api<T = Record<string, never>>(method: string, path: strin
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(0, 'offline', t("Can't reach the Bigglenet. Check your connection."));
+    throw new ApiError(0, 'offline', t("Can't reach bnet. Check your connection."));
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -63,7 +63,7 @@ export async function apiFetch(method: string, path: string, body?: BodyInit, ty
       body,
     });
   } catch {
-    throw new ApiError(0, 'offline', t("Can't reach the Bigglenet. Check your connection."));
+    throw new ApiError(0, 'offline', t("Can't reach bnet. Check your connection."));
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

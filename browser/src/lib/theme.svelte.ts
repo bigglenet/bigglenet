@@ -8,7 +8,7 @@ const KEY = 'biggle:theme';
 export type Appearance = 'system' | 'light' | 'dark';
 export type ThemeId = 'classic' | 'ocean' | 'forest' | 'sunset' | 'candy' | 'lavender' | 'midnight';
 
-/** Each theme's accent colour, in light and dark. Classic is Bigglenet's cream and charcoal. */
+/** Each theme's accent colour, in light and dark. Classic is bnet's cream and charcoal. */
 export const THEMES: { id: ThemeId; name: string; light: string | null; dark: string | null }[] = [
   { id: 'classic', name: 'Classic', light: null, dark: null },
   { id: 'ocean', name: 'Ocean', light: '#2563eb', dark: '#6ea2ff' },

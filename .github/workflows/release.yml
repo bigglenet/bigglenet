@@ -27,7 +27,7 @@ jobs:
         run: |
           id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
             -f tag_name="$GITHUB_REF_NAME" \
-            -f name="Bigglenet $GITHUB_REF_NAME" \
+            -f name="bnet $GITHUB_REF_NAME" \
             -F body=@.github/release-notes.md \
             -F draft=true \
             --jq .id)

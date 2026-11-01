@@ -1,4 +1,4 @@
-// The server's text in Turkish, for people using the Bigglenet in Turkish. Handlers keep throwing
+// The server's text in Turkish, for people using bnet in Turkish. Handlers keep throwing
 // English; index.ts translates error answers on their way out (the browser sends
 // Accept-Language), and push.ts translates notifications for each device's language.
 // {1}, {2}… stand for the parts that change, like a name or a number.
@@ -11,7 +11,7 @@ const TR: Record<string, string> = {
   'Names are 1–63 characters: a–z, 0–9 and "-", not starting or ending with "-".': 'Adlar 1–63 karakterdir: a–z, 0–9 ve "-"; "-" ile başlayamaz ya da bitemez.',
   "That isn't a URL.": 'Bu bir adres değil.',
   'The URL must start with https://': 'Adres https:// ile başlamalı',
-  "A direct link can't point at the Bigglenet itself.": 'Doğrudan bağlantı Bigglenet’in kendisini gösteremez.',
+  "A direct link can't point at bnet itself.": 'Doğrudan bağlantı bnet’in kendisini gösteremez.',
   "Couldn't reach that website.": 'O web sitesine ulaşılamadı.',
   "{1} doesn't exist.": '{1} yok.',
   "There's nobody called {1}.": '{1} adında kimse yok.',
@@ -32,8 +32,8 @@ const TR: Record<string, string> = {
   'That took too long. Start again.': 'Çok uzun sürdü. Baştan başla.',
   'There is already an account with that email. Try signing in.': 'Bu e-postayla zaten bir hesap var. Giriş yapmayı dene.',
   'Someone just took that username or email. Start again.': 'Biri az önce bu kullanıcı adını ya da e-postayı aldı. Baştan başla.',
-  'No invite code needed any more, but this version of Bigglenet is too old to make accounts. Get the new one at github.com/bigglenet/bigglenet/releases/latest (you can still sign in here).':
-    'Artık davet kodu gerekmiyor ama Bigglenet’in bu sürümü hesap oluşturmak için çok eski. Yenisini github.com/bigglenet/bigglenet/releases/latest adresinden al (burada yine giriş yapabilirsin).',
+  'No invite code needed any more, but this version of bnet is too old to make accounts. Get the new one at github.com/bigglenet/bigglenet/releases/latest (you can still sign in here).':
+    'Artık davet kodu gerekmiyor ama bnet’in bu sürümü hesap oluşturmak için çok eski. Yenisini github.com/bigglenet/bigglenet/releases/latest adresinden al (burada yine giriş yapabilirsin).',
   'This account signs in with Google. Use "Continue with Google".': 'Bu hesap Google ile giriş yapıyor. "Google ile devam et"i kullan.',
   'Wrong username, email or password.': 'Kullanıcı adı, e-posta ya da şifre yanlış.',
   'Another account already uses that email.': 'Başka bir hesap bu e-postayı zaten kullanıyor.',
@@ -45,7 +45,7 @@ const TR: Record<string, string> = {
   'Which moment?': 'Hangi an?',
   'That moment is too long ago to go back to.': 'O an geri dönülemeyecek kadar eski.',
   'Couldn’t make a copy: {1}': 'Kopya oluşturulamadı: {1}',
-  'The Bigglenet is out of room for files right now. Try again later.': 'Bigglenet’te şu anda dosyalar için yer kalmadı. Daha sonra tekrar dene.',
+  'The bnet is out of room for files right now. Try again later.': 'bnet’te şu anda dosyalar için yer kalmadı. Daha sonra tekrar dene.',
   'Couldn’t restore: {1}': 'Geri yüklenemedi: {1}',
   'There’s no board called that.': 'Bu adda bir pano yok.',
   'That thread doesn’t exist any more.': 'Bu konu artık yok.',
@@ -99,7 +99,7 @@ const TR: Record<string, string> = {
   'You can’t join this club.': 'Bu kulübe katılamazsın.',
   'A club can have up to {1} members.': 'Bir kulübün en fazla {1} üyesi olabilir.',
   'Only members can invite people.': 'Yalnızca üyeler davet edebilir.',
-  "There's nobody called {1} on the Bigglenet.": 'Bigglenet’te {1} adında kimse yok.',
+  "There's nobody called {1} on bnet.": 'bnet’te {1} adında kimse yok.',
   "You can only invite friends, and {1} isn't one yet.": 'Yalnızca arkadaşlarını davet edebilirsin ve {1} henüz arkadaşın değil.',
   'Only the club’s owner can take people out.': 'Kulüpten kişileri yalnızca sahibi çıkarabilir.',
   "{1} isn't in this club.": '{1} bu kulüpte değil.',
@@ -144,7 +144,7 @@ const TR: Record<string, string> = {
   'Importing too fast. Wait a minute and try again.': 'Çok hızlı içe aktarıyorsun. Bir dakika bekleyip tekrar dene.',
   "That isn't a web address.": 'Bu bir web adresi değil.',
   'Only http and https addresses can be imported.': 'Yalnızca http ve https adresleri içe aktarılabilir.',
-  "That's already on the Bigglenet.": 'Bu zaten Bigglenet’te.',
+  "That's already on bnet.": 'Bu zaten bnet’te.',
   "Couldn't reach {1}.": '{1} adresine ulaşılamadı.',
   "It's over 1 MB.": '1 MB’tan büyük.',
   'Something went wrong on the Biggle server.': 'Biggle sunucusunda bir şeyler ters gitti.',
@@ -171,8 +171,8 @@ const TR: Record<string, string> = {
   'Use a PNG, JPEG or WebP picture.': 'PNG, JPEG ya da WebP bir resim kullan.',
   'That picture is too big.': 'Bu resim çok büyük.',
   "You can't block yourself.": 'Kendini engelleyemezsin.',
-  "That isn't a Bigglenet address.": 'Bu bir Bigglenet adresi değil.',
-  'Notifications while Bigglenet is closed aren’t set up on this server.': 'Bigglenet kapalıyken bildirimler bu sunucuda kurulmadı.',
+  "That isn't a bnet address.": 'Bu bir bnet adresi değil.',
+  'Notifications while bnet is closed aren’t set up on this server.': 'bnet kapalıyken bildirimler bu sunucuda kurulmadı.',
   'That isn’t a push subscription.': 'Bu bir bildirim aboneliği değil.',
   'That request is gone.': 'Bu istek artık yok.',
   'Describe your idea in 3 to 120 characters.': 'Fikrini 3 ile 120 karakter arasında anlat.',
@@ -242,7 +242,7 @@ const TR: Record<string, string> = {
   'You can only add sites you run.': 'Yalnızca yönettiğin siteleri ekleyebilirsin.',
   'A webring can have up to {1} sites.': 'Bir web halkasında en fazla {1} site olabilir.',
   'Only the webring’s owner or the site’s owner can do that.': 'Bunu yalnızca web halkasının ya da sitenin sahibi yapabilir.',
-  // Notifications sent while Bigglenet is closed (live.ts pushFor).
+  // Notifications sent while bnet is closed (live.ts pushFor).
   'Sent a time capsule': 'Bir zaman kapsülü gönderdi',
   'Sent a voice message': 'Sesli mesaj gönderdi',
   'Sent a photo': 'Fotoğraf gönderdi',
@@ -262,23 +262,23 @@ const TR: Record<string, string> = {
   '{1} commented on your site': '{1} sitene yorum yaptı',
   '{1} added you as an editor of a site': '{1} seni bir siteye düzenleyici olarak ekledi',
   // Emails with codes (email.ts).
-  'Your Bigglenet sign-up code': 'Bigglenet kayıt kodun',
-  'Confirm your email for Bigglenet': 'Bigglenet için e-postanı doğrula',
-  'Reset your Bigglenet password': 'Bigglenet şifreni sıfırla',
+  'Your bnet sign-up code': 'bnet kayıt kodun',
+  'Confirm your email for bnet': 'bnet için e-postanı doğrula',
+  'Reset your bnet password': 'bnet şifreni sıfırla',
   'Here is the code to finish making your Biggle ID.': 'Biggle Kimliğini oluşturmayı bitirmek için kodun burada.',
   'Here is the code to confirm this email address for your Biggle ID.': 'Bu e-posta adresini Biggle Kimliğin için doğrulama kodun burada.',
-  'Here is the code to reset your Bigglenet password.': 'Bigglenet şifreni sıfırlama kodun burada.',
+  'Here is the code to reset your bnet password.': 'bnet şifreni sıfırlama kodun burada.',
   "It works for 15 minutes. If you didn't ask for this, you can ignore this email.": 'Kod 15 dakika geçerli. Bunu sen istemediysen bu e-postayı görmezden gelebilirsin.',
   // Pages opened in the person's own browser (google.ts, passkeys.ts).
   'That sign-in link has expired': 'Bu giriş bağlantısının süresi doldu',
-  'Go back to Bigglenet and try again.': 'Bigglenet’e dön ve tekrar dene.',
+  'Go back to bnet and try again.': 'bnet’e dön ve tekrar dene.',
   "Couldn't sign you in": 'Giriş yapılamadı',
   'Google sign-in was cancelled.': 'Google ile giriş iptal edildi.',
   'Google said no.': 'Google izin vermedi.',
   "Google didn't say who you are.": 'Google kim olduğunu söylemedi.',
   "You're signed in": 'Giriş yaptın',
   'You’re signed in': 'Giriş yaptın',
-  'Go back to Bigglenet. You can close this tab.': 'Bigglenet’e dön. Bu sekmeyi kapatabilirsin.',
+  'Go back to bnet. You can close this tab.': 'bnet’e dön. Bu sekmeyi kapatabilirsin.',
   'Passkey': 'Geçiş anahtarı',
   'One moment…': 'Bir saniye…',
   'Use my passkey': 'Geçiş anahtarımı kullan',
@@ -286,7 +286,7 @@ const TR: Record<string, string> = {
   'That didn’t work': 'Olmadı',
   'That has expired': 'Süresi doldu',
   'Passkey added': 'Geçiş anahtarı eklendi',
-  'It was cancelled. Try again, or go back to Bigglenet.': 'İptal edildi. Tekrar dene ya da Bigglenet’e dön.',
+  'It was cancelled. Try again, or go back to bnet.': 'İptal edildi. Tekrar dene ya da bnet’e dön.',
   'Try again.': 'Tekrar dene.',
   'Sign in with a passkey': 'Geçiş anahtarıyla giriş yap',
   'Add a passkey': 'Geçiş anahtarı ekle',
@@ -310,11 +310,11 @@ const TR: Record<string, string> = {
   'Your site won the weekly challenge “{1}”!': 'Siten haftalık yarışmayı kazandı: “{1}”!',
 };
 
-/** The languages the Bigglenet speaks; English unless the request asks for Turkish first. */
+/** The languages bnet speaks; English unless the request asks for Turkish first. */
 export const langOf = (req: Request): 'en' | 'tr' => (/^\s*tr\b/i.test(req.headers.get('Accept-Language') ?? '') ? 'tr' : 'en');
 
 // Each English message as a pattern, with the changing parts caught. Longest first, so "nobody
-// called {1} on the Bigglenet" wins over "nobody called {1}".
+// called {1} on bnet" wins over "nobody called {1}".
 let patterns: { re: RegExp; tr: string }[] | null = null;
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

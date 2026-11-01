@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Telling admins about something that shouldn't be on the Bigglenet.
+  // Telling admins about something that shouldn't be on bnet.
   import { api, errorText } from '../lib/api';
   import { browser } from '../lib/browser.svelte';
   import { dialog } from '../lib/dialog';

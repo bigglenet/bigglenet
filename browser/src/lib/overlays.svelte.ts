@@ -1,4 +1,4 @@
-// Bigglenet menus and dialogs that sit over the page area. A site view (a site's own web view laid
+// bnet menus and dialogs that sit over the page area. A site view (a site's own web view laid
 // over its tab, see SiteView.svelte) is drawn above everything in the Biggle window, so it steps
 // aside while one of these is showing.
 import { untrack } from 'svelte';

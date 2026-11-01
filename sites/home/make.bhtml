@@ -22,7 +22,7 @@
 
   <main class="guide">
     <p class="eyebrow">Make a site</p>
-    <h1>Your own corner of the Bigglenet.</h1>
+    <h1>Your own corner of bnet.</h1>
     <p class="lede">Two ways to do it. Most people start with the easy one.</p>
 
     <section class="easy-way">
@@ -45,7 +45,7 @@
 &lt;link rel="stylesheet" href="style.css"&gt;
 
 &lt;h1&gt;Hello, &lt;biggle-me&gt;guest&lt;/biggle-me&gt;!&lt;/h1&gt;
-&lt;p&gt;Welcome to my corner of the Bigglenet.&lt;/p&gt;
+&lt;p&gt;Welcome to my corner of bnet.&lt;/p&gt;
 &lt;a href="about.bhtml"&gt;About me&lt;/a&gt;</code></pre>
           <button class="copy" data-copy="starter" type="button">Copy</button>
         </div>
@@ -61,7 +61,7 @@
       </li>
       <li>
         <h2>Get a name</h2>
-        <p>Ask a Bigglenet admin to point a name like <code>yourname.biggle</code> at your site's address. Once they do, anyone can type it into the Biggle address bar. (Sites made in the site editor get their name straight away.)</p>
+        <p>Ask a bnet admin to point a name like <code>yourname.biggle</code> at your site's address. Once they do, anyone can type it into the Biggle address bar. (Sites made in the site editor get their name straight away.)</p>
       </li>
     </ol>
 
@@ -80,7 +80,7 @@
         <dt><code>await biggle.copy(text)</code></dt>
         <dd>Copy to the clipboard. The Copy buttons on this page use it.</dd>
         <dt><code>await biggle.sites()</code></dt>
-        <dd>Every site on the Bigglenet. This homepage uses it for its directory.</dd>
+        <dd>Every site on bnet. This homepage uses it for its directory.</dd>
       </dl>
       <p><a href="https://github.com/bigglenet/bigglenet/blob/main/spec/BHTML.md">Read the full BHTML spec</a></p>
     </section>
@@ -88,7 +88,7 @@
 
   <footer>
     <span class="mark small" aria-hidden="true"></span>
-    <span>home.biggle, made on the Bigglenet.</span>
+    <span>home.biggle, made on bnet.</span>
   </footer>
 </body>
 </html>

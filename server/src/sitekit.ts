@@ -1,4 +1,4 @@
-// What pages can use from the Bigglenet: comments, polls, likes, game leaderboards and
+// What pages can use from bnet: comments, polls, likes, game leaderboards and
 // achievements, a contact form, the shared drawing wall, and (for whoever runs the site) stats.
 // Pages ask through the browser (page-runtime.js → frame.ts), which always says which site.
 //
@@ -10,7 +10,7 @@
 //   /api/sites/:key/contact          POST { body }
 //   /api/sites/:key/walls/:wall      GET, POST { color, width, points }, DELETE (clear)
 //   /api/sites/:key/stats            GET, for its owner, editors and admins
-//   /api/online                      how many people are on the Bigglenet now
+//   /api/online                      how many people are on bnet now
 import { requireUser, type User } from './auth';
 import { areFriends, directChat, postMessage } from './chat';
 import { HttpError, json, readJson, siteAddress, str } from './http';

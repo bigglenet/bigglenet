@@ -20,13 +20,13 @@
         };
       case 'server_unreachable':
         return {
-          title: t("Can't reach the Bigglenet"),
+          title: t("Can't reach bnet"),
           body: t("The Biggle server isn't responding. Check your connection and try again."),
         };
       case 'no_such_name':
         return {
           title: t("{host} doesn't exist", { host }),
-          body: t('Nobody has this name yet. Names are handed out by the Bigglenet admin.'),
+          body: t('Nobody has this name yet. Names are handed out by bnet admin.'),
         };
       case 'host_unreachable':
         return {
@@ -35,7 +35,7 @@
         };
       case 'bad_redirect':
         return {
-          title: t('{host} tried to send you off the Bigglenet', { host }),
+          title: t('{host} tried to send you off bnet', { host }),
           body: t('The site redirected to an address outside itself, so Biggle stopped.'),
         };
       case 'not_found':

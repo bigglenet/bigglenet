@@ -7,7 +7,7 @@
   const TEXT = {
     en: {
       title: 'Games',
-      signin: 'Sign in to Bigglenet to play.',
+      signin: 'Sign in to bnet to play.',
       start: 'Start a new game',
       invite: 'Send this link to a friend to play together:',
       copy: 'Copy link',
@@ -51,7 +51,7 @@
     },
     tr: {
       title: 'Oyunlar',
-      signin: 'Oynamak için Bigglenet’e giriş yap.',
+      signin: 'Oynamak için bnet’e giriş yap.',
       start: 'Yeni bir oyun başlat',
       invite: 'Birlikte oynamak için bu bağlantıyı bir arkadaşına gönder:',
       copy: 'Bağlantıyı kopyala',

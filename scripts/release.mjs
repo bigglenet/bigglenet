@@ -1,4 +1,4 @@
-// Puts out a new Bigglenet version everywhere at once: the website and phone app, and the
+// Puts out a new bnet version everywhere at once: the website and phone app, and the
 // desktop apps. Bumps the version, deploys, then commits and tags it. The tag makes GitHub
 // build the desktop apps, and installed apps offer the update by themselves.
 //
@@ -32,7 +32,7 @@ function edit(path, change) {
 const json = (s) => s.replace(`"version": "${current}"`, `"version": "${next}"`);
 edit('desktop/package.json', json);
 edit('package.json', json);
-edit('README.md', (s) => s.replace(/Bigglenet - v[\d.]+/, `Bigglenet - v${next}`));
+edit('README.md', (s) => s.replace(/bnet - v[\d.]+/, `bnet - v${next}`));
 run('npm install --package-lock-only --ignore-scripts --no-audit --no-fund');
 
 console.log(`\nDeploying ${next}…`);
@@ -41,8 +41,8 @@ try {
 } catch {
   fail('The deploy failed, so nothing was committed. Undo the version bump with: git checkout .');
 }
-run(`git commit -qam "Bigglenet ${next}"`);
+run(`git commit -qam "bnet ${next}"`);
 run(`git tag v${next}`);
 run('git push -q origin main');
 run(`git push -q origin v${next}`);
-console.log(`\nBigglenet ${next} is live on the web. The desktop apps build on GitHub now (about 15 minutes),\nthen installed apps offer the update.`);
+console.log(`\nbnet ${next} is live on the web. The desktop apps build on GitHub now (about 15 minutes),\nthen installed apps offer the update.`);

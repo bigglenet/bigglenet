@@ -106,7 +106,7 @@
           <span class="home-mark"><span class="logo-mark" aria-hidden="true"></span></span>
           <span class="home-text">
             <strong>{t('home.biggle')}</strong>
-            <span>{t("New here? Start with the Bigglenet's homepage.")}</span>
+            <span>{t("New here? Start with bnet's homepage.")}</span>
           </span>
           <Icon name="forward" />
         </button>

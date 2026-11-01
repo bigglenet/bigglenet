@@ -158,7 +158,7 @@
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Bigglenet//Events//EN',
+      'PRODID:-//bnet//Events//EN',
       'BEGIN:VEVENT',
       `UID:event-${ev.id}@bigglenet`,
       `DTSTAMP:${stamp(Date.now() / 1000)}`,
@@ -190,7 +190,7 @@
     friends: 'My friends',
     club: 'The club’s members',
     invited: 'Only people I invite',
-    everyone: 'Everyone on the Bigglenet',
+    everyone: 'Everyone on bnet',
   };
 </script>
 

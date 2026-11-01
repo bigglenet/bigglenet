@@ -1,4 +1,4 @@
-// Biggle ID: who's signed in to this browser. You need one to use Bigglenet at all, with a
+// Biggle ID: who's signed in to this browser. You need one to use bnet at all, with a
 // confirmed email address or Google.
 import { api, onSessionExpired, setToken } from './api';
 import { SERVER } from './config';

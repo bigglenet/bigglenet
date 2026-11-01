@@ -1,4 +1,4 @@
-# The Bigglenet
+# The bnet
 
 A small alternative web for me and my friends. Sites are written in **BHTML**, live at **`name.biggle`** addresses, are reached over **`biggle://`**, and only open in the **Biggle browser** (a Tauri desktop app on Mac and a PWA on phones).
 

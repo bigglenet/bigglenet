@@ -303,7 +303,7 @@ export async function signupOld(): Promise<Response> {
   throw new HttpError(
     410,
     'update_needed',
-    "No invite code needed any more, but this version of Bigglenet is too old to make accounts. Get the new one at github.com/bigglenet/bigglenet/releases/latest (you can still sign in here).",
+    "No invite code needed any more, but this version of bnet is too old to make accounts. Get the new one at github.com/bigglenet/bigglenet/releases/latest (you can still sign in here).",
   );
 }
 

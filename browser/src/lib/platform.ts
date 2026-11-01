@@ -13,9 +13,9 @@ type Desktop = {
     close(): Promise<void>;
     isMaximized(): Promise<boolean>;
     onMaximizedChange(callback: (maximized: boolean) => void): Stop;
-    /** Whether Bigglenet's window is the one in use (a site view in it counts). */
+    /** Whether bnet's window is the one in use (a site view in it counts). */
     isFocused(): Promise<boolean>;
-    /** Bring Bigglenet's window to the front. */
+    /** Bring bnet's window to the front. */
     focus(): Promise<void>;
     fullscreen(on: boolean): Promise<void>;
     onFullscreenChange(callback: (on: boolean) => void): Stop;

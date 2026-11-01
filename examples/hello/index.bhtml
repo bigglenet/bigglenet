@@ -1,7 +1,7 @@
 <!bhtml 1>
 <html lang="en">
 <head>
-  <title>Hello, Bigglenet</title>
+  <title>Hello, bnet</title>
   <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="style.css">
   <script src="hello.js" defer></script>
@@ -12,7 +12,7 @@
   <header class="hero">
     <img class="face" src="logo.svg" alt="" width="96" height="96">
     <h1><span class="wave" aria-hidden="true">👋</span> Hello, <biggle-me>stranger</biggle-me>!</h1>
-    <p>This is <strong>hello.biggle</strong>, the first site on the Bigglenet. Poke at the cards below: each one shows off something Biggle pages can do that normal web pages can't.</p>
+    <p>This is <strong>hello.biggle</strong>, the first site on bnet. Poke at the cards below: each one shows off something Biggle pages can do that normal web pages can't.</p>
   </header>
 
   <main class="grid">
@@ -37,7 +37,7 @@
 
     <section class="card teleport">
       <h2>Teleport</h2>
-      <p>Jump to a random site on the Bigglenet.</p>
+      <p>Jump to a random site on bnet.</p>
       <button id="teleport" type="button" class="loud">🎲 Take me somewhere</button>
       <p class="small" id="site-count"></p>
     </section>
@@ -63,7 +63,7 @@
       <h2>Look around</h2>
       <ul>
         <li><a href="about.bhtml">About this site</a></li>
-        <li><a href="biggle://home.biggle/">The Bigglenet homepage</a></li>
+        <li><a href="biggle://home.biggle/">The bnet homepage</a></li>
         <li><a href="biggle://home.biggle/make.bhtml">Make your own site</a></li>
       </ul>
     </section>

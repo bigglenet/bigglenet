@@ -1,4 +1,4 @@
-// Web push: notifications on phones (and browsers that allow it) while Bigglenet is closed.
+// Web push: notifications on phones (and browsers that allow it) while bnet is closed.
 // Someone's Live object (live.ts) sends one when something arrives and they have no connection
 // open. Messages are encrypted for the device (RFC 8291) and signed with our VAPID key (RFC 8292).
 //
@@ -33,7 +33,7 @@ export async function pushKey(_req: Request, env: Env): Promise<Response> {
 
 export async function subscribe(req: Request, env: Env): Promise<Response> {
   const me = await requireUser(req, env);
-  if (!configured(env)) throw new HttpError(503, 'no_push', 'Notifications while Bigglenet is closed aren’t set up on this server.');
+  if (!configured(env)) throw new HttpError(503, 'no_push', 'Notifications while bnet is closed aren’t set up on this server.');
   const input = await readJson(req);
   const endpoint = str(input.endpoint);
   const keys = (input.keys ?? {}) as Record<string, unknown>;
@@ -63,7 +63,7 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
 
 // --- Sending ---
 
-/** `ours`: the body is the Bigglenet's own text (not someone's message), so it's translated for each device. */
+/** `ours`: the body is bnet's own text (not someone's message), so it's translated for each device. */
 export type PushMessage = { title: string; body: string; tag?: string; href?: string; chatId?: number; ours?: boolean };
 type Subscription = { endpoint: string; p256dh: string; auth: string; lang: string };
 

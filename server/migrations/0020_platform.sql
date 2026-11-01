@@ -1,4 +1,4 @@
--- Bigglenet 1.0, part 7: the platform. Reports and announcements, two-factor sign-in, passkeys,
+-- bnet 1.0, part 7: the platform. Reports and announcements, two-factor sign-in, passkeys,
 -- push notifications, settings sync and nightly restore points.
 
 -- Reports: someone flagged a site, message, post, comment, note or person for admins.
@@ -78,7 +78,7 @@ CREATE TABLE passkey_requests (
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
--- Web push: notifications on phones (and browsers that allow it) while Bigglenet is closed.
+-- Web push: notifications on phones (and browsers that allow it) while bnet is closed.
 CREATE TABLE push_subscriptions (
   endpoint TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

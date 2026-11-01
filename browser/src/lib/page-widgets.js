@@ -1,4 +1,4 @@
-// The Bigglenet's own tags for pages, and biggle.room(). Runs in every BHTML page right after
+// The bnet's own tags for pages, and biggle.room(). Runs in every BHTML page right after
 // page-runtime.js, in the same closure (loader.ts), so it can ask the browser things through
 // __kit without the page being able to. Each tag draws itself in a shadow root, in the page's
 // colours (it picks up --accent), and can be styled with ::part().
@@ -417,7 +417,7 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
     });
   });
 
-  // --- <biggle-online>: how many people are on the Bigglenet right now ---
+  // --- <biggle-online>: how many people are on bnet right now ---
 
   tag('biggle-online', `:host{display:inline;margin:0}`, (host, root) => {
     const n = el('span', { part: 'count', textContent: '…' });
@@ -427,7 +427,7 @@ tr.me td{font-weight:700;color:var(--accent,#2563eb)}.mine{margin:8px 0 0;font-s
     setInterval(load, 60_000);
   });
 
-  // --- <biggle-new-sites limit="5">: the newest sites on the Bigglenet ---
+  // --- <biggle-new-sites limit="5">: the newest sites on bnet ---
 
   tag(
     'biggle-new-sites',

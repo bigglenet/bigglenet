@@ -6,7 +6,7 @@
   // them that can pop them out into a window, or open them in the computer's web browser.
   //
   // The page is drawn above everything in the Biggle window, so it hides when this tab isn't
-  // showing and while a Bigglenet menu or dialog is open (see overlays.svelte.ts).
+  // showing and while a bnet menu or dialog is open (see overlays.svelte.ts).
   import { untrack } from 'svelte';
   import { browser, type Tab } from '../lib/browser.svelte';
   import { provideFinder } from '../lib/find.svelte';

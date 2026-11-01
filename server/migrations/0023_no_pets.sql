@@ -1,2 +1,2 @@
--- Bigglenet 1.2.2: pets are gone.
+-- bnet 1.2.2: pets are gone.
 DROP TABLE IF EXISTS pets;

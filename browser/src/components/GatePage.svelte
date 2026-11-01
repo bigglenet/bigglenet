@@ -59,22 +59,22 @@
     <span class="logo-word" aria-hidden="true"></span>
 
     {#if gate === 'desktop'}
-      <h1>{t('Bigglenet lives in its own app')}</h1>
-      <p>{t("On a computer, the Bigglenet only opens in the Biggle desktop app. It's free and tiny.")}</p>
+      <h1>{t('bnet lives in its own app')}</h1>
+      <p>{t("On a computer, bnet only opens in the Biggle desktop app. It's free and tiny.")}</p>
       <div class="actions">
         <a class="primary" href={RELEASES}>{t('Download for {os}', { os })}</a>
-        <a class="secondary" href="biggle://home.biggle/" onclick={openApp}>{t('I have it, open Bigglenet')}</a>
+        <a class="secondary" href="biggle://home.biggle/" onclick={openApp}>{t('I have it, open bnet')}</a>
       </div>
       <p class="small">{t('Also for {and}. On a phone? Open this page there and add it to your home screen.', { and: os === 'Mac' ? t('Windows and Linux') : os === 'Windows' ? t('Mac and Linux') : t('Mac and Windows') })}</p>
     {:else if installed}
       <h1>{t("You're all set")}</h1>
-      <p><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>Bigglenet</strong>{/snippet}</Trans></p>
+      <p><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>bnet</strong>{/snippet}</Trans></p>
     {:else}
-      <h1>{t('Add Bigglenet to your home screen')}</h1>
-      <p>{t('On phones, the Bigglenet works as an app on your home screen, not in a browser tab.')}</p>
+      <h1>{t('Add bnet to your home screen')}</h1>
+      <p>{t('On phones, bnet works as an app on your home screen, not in a browser tab.')}</p>
       {#if installPrompt}
         <div class="actions">
-          <button class="primary" onclick={install}>{t('Install Bigglenet')}</button>
+          <button class="primary" onclick={install}>{t('Install bnet')}</button>
         </div>
       {:else}
         <ol>
@@ -97,7 +97,7 @@
               </Trans>
             </li>
           {/if}
-          <li><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>Bigglenet</strong>{/snippet}</Trans></li>
+          <li><Trans text={t('Open {app} from your home screen.')}>{#snippet app()}<strong>bnet</strong>{/snippet}</Trans></li>
         </ol>
       {/if}
     {/if}

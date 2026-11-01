@@ -129,6 +129,6 @@ export function describe(n: Notification): { text: string; href: string | null; 
     case 'challenge-won':
       return { text: t('{site} won the weekly challenge “{title}”!', { site: siteHost(site), title: s(d.title) }), href: 'biggle://challenge', icon: 'star' };
     default:
-      return { text: t('Something happened on the Bigglenet.'), href: null, icon: 'bell' };
+      return { text: t('Something happened on bnet.'), href: null, icon: 'bell' };
   }
 }

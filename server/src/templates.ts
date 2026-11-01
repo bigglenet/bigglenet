@@ -54,7 +54,7 @@ function page(title: string, about: string): Record<string, string> {
 
     <nav class="links">
       <a href="about.bhtml">More about me</a>
-      <a href="biggle://home.biggle/">Explore the Bigglenet</a>
+      <a href="biggle://home.biggle/">Explore bnet</a>
     </nav>
 
     <p class="hello">Hi <biggle-me>there</biggle-me>, thanks for stopping by.</p>
@@ -167,11 +167,11 @@ function blog(title: string, about: string): Record<string, string> {
       <a href="first-post.bhtml">
         <time>Today</time>
         <h2>My first post</h2>
-        <p>Hello, Bigglenet! This is where it all begins.</p>
+        <p>Hello, bnet! This is where it all begins.</p>
       </a>
     </article>
   </main>
-  <footer>Made on the Bigglenet</footer>
+  <footer>Made on bnet</footer>
 </body>
 </html>
 `,
@@ -188,7 +188,7 @@ function blog(title: string, about: string): Record<string, string> {
   <main class="post">
     <time>Today</time>
     <h1>My first post</h1>
-    <p>Hello, <biggle-me>reader</biggle-me>! This is my first post on the Bigglenet.</p>
+    <p>Hello, <biggle-me>reader</biggle-me>! This is my first post on bnet.</p>
     <p>To write another one, make a new <code>.bhtml</code> file in the site editor and link to it from the home page.</p>
   </main>
 </body>
@@ -266,5 +266,5 @@ body {
 export function templateFiles(template: Template, title: string, about: string): Record<string, string> {
   if (template === 'blog') return blog(title, about || 'Thoughts, notes and things I find.');
   if (template === 'blank') return blank(title);
-  return page(title, about || 'Welcome to my corner of the Bigglenet.');
+  return page(title, about || 'Welcome to my corner of bnet.');
 }

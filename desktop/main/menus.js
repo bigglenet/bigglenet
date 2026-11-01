@@ -96,7 +96,7 @@ export function setupMenu(getMain, newWindow) {
       { label: t('Window'), submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }] },
     ]),
   );
-  app.setAboutPanelOptions({ applicationName: 'Bigglenet', copyright: 'Copyright (c) 2026 bigglenet' });
+  app.setAboutPanelOptions({ applicationName: 'bnet', copyright: 'Copyright (c) 2026 bigglenet' });
 }
 
 /**

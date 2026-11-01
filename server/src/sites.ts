@@ -1,4 +1,4 @@
-// Sites hosted on the Bigglenet itself, made with the Biggle site editor.
+// Sites hosted on bnet itself, made with the Biggle site editor.
 // New sites wait for an admin's approval; until then only the owner and admins can see them.
 import { requireAdmin, requireUser, type User } from './auth';
 import { inSiteClub } from './clubs';
@@ -383,7 +383,7 @@ export async function addEditor(req: Request, env: Env, name: string): Promise<R
   const { site, user } = await editable(req, env, name, true);
   const username = str((await readJson(req)).username).trim().toLowerCase().replace(/^@/, '');
   const other = await env.DB.prepare('SELECT id, username FROM users WHERE username = ?').bind(username).first<{ id: number; username: string }>();
-  if (!other) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
+  if (!other) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on bnet.`);
   if (other.id === site.owner_id) throw new HttpError(400, 'owner', `${other.username} already owns this site.`);
   const friends = await env.DB.prepare("SELECT 1 FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'friends'").bind(user.id, other.id).first();
   if (!friends && !user.is_admin) throw new HttpError(403, 'not_friends', `You can only add friends, and ${other.username} isn't one yet.`);

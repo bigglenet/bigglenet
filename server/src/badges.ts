@@ -1,4 +1,4 @@
-// Badges people earn by doing things on the Bigglenet: making sites, making friends, signing
+// Badges people earn by doing things on bnet: making sites, making friends, signing
 // guestbooks, coming back day after day… They're worked out when someone's profile is looked
 // at, and kept once earned (user_badges). The browser has their names and pictures
 // (browser/src/lib/badges.ts); a winner of the weekly challenge gets theirs from challenges.ts.
@@ -11,7 +11,7 @@ export type Badge = (typeof BADGES)[number];
 const EARLY = 1798761600;
 const DAY = 86400;
 
-/** Note that someone used the Bigglenet today (for streaks). */
+/** Note that someone used bnet today (for streaks). */
 export async function sawToday(env: Env, userId: number) {
   await env.DB.prepare('INSERT OR IGNORE INTO user_days (user_id, day) VALUES (?, ?)').bind(userId, Math.floor(Date.now() / 1000 / DAY)).run();
 }

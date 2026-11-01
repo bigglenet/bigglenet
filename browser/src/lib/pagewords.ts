@@ -1,4 +1,4 @@
-// Text the Bigglenet's own tags show inside pages (page-widgets.js and the guestbook in
+// Text bnet's own tags show inside pages (page-widgets.js and the guestbook in
 // page-runtime.js). Pages can't reach the browser's t(), so they get these already translated
 // (loader.ts), and look each one up with __kit.w().
 import { i18n, t } from './i18n.svelte';

@@ -47,7 +47,7 @@ export async function linkPreview(req: Request, env: Env): Promise<Response> {
   await requireUser(req, env);
   const url = new URL(req.url).searchParams.get('url') ?? '';
   const m = /^biggle:\/\/([a-z0-9-]+)\.(biggle|b)(\/[^?#]*)?/i.exec(url);
-  if (!m) throw new HttpError(400, 'bad_url', "That isn't a Bigglenet address.");
+  if (!m) throw new HttpError(400, 'bad_url', "That isn't a bnet address.");
   const key = siteKey(m[1].toLowerCase(), m[2].toLowerCase());
   const site = await env.DB.prepare('SELECT name, url, title, status FROM names WHERE name = ?').bind(key).first<{ name: string; url: string | null; title: string | null; status: string }>();
   if (!site || site.status !== 'live') throw new HttpError(404, 'no_such_name', `${siteAddress(key)} doesn't exist.`);
@@ -55,7 +55,7 @@ export async function linkPreview(req: Request, env: Env): Promise<Response> {
   let info: ReturnType<typeof readHead> = { title: site.title, description: null, image: null, icon: null };
   let dir = '';
   if (!site.url) {
-    // A site made on the Bigglenet: read the page from the database.
+    // A site made on bnet: read the page from the database.
     let path = decodeURIComponent(m[3] ?? '/').replace(/^\/+/, '');
     if (path === '' || path.endsWith('/')) path += 'index.bhtml';
     const candidates = /\.[a-z0-9]+$/i.test(path) ? [path] : [`${path}.bhtml`, `${path}/index.bhtml`];

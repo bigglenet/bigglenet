@@ -1,4 +1,4 @@
-// Notifications while Bigglenet is closed, on phones and in browsers that allow it (web push;
+// Notifications while bnet is closed, on phones and in browsers that allow it (web push;
 // server/src/push.ts). public/sw.js shows them. The desktop app keeps running in the background
 // instead (desktop/main), so this is for the web.
 import { untrack } from 'svelte';
@@ -36,9 +36,9 @@ class Push {
     const { key } = await api<{ key: string | null }>('GET', '/api/push');
     if (!key) {
       this.available = false;
-      throw new Error(t('This server can’t send notifications while Bigglenet is closed.'));
+      throw new Error(t('This server can’t send notifications while bnet is closed.'));
     }
-    if ((await Notification.requestPermission()) !== 'granted') throw new Error(t('Your browser is blocking Bigglenet’s notifications. Allow them in its site settings.'));
+    if ((await Notification.requestPermission()) !== 'granted') throw new Error(t('Your browser is blocking bnet’s notifications. Allow them in its site settings.'));
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes(key) }));
     await this.send(sub);

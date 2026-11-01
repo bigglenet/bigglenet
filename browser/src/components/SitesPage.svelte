@@ -26,7 +26,7 @@
   // Importing a site that already exists, from its address or its files.
   let from = $state<'link' | 'files'>('link');
   let link = $state('');
-  // Admins can link a site instead of copying it: as a live app through the Bigglenet, or
+  // Admins can link a site instead of copying it: as a live app through bnet, or
   // straight from the internet (full speed, for games and WebAssembly ports).
   let how = $state<'copy' | 'live' | 'direct'>('copy');
   let picked = $state<{ files: Map<string, Blob>; label: string } | null>(null);
@@ -285,11 +285,11 @@
                   <legend>{t('How should it work?')}</legend>
                   <label class="check">
                     <input type="radio" name="how" value="copy" bind:group={how} />
-                    <span><strong>{t('Copy it here')}</strong> {t('— its pages, pictures and styles become a Bigglenet site.')}</span>
+                    <span><strong>{t('Copy it here')}</strong> {t('— its pages, pictures and styles become a bnet site.')}</span>
                   </label>
                   <label class="check">
                     <input type="radio" name="how" value="live" bind:group={how} />
-                    <span><strong>{t('Keep it live')}</strong> {t('— loads from the original site through the Bigglenet every time. Good for apps.')}</span>
+                    <span><strong>{t('Keep it live')}</strong> {t('— loads from the original site through bnet every time. Good for apps.')}</span>
                   </label>
                   <label class="check">
                     <input type="radio" name="how" value="direct" bind:group={how} />
@@ -347,7 +347,7 @@
             <span>{t('Title')}</span>
             <input
               bind:value={title}
-              placeholder={mode === 'import' ? t("Leave empty to use the site's own title") : t('My corner of the Bigglenet')}
+              placeholder={mode === 'import' ? t("Leave empty to use the site's own title") : t('My corner of bnet')}
               maxlength="80"
             />
           </label>

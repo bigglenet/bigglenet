@@ -1,4 +1,4 @@
-// Bringing a website that already exists onto the Bigglenet, from its address or from its files
+// Bringing a website that already exists onto bnet, from its address or from its files
 // (a folder or a .zip). Pages become .bhtml, links are pointed at the new copies, and files the
 // site loads from elsewhere (fonts, libraries, pictures) are copied in too, because Biggle pages
 // can only load things from Biggle sites. Trackers are left behind.

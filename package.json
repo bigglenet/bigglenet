@@ -8,7 +8,7 @@
     "desktop"
   ],
   "scripts": {
-    "setup": "npm run db:migrate -w server && npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" && npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\"",
+    "setup": "npm run db:migrate -w server && npm run site -w server -- push hello ../examples/hello \"Hello, bnet\" && npm run site -w server -- push home ../sites/home \"The bnet homepage\"",
     "dev": "node scripts/dev.mjs",
     "check": "npm run check -w server && npm run check -w browser",
     "i18n": "node scripts/i18n.mjs",
@@ -17,8 +17,8 @@
     "release": "node scripts/release.mjs",
     "app:dev": "npm run dev -w desktop",
     "app:build": "npm run build -w browser && npm run dist -w desktop",
-    "deploy:home": "npm run site -w server -- push home ../sites/home \"The Bigglenet homepage\" --owner ethem_ --remote",
+    "deploy:home": "npm run site -w server -- push home ../sites/home \"The bnet homepage\" --owner ethem_ --remote",
     "deploy:games": "npm run site -w server -- push games ../sites/games \"Games\" --owner ethem_ --remote",
-    "deploy:hello": "npm run site -w server -- push hello ../examples/hello \"Hello, Bigglenet\" --owner ethem_ --remote"
+    "deploy:hello": "npm run site -w server -- push hello ../examples/hello \"Hello, bnet\" --owner ethem_ --remote"
   }
 }

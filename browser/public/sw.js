@@ -56,14 +56,14 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// A push while Bigglenet is closed (server/src/push.ts): a message, a call or a notification.
+// A push while bnet is closed (server/src/push.ts): a message, a call or a notification.
 self.addEventListener('push', (event) => {
   let m = {};
   try {
     m = event.data ? event.data.json() : {};
   } catch {}
   event.waitUntil(
-    self.registration.showNotification(m.title || 'Bigglenet', {
+    self.registration.showNotification(m.title || 'bnet', {
       body: m.body || '',
       tag: m.tag,
       icon: '/mark.png',
@@ -73,7 +73,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// A notification tapped (see src/lib/notify.svelte.ts, and pushes above): open Bigglenet at that
+// A notification tapped (see src/lib/notify.svelte.ts, and pushes above): open bnet at that
 // chat or page.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

@@ -38,7 +38,7 @@
     </p>
   </header>
 
-  <section class="stats" aria-label="The Bigglenet right now">
+  <section class="stats" aria-label="The bnet right now">
     <div><strong id="site-count">–</strong><span>sites</span></div>
     <div><strong>0</strong><span>trackers</span></div>
     <div><strong>0</strong><span>ads</span></div>
@@ -48,7 +48,7 @@
   <section class="features">
     <article>
       <h2>Ads and trackers can't get in</h2>
-      <p>Every page runs in a sealed box. It can't set cookies or load anything from outside the Bigglenet, so there's nothing to track you with.</p>
+      <p>Every page runs in a sealed box. It can't set cookies or load anything from outside bnet, so there's nothing to track you with.</p>
     </article>
     <article>
       <h2>Everything has a name</h2>
@@ -66,11 +66,11 @@
 
   <section class="sites" id="sites">
     <div class="section-head">
-      <h2>Sites on the Bigglenet</h2>
+      <h2>Sites on bnet</h2>
       <p>Every <code>.biggle</code> site there is, right now.</p>
     </div>
     <ul id="site-list" class="site-list">
-      <li class="loading">Asking the Bigglenet…</li>
+      <li class="loading">Asking bnet…</li>
     </ul>
   </section>
 
@@ -99,18 +99,18 @@
       </a>
       <a class="get-card" href="https://bigglenet.ethembeldagli.dev">
         <strong>Phone</strong>
-        <span>Open the Bigglenet in your phone's browser and add it to your home screen.</span>
+        <span>Open bnet in your phone's browser and add it to your home screen.</span>
       </a>
       <a class="get-card" href="https://github.com/bigglenet/bigglenet">
         <strong>The code</strong>
-        <span>Everything is open source. Run your own Bigglenet if you like.</span>
+        <span>Everything is open source. Run your own bnet if you like.</span>
       </a>
     </div>
   </section>
 
   <footer>
     <span class="mark small" aria-hidden="true"></span>
-    <span>home.biggle, made on the Bigglenet.</span>
+    <span>home.biggle, made on bnet.</span>
   </footer>
 </body>
 </html>

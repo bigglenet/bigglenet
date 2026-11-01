@@ -14,7 +14,7 @@ const STEP = 30;
 const TICKET_TTL = 10 * 60;
 const MAX_ATTEMPTS = 5;
 const RECOVERY_CODES = 10;
-const ISSUER = 'Bigglenet';
+const ISSUER = 'bnet';
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const RECOVERY_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 

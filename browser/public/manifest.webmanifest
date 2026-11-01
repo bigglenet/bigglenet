@@ -1,7 +1,7 @@
 {
-  "name": "Bigglenet",
-  "short_name": "Bigglenet",
-  "description": "The Biggle browser: open .biggle sites on the Bigglenet.",
+  "name": "bnet",
+  "short_name": "bnet",
+  "description": "The Biggle browser: open .biggle sites on bnet.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

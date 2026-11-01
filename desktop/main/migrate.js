@@ -1,4 +1,4 @@
-// Bigglenet before 0.4 was a Tauri app using the system's web engine. When it updates to this
+// bnet before 0.4 was a Tauri app using the system's web engine. When it updates to this
 // version, this brings over what it kept in the browser's storage (the sign-in, the new tab
 // page's settings, what each site saved), once, so nothing looks different afterwards.
 //

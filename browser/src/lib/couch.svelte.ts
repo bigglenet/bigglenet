@@ -1,7 +1,7 @@
-// Couch mode: getting around Bigglenet with a game controller. The D-pad or left stick moves
+// Couch mode: getting around bnet with a game controller. The D-pad or left stick moves
 // between buttons and links, A presses, B goes back, LB and RB switch tabs, Y opens the command
 // palette. On a game, the controller belongs to the game; press the Home (or View + Menu)
-// buttons to use it for Bigglenet instead, and again to give it back.
+// buttons to use it for bnet instead, and again to give it back.
 import { browser } from './browser.svelte';
 
 const KEY = 'biggle:couch';
@@ -29,7 +29,7 @@ class Couch {
   enabled = $state(localStorage.getItem(KEY) !== '0');
   /** A controller is connected. */
   connected = $state(false);
-  /** The controller is working Bigglenet (rather than a game). */
+  /** The controller is working bnet (rather than a game). */
   active = $state(false);
   /** Ask the command palette to open (CommandPalette watches). */
   palette = $state(0);
@@ -91,9 +91,9 @@ class Couch {
     const down = pad.buttons.map((b) => b.pressed);
     const pressed = (i: number) => !!down[i] && !this.was[i];
 
-    // Home, or View and Menu together: switch between the game and Bigglenet.
+    // Home, or View and Menu together: switch between the game and bnet.
     if (pressed(HOME) || (down[VIEW] && down[MENU] && (pressed(VIEW) || pressed(MENU)))) this.setActive(!this.active);
-    // Off a page, the controller is for Bigglenet.
+    // Off a page, the controller is for bnet.
     if (!this.onPage && !this.active) this.setActive(true);
 
     if (this.active) {

@@ -207,7 +207,7 @@
               <input type="checkbox" bind:checked={share} />
               <span>
                 <strong>{t('Let friends see what I’m up to')}</strong><br />
-                <span class="muted small">{t('Like “Playing GTA V”: the site you’re on in Bigglenet. Private tabs are never shared.')}</span>
+                <span class="muted small">{t('Like “Playing GTA V”: the site you’re on in bnet. Private tabs are never shared.')}</span>
               </span>
             </label>
             <div class="actions">

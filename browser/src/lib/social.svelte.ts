@@ -205,7 +205,7 @@ class Social {
     }
   }
 
-  /** A notification for a message from someone else, when you're not looking at Bigglenet. */
+  /** A notification for a message from someone else, when you're not looking at bnet. */
   private notifyMessage(m: ChatMessage) {
     if (m.kind !== 'text' || !m.from || m.from === account.user?.username || people.isBlocked(m.from)) return;
     const chat = chats.get(m.chatId);

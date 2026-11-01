@@ -1,5 +1,5 @@
 <script lang="ts">
-  // biggle://nox/week: "This week on the Bigglenet": new sites, the most visited ones, the busiest
+  // biggle://nox/week: "This week on bnet": new sites, the most visited ones, the busiest
   // guestbooks and threads.
   import { api, errorText } from '../../lib/api';
   import { browser, type Tab } from '../../lib/browser.svelte';
@@ -47,7 +47,7 @@
 
 <Page>
   <button class="back" onclick={() => browser.go(tab, 'biggle://nox')}><Icon name="back" size={16} /> Nox</button>
-  <header class="top"><h1>{t('This week on the Bigglenet')}</h1></header>
+  <header class="top"><h1>{t('This week on bnet')}</h1></header>
   {#if error}
     <p class="bad">{error}</p>
   {:else if !week}

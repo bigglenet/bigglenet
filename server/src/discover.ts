@@ -1,5 +1,5 @@
 // Finding sites in Nox: every site with its visits, tags and labels (new, updated, trending), the
-// site of the day, "This week on the Bigglenet", searching what pages say, and following sites.
+// site of the day, "This week on bnet", searching what pages say, and following sites.
 // Webrings are in webrings.ts.
 //
 //   GET    /api/discover              every live site, with visits, tags and labels
@@ -129,7 +129,7 @@ export async function pickSiteOfTheDay(req: Request, env: Env): Promise<Response
   return json({});
 }
 
-// --- This week on the Bigglenet ---
+// --- This week on bnet ---
 
 export async function thisWeek(req: Request, env: Env): Promise<Response> {
   await requireUser(req, env);

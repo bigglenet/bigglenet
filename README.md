@@ -1,6 +1,6 @@
 <div align="center">
   <img src="brand/icon-app.png" alt="b.net" height="150">
-  <h1>Bigglenet - v1.2.2</h1>
+  <h1>bnet - v1.2.2</h1>
 </div>
 
 A small, friendly alternative to the web. Sites are written in **BHTML**, live at **`name.biggle`** addresses, and open in the **Biggle browser**, which blocks ads and trackers by design.
@@ -9,11 +9,11 @@ A small, friendly alternative to the web. Sites are written in **BHTML**, live a
 - **A built-in site editor:** pick a name and a look, add text, pictures and buttons. No code or hosting needed. Admins approve every new site.
 - **Import a website you already have:** from its link, a folder or a .zip.
 - **`.biggle` names:** sites made in the editor get theirs straight away; you can also host files anywhere and point a name at them.
-- **Nox:** search the Bigglenet, or browse its index of every site (`biggle://nox`).
+- **Nox:** search bnet, or browse its index of every site (`biggle://nox`).
 - **A new tab page you can customize:** shortcuts, a clock, a background, or open any page you like instead.
 - **One Biggle ID:** sign up with your email or Google, and every site can greet you by name.
 - **Friends and chat:** add friends and message them live, right in the browser.
-- **No ads, no tracking:** pages run sandboxed, with no cookies, and can't load anything from outside the Bigglenet.
+- **No ads, no tracking:** pages run sandboxed, with no cookies, and can't load anything from outside bnet.
 
 ## Get the browser
 
@@ -45,13 +45,13 @@ To host it yourself, save it as `index.bhtml`, upload the folder to any static h
 browser/      the Biggle browser (Svelte), also served as the PWA
 desktop/      the desktop app (Electron), wrapping the browser
 server/       Cloudflare Worker: Biggle DNS, site gateway, accounts, friends, chat
-sites/home/   home.biggle, the Bigglenet's homepage
+sites/home/   home.biggle, bnet's homepage
 examples/     example sites (hello.biggle)
 spec/         the BHTML format
 brand/        logo and app icons
 ```
 
-The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`). Every site hosted on the Bigglenet lives in the server's database and is served by the one Worker; names that point at an outside host are fetched from there. Sites waiting for approval are only reachable through signed preview links (`/preview/<token>/<path>`) given to their owner and admins.
+The browser renders each page in a sandboxed iframe with a strict Content-Security-Policy. It fetches site files through the server's gateway (`/site/<name>/<path>`). Every site hosted on bnet lives in the server's database and is served by the one Worker; names that point at an outside host are fetched from there. Sites waiting for approval are only reachable through signed preview links (`/preview/<token>/<path>`) given to their owner and admins.
 
 ## Develop
 
@@ -81,7 +81,7 @@ npm run app:dev     # live-reloading app
 npm run app:build   # build it for this computer (needs the update signing key, see below)
 ```
 
-## Run your own Bigglenet
+## Run your own bnet
 
 ```bash
 npm run db:migrate:remote -w server           # set up the database
@@ -103,7 +103,7 @@ npm run name -w server -- set ethem https://ethem.pages.dev/ "Ethem's site" --re
 npm run promote -w server -- someone --remote
 ```
 
-`home.biggle` (`sites/home`) and `hello.biggle` (`examples/hello`) are hosted on the Bigglenet itself, like sites made in the editor: no extra workers. Publish changes to them with `npm run deploy:home` or `npm run deploy:hello`, or upload any folder as a site:
+`home.biggle` (`sites/home`) and `hello.biggle` (`examples/hello`) are hosted on bnet itself, like sites made in the editor: no extra workers. Publish changes to them with `npm run deploy:home` or `npm run deploy:hello`, or upload any folder as a site:
 
 ```bash
 npm run site -w server -- push <name> <folder> ["Title"] --owner <username> --remote

@@ -41,7 +41,7 @@ const PERSON = `id, username, created_at, bio, avatar_v, status_text, status_emo
 
 export async function personByName(env: Env, username: string): Promise<PersonRow> {
   const row = await env.DB.prepare(`SELECT ${PERSON} FROM users WHERE username = ?`).bind(username.trim().toLowerCase()).first<PersonRow>();
-  if (!row) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
+  if (!row) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on bnet.`);
   return row;
 }
 
@@ -90,7 +90,7 @@ export async function profile(req: Request, env: Env, username: string): Promise
   const isMe = p.id === me.id;
   // Someone who blocked you looks like they're not there.
   if (!isMe && (await env.DB.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?').bind(p.id, me.id).first())) {
-    throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
+    throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on bnet.`);
   }
   const [friendship, iBlocked, sites, friends, achievements, collections, clubs] = await env.DB.batch([
     env.DB.prepare('SELECT status FROM friendships WHERE user_id = ? AND friend_id = ?').bind(me.id, p.id),

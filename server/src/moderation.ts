@@ -1,4 +1,4 @@
-// Keeping the Bigglenet nice, and knowing how it's doing: reports, announcements, the admin
+// Keeping bnet nice, and knowing how it's doing: reports, announcements, the admin
 // dashboard and the status page.
 //
 //   POST   /api/reports                    { kind, target, reason }: flag something for admins

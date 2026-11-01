@@ -59,10 +59,10 @@ export async function callback(req: Request, env: Env): Promise<Response> {
     .bind(params.get('state') ?? '', REQUEST_TTL)
     .first<Request_>();
   const lang = langOf(req);
-  if (!row) return page(lang, 'That sign-in link has expired', 'Go back to Bigglenet and try again.');
+  if (!row) return page(lang, 'That sign-in link has expired', 'Go back to bnet and try again.');
   const fail = async (error: string) => {
     await env.DB.prepare("UPDATE oauth_requests SET status = 'failed', error = ? WHERE id = ?").bind(error, row.id).run();
-    return page(lang, "Couldn't sign you in", error, 'Go back to Bigglenet and try again.');
+    return page(lang, "Couldn't sign you in", error, 'Go back to bnet and try again.');
   };
   if (params.get('error')) return fail('Google sign-in was cancelled.');
 
@@ -96,7 +96,7 @@ export async function callback(req: Request, env: Env): Promise<Response> {
   await env.DB.prepare('UPDATE oauth_requests SET status = ?, user_id = ?, google_sub = ?, email = ? WHERE id = ?')
     .bind(userId ? 'done' : 'needs_username', userId, sub, email, row.id)
     .run();
-  return page(lang, "You're signed in", 'Go back to Bigglenet. You can close this tab.');
+  return page(lang, "You're signed in", 'Go back to bnet. You can close this tab.');
 }
 
 /** The app asks: has the person finished with Google yet? */
@@ -144,7 +144,7 @@ function page(lang: 'en' | 'tr', title: string, ...body: string[]): Response {
   const text = body.map((s) => translate(s, lang)).join(' ');
   return new Response(
     `<!doctype html><html lang="${lang}"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title} · Bigglenet</title>
+<title>${title} · bnet</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,sans-serif;background:#f6f4f0;color:#222;text-align:center;padding:24px}
 @media (prefers-color-scheme:dark){body{background:#1c1c1c;color:#f6f4f0}}
 b{display:block;font-size:28px;letter-spacing:-0.02em;margin-bottom:24px}h1{font-size:24px;margin:0 0 8px}p{opacity:.7;margin:0}</style>

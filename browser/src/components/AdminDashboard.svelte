@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The top of biggle://admin: how the Bigglenet is doing, reports to look at, the announcement
+  // The top of biggle://admin: how bnet is doing, reports to look at, the announcement
   // banner, and restore points and copies of the database (server/src/moderation.ts, backups.ts).
   import { api, errorText } from '../lib/api';
   import { browser, type Tab } from '../lib/browser.svelte';

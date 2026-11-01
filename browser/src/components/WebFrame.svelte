@@ -1,6 +1,6 @@
 <script lang="ts">
   // A site that loads straight from its own host (a "direct" link), like any website: its own
-  // origin, storage and full speed, which games and WebAssembly ports need. The Bigglenet only
+  // origin, storage and full speed, which games and WebAssembly ports need. The bnet only
   // looked up where the name points.
   import { t } from '../lib/i18n.svelte';
   import { browser, type Tab } from '../lib/browser.svelte';

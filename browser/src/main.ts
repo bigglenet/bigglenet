@@ -7,7 +7,7 @@ const target = document.getElementById('app')!;
 const where = gate();
 registerServiceWorker();
 
-// Outside the desktop app and the installed phone app, only show how to get Bigglenet.
+// Outside the desktop app and the installed phone app, only show how to get bnet.
 // The page and its language (Turkish is downloaded only if it's used) load side by side.
 const language = import('./lib/i18n.svelte').then((m) => m.languageReady);
 if (where === 'ok') {

@@ -17,8 +17,8 @@ import { addNotification } from './notifications';
 import { blockedIds } from './people';
 
 export const BOARDS = [
-  { id: 'news', name: 'News', about: 'What’s new on the Bigglenet. Only admins start threads here.', adminOnly: true },
-  { id: 'general', name: 'General', about: 'Anything about the Bigglenet.' },
+  { id: 'news', name: 'News', about: 'What’s new on bnet. Only admins start threads here.', adminOnly: true },
+  { id: 'general', name: 'General', about: 'Anything about bnet.' },
   { id: 'help', name: 'Help', about: 'Stuck making a site? Ask here.' },
   { id: 'show', name: 'Show and tell', about: 'Made something? Show it off.' },
   { id: 'games', name: 'Games', about: 'Game nights, high scores and games people made.' },

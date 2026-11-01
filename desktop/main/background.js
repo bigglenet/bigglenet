@@ -1,4 +1,4 @@
-// Keeping Bigglenet running in the background (Settings → Notifications), so messages, calls and
+// Keeping bnet running in the background (Settings → Notifications), so messages, calls and
 // event reminders still show up after the window is closed. Closing the last window then hides it
 // instead of quitting; an icon in the menu bar (macOS) or the system tray (Windows, Linux) opens
 // it again or quits. Off unless switched on.
@@ -70,17 +70,17 @@ function updateTray(show) {
   let image = nativeImage.createFromPath(join(here, '../build/icon.png')).resize({ width: isMac ? 18 : 16, height: isMac ? 18 : 16 });
   if (image.isEmpty()) image = nativeImage.createEmpty();
   tray = new Tray(image);
-  tray.setToolTip('Bigglenet');
+  tray.setToolTip('bnet');
   tray.setContextMenu(trayMenu(show));
   if (!isMac) tray.on('click', () => show());
 }
 
 function trayMenu(show) {
   return Menu.buildFromTemplate([
-    { label: t('Open Bigglenet'), click: () => show() },
+    { label: t('Open bnet'), click: () => show() },
     { type: 'separator' },
     {
-      label: t('Quit Bigglenet'),
+      label: t('Quit bnet'),
       click: () => {
         quitting = true;
         app.quit();

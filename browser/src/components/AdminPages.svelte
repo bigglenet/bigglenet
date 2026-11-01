@@ -158,7 +158,7 @@
       <h1>{t('All sites')}</h1>
 
       {#if !isAdmin}
-        <p class="muted">{t('This page is only for Bigglenet admins.')}</p>
+        <p class="muted">{t('This page is only for bnet admins.')}</p>
       {:else}
         <div class="tools">
           <input class="search" bind:value={search} placeholder={t('Find a site, title, owner or host')} aria-label={t('Find a site')} spellcheck="false" />
@@ -193,7 +193,7 @@
                 <span>{t('How it loads')}</span>
                 <select bind:value={form.how} aria-describedby="how-hint">
                   <option value="site">{t('.bhtml site')}</option>
-                  <option value="live">{t('Live app, through the Bigglenet')}</option>
+                  <option value="live">{t('Live app, through bnet')}</option>
                   <option value="direct">{t('Straight from the internet')}</option>
                   <option value="window">{t('Straight from the internet, as its own page')}</option>
                 </select>
@@ -202,11 +202,11 @@
             </div>
             <p id="how-hint" class="muted small">
               {#if form.how === 'direct'}
-                {t("The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports. Bigglenet pages features (sign-in, biggle.* calls) aren't available to it. Games that need cross-origin isolation, and sites that won't be shown inside other apps, run as their own page automatically.")}
+                {t("The real website loads straight from its host, like in any browser: full speed for games and WebAssembly ports. bnet pages features (sign-in, biggle.* calls) aren't available to it. Games that need cross-origin isolation, and sites that won't be shown inside other apps, run as their own page automatically.")}
               {:else if form.how === 'window'}
                 {t("The real website runs as a page of its own, straight from its host: in its tab in the desktop app (people can pop it out into a window), and in a browser tab on phones. For games that need cross-origin isolation (threads) and sites that won't be shown inside other apps.")}
               {:else if form.how === 'live'}
-                {t('A normal website (an app or a game) shown through the Bigglenet, without needing .bhtml pages.')}
+                {t('A normal website (an app or a game) shown through bnet, without needing .bhtml pages.')}
               {:else}
                 {t('A site made of .bhtml pages, hosted somewhere else.')}
               {/if}

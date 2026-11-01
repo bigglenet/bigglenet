@@ -1,4 +1,4 @@
--- Bigglenet 1.2: pets. Everyone can have one pet on their new tab page. It eats one snack for every
+-- bnet 1.2: pets. Everyone can have one pet on their new tab page. It eats one snack for every
 -- different site its owner visits each day (counted in visitors.ts), grows as it eats, and shows on
 -- their profile.
 CREATE TABLE pets (

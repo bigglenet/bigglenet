@@ -1,4 +1,4 @@
-// Feature requests for the Bigglenet: anyone signed in can ask for something and vote for the
+// Feature requests for bnet: anyone signed in can ask for something and vote for the
 // requests they want most. Admins set a status (planned, done, declined) and can reply.
 import { requireAdmin, requireUser, type User } from './auth';
 import { HttpError, json, readJson, str } from './http';

@@ -53,7 +53,7 @@ async function teleport() {
   let sites = [];
   try {
     sites = (await biggle.sites()).filter((s) => s.name !== biggle.site);
-    $('site-count').textContent = `${sites.length + 1} sites on the Bigglenet right now.`;
+    $('site-count').textContent = `${sites.length + 1} sites on bnet right now.`;
   } catch {}
   button.addEventListener('click', () => {
     if (!sites.length) return void (button.textContent = 'Nowhere to go yet!');
@@ -68,7 +68,7 @@ function share() {
   if (!button) return;
   button.addEventListener('click', async () => {
     try {
-      await biggle.copy(`${$('quote').textContent} Come to hello.biggle on the Bigglenet.`);
+      await biggle.copy(`${$('quote').textContent} Come to hello.biggle on bnet.`);
       button.textContent = 'Copied! 💌';
     } catch {
       button.textContent = "Couldn't copy";

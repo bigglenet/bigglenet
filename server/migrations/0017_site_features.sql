@@ -90,5 +90,5 @@ CREATE TABLE site_referrals (
   PRIMARY KEY (site, from_site, day)
 );
 
--- Who's on the Bigglenet right now, for <biggle-online>.
+-- Who's on bnet right now, for <biggle-online>.
 ALTER TABLE users ADD COLUMN online INTEGER NOT NULL DEFAULT 0;

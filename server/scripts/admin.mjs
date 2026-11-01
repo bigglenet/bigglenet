@@ -1,4 +1,4 @@
-// Admin tool for the Bigglenet database.
+// Admin tool for bnet database.
 //
 //   npm run name -- list
 //   npm run name -- set <name> <url> ["Title"] [--live]
@@ -6,7 +6,7 @@
 //   npm run name -- rm <name>
 //   npm run promote -- <username>     make someone an admin
 //   npm run site -- push <name> <folder> ["Title"] [--owner <username>]
-//                                     host a folder's files on the Bigglenet as <name>.biggle
+//                                     host a folder's files on bnet as <name>.biggle
 //
 // Works on the local dev database. Add --remote to change the live one.
 import { spawnSync } from 'node:child_process';
@@ -87,7 +87,7 @@ function run(command, file = false) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-/** Every file in a folder that the Bigglenet can host, skipping hidden files and _headers. */
+/** Every file in a folder that bnet can host, skipping hidden files and _headers. */
 function siteFiles(folder) {
   const out = [];
   const walk = (dir) => {

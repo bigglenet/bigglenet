@@ -1,5 +1,5 @@
 // Backs biggle.storage. Values arrive already JSON-encoded by the page. Private tabs keep theirs
-// in memory only, so it's gone when Bigglenet closes.
+// in memory only, so it's gone when bnet closes.
 
 const LIMIT = 1_000_000;
 

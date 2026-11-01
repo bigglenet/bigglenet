@@ -1,4 +1,4 @@
--- Sites can now be hosted on the Bigglenet itself (files in site_files, url NULL),
+-- Sites can now be hosted on bnet itself (files in site_files, url NULL),
 -- belong to a user, and wait for an admin's approval before anyone else can visit them.
 CREATE TABLE names_new (
   name TEXT PRIMARY KEY,

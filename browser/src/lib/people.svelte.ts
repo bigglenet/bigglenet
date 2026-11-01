@@ -40,7 +40,7 @@ class People {
   statuses = $state<Record<string, { status: Status | null; activity: Activity | null }>>({});
   /** People you've blocked. */
   blocked = $state<string[]>([]);
-  /** Whether friends see what you're up to on the Bigglenet. */
+  /** Whether friends see what you're up to on bnet. */
   shareActivity = $state(false);
 
   avatarVersion(username: string): number | null | undefined {

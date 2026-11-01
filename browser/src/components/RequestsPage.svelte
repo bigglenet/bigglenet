@@ -120,7 +120,7 @@
 <div class="requests">
   <div class="inner">
     <h1>{t('Feature requests')}</h1>
-    <p class="muted">{t("Ask for something you'd like the Bigglenet to do, and vote for the ideas you want most.")}</p>
+    <p class="muted">{t("Ask for something you'd like bnet to do, and vote for the ideas you want most.")}</p>
 
     <form class="ask" onsubmit={send}>
       <input bind:value={title} placeholder={t('What would you like?')} maxlength="120" required aria-label={t('Your idea')} />

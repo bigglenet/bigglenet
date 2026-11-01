@@ -60,7 +60,7 @@
 
   function saveRecovery() {
     if (!recovery) return;
-    const url = URL.createObjectURL(new Blob([`${t('Bigglenet recovery codes for {name}', { name: account.user?.username })}\n\n${recovery.join('\n')}\n\n${t('Each one works once.')}\n`], { type: 'text/plain' }));
+    const url = URL.createObjectURL(new Blob([`${t('bnet recovery codes for {name}', { name: account.user?.username })}\n\n${recovery.join('\n')}\n\n${t('Each one works once.')}\n`], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = 'bigglenet-recovery-codes.txt';
@@ -76,7 +76,7 @@
   let keyAbort: AbortController | null = null;
   const loadKeys = () => api<{ passkeys: Passkey[] }>('GET', '/api/passkeys').then((r) => (passkeys = r.passkeys), () => {});
   const canPasskey = isApp || passkeysHere;
-  const deviceName = () => (isApp ? t('Bigglenet app') : /Mac/.test(navigator.userAgent) ? 'Mac' : /Windows/.test(navigator.userAgent) ? 'Windows' : /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : t('Passkey'));
+  const deviceName = () => (isApp ? t('bnet app') : /Mac/.test(navigator.userAgent) ? 'Mac' : /Windows/.test(navigator.userAgent) ? 'Windows' : /Android/.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : t('Passkey'));
   const addKey = () => {
     keyAbort = new AbortController();
     waitingKey = isApp;
@@ -205,7 +205,7 @@
   </label>
 
   <h3>{t('Your data')}</h3>
-  <p class="muted small">{t('Everything you’ve made and written on the Bigglenet, in one file.')}</p>
+  <p class="muted small">{t('Everything you’ve made and written on bnet, in one file.')}</p>
   <button class="ghost" disabled={busy} onclick={download}>{t('Download my data')}</button>
 
   {#if deleting}

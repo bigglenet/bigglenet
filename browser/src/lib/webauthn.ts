@@ -38,6 +38,6 @@ export async function createPasskey(o: RegisterOptions) {
   if (!c) throw new Error(t('No passkey was made.'));
   const r = c.response as AuthenticatorAttestationResponse;
   const key = r.getPublicKey();
-  if (!key) throw new Error(t('This browser can’t make passkeys Bigglenet can use.'));
+  if (!key) throw new Error(t('This browser can’t make passkeys bnet can use.'));
   return { id: c.id, clientDataJSON: b64(r.clientDataJSON), publicKey: b64(key), algorithm: r.getPublicKeyAlgorithm() };
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The first thing you see: you need a Biggle ID (email or Google) to use Bigglenet.
+  // The first thing you see: you need a Biggle ID (email or Google) to use bnet.
   import { account, type Again, type Ticket } from '../lib/account.svelte';
   import Trans from './Trans.svelte';
   import { errorText } from '../lib/api';
@@ -159,7 +159,7 @@
 
   const mailto = $derived(
     ticket?.join
-      ? `mailto:${ticket.join}?subject=${encodeURIComponent(`Bigglenet code ${ticket.code}`)}&body=${encodeURIComponent(`My Bigglenet code is ${ticket.code}.`)}`
+      ? `mailto:${ticket.join}?subject=${encodeURIComponent(`bnet code ${ticket.code}`)}&body=${encodeURIComponent(`My bnet code is ${ticket.code}.`)}`
       : '',
   );
 

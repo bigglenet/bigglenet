@@ -1,4 +1,4 @@
-// Keeps Bigglenet up to date.
+// Keeps bnet up to date.
 // Desktop app: finds and downloads new releases in the background, then offers a restart.
 // Web app: notices a new deploy and offers a reload.
 // Either way it checks now and then, and whenever someone asks (Settings, or the Mac menu).
@@ -6,7 +6,7 @@ import { t } from './i18n.svelte';
 import { desktop } from './platform';
 
 const CHECK_EVERY = 6 * 60 * 60 * 1000;
-// The version this browser last ran, to say "Bigglenet is now 0.4.2" once after an update.
+// The version this browser last ran, to say "bnet is now 0.4.2" once after an update.
 const LAST_VERSION = 'biggle:version';
 
 export type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'ready' | 'current' | 'failed';
@@ -68,7 +68,7 @@ class Updates {
     }
     this.version = found.version;
     if (!found.downloaded) {
-      // Download it now, and check it's signed by Bigglenet, before offering it.
+      // Download it now, and check it's signed by bnet, before offering it.
       this.status = 'downloading';
       await desktop!.updates.download();
     }
@@ -81,7 +81,7 @@ class Updates {
       return;
     }
     const res = await fetch('/version.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error(t('Couldn’t reach the Bigglenet.'));
+    if (!res.ok) throw new Error(t('Couldn’t reach bnet.'));
     const { build, version } = await res.json();
     if (build && build !== __BUILD_ID__) {
       this.version = typeof version === 'string' && version !== this.current ? version : null;

@@ -1,4 +1,4 @@
-// Notifications for new messages and calls while Bigglenet isn't the window you're using, and the
+// Notifications for new messages and calls while bnet isn't the window you're using, and the
 // unread count on the app's icon (the Dock on a Mac, the taskbar on Windows, an installed PWA's
 // icon). Turn them off in Settings.
 import { t } from './i18n.svelte';
@@ -15,7 +15,7 @@ class Notices {
   enabled = $state(load());
   /** Game mode: no notifications for now. */
   quiet = false;
-  /** Whether this browser lets Bigglenet show them. The desktop app always does. */
+  /** Whether this browser lets bnet show them. The desktop app always does. */
   permission = $state<Permission>(desktop ? 'granted' : supported ? Notification.permission : 'unsupported');
 
   setEnabled(on: boolean) {
@@ -39,12 +39,12 @@ class Notices {
 
   /** Someone is calling. */
   async call(from: string, video: boolean, chatId: number, onclick: () => void) {
-    await this.show(from, video ? t('Video call. Open Bigglenet to answer.') : t('Calling you. Open Bigglenet to answer.'), `call-${chatId}`, { chatId }, onclick);
+    await this.show(from, video ? t('Video call. Open bnet to answer.') : t('Calling you. Open bnet to answer.'), `call-${chatId}`, { chatId }, onclick);
   }
 
   async test() {
     await this.allow();
-    await this.show('Bigglenet', t('Notifications are on. You’ll see one like this when a friend messages you.'), 'test', {}, () => {}, true);
+    await this.show('bnet', t('Notifications are on. You’ll see one like this when a friend messages you.'), 'test', {}, () => {}, true);
   }
 
   private async show(title: string, body: string, tag: string, data: Record<string, unknown>, onclick: () => void, always = false) {
@@ -83,7 +83,7 @@ function load(): boolean {
   }
 }
 
-/** Bigglenet is the window you're using right now. */
+/** bnet is the window you're using right now. */
 async function looking(): Promise<boolean> {
   if (desktop) return desktop.window.isFocused().catch(() => false);
   return document.visibilityState === 'visible' && document.hasFocus();

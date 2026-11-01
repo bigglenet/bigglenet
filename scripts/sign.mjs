@@ -4,7 +4,7 @@
 // `tauri signer sign` makes minisign's newer "ED" signatures, which sign a BLAKE2b hash of the
 // file. The desktop app checks signatures with Electron's crypto, which has no BLAKE2b, so it
 // couldn't trust any update. This makes the older "Ed" kind instead (the file itself is signed),
-// which every Bigglenet app can check (desktop/main/minisign.js).
+// which every bnet app can check (desktop/main/minisign.js).
 //
 //   node scripts/sign.mjs <file>...
 import { createPrivateKey, scryptSync, sign } from 'node:crypto';

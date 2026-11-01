@@ -5,7 +5,7 @@
   "bigglenetShell": 2,
   "private": true,
   "description": "The Biggle browser",
-  "author": "Bigglenet <noreply@bigglenet.ethembeldagli.dev>",
+  "author": "bnet <noreply@bigglenet.ethembeldagli.dev>",
   "homepage": "https://bigglenet.ethembeldagli.dev",
   "type": "module",
   "main": "main/main.js",
@@ -24,7 +24,7 @@
   "build": {
     "appId": "dev.ethembeldagli.bigglenet",
     "productName": "Bigglenet",
-    "copyright": "Copyright (c) 2026 bigglenet",
+    "copyright": "Copyright (c) 2026 bnet",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -43,7 +43,7 @@
     ],
     "protocols": [
       {
-        "name": "Bigglenet",
+        "name": "bnet",
         "schemes": [
           "biggle"
         ]
@@ -66,8 +66,10 @@
       "hardenedRuntime": false,
       "minimumSystemVersion": "11.0",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Bigglenet uses your microphone for voice and video calls with your friends.",
-        "NSCameraUsageDescription": "Bigglenet uses your camera for video calls with your friends."
+        "CFBundleName": "bnet",
+        "CFBundleDisplayName": "bnet",
+        "NSMicrophoneUsageDescription": "bnet uses your microphone for voice and video calls with your friends.",
+        "NSCameraUsageDescription": "bnet uses your camera for video calls with your friends."
       }
     },
     "dmg": {
@@ -88,7 +90,7 @@
       "oneClick": true,
       "perMachine": false,
       "artifactName": "Bigglenet_${version}_x64-setup.exe",
-      "shortcutName": "Bigglenet",
+      "shortcutName": "bnet",
       "include": "build/installer.nsh"
     },
     "linux": {
@@ -116,8 +118,8 @@
       "category": "Network",
       "executableName": "bigglenet",
       "synopsis": "The Biggle browser",
-      "description": "Browse .biggle sites on the Bigglenet, chat with friends, and leave ads and trackers behind.",
-      "maintainer": "Bigglenet <noreply@bigglenet.ethembeldagli.dev>"
+      "description": "Browse .biggle sites on bnet, chat with friends, and leave ads and trackers behind.",
+      "maintainer": "bnet <noreply@bigglenet.ethembeldagli.dev>"
     },
     "appImage": {
       "artifactName": "Bigglenet_${version}_amd64.AppImage"

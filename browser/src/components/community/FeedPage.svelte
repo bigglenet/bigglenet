@@ -82,7 +82,7 @@
         return { text: t('{site} by {who} won the weekly challenge “{title}”', { who: i.user, site, title: s(d.title) }), href: 'biggle://challenge' };
       case 'joined':
         return {
-          text: d.via ? t('{who} joined the Bigglenet, invited by {via}', { who: i.user, via: s(d.via) }) : t('{who} joined the Bigglenet', { who: i.user }),
+          text: d.via ? t('{who} joined bnet, invited by {via}', { who: i.user, via: s(d.via) }) : t('{who} joined bnet', { who: i.user }),
           href: `biggle://u/${i.user}`,
         };
       default:

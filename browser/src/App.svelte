@@ -228,7 +228,7 @@
   });
   updates.start();
 
-  // You need a Biggle ID with a confirmed email (or Google) to use Bigglenet.
+  // You need a Biggle ID with a confirmed email (or Google) to use bnet.
   const ready = $derived(!!account.user && !account.needsEmail);
 
   // The admins' banner, checked every few minutes once signed in.
@@ -243,7 +243,7 @@
     if (e.data?.type === 'open-chat' && typeof e.data.chatId === 'number') social.showChat(e.data.chatId);
     if (e.data?.type === 'open' && typeof e.data.href === 'string' && e.data.href.startsWith('biggle://')) browser.openFromOutside(e.data.href);
   });
-  // Opened from a tapped notification while Bigglenet was closed: show that chat.
+  // Opened from a tapped notification while bnet was closed: show that chat.
   const chatParam = Number(new URLSearchParams(location.search).get('chat'));
   if (chatParam) {
     history.replaceState(null, '', location.pathname);
@@ -341,7 +341,7 @@
 
 <svelte:window {onkeydown} {onmouseup} {onmousedown} {oncontextmenu} {onpopstate} onmouseleave={() => (browser.hoverUrl = '')} />
 <svelte:head>
-  <title>{ready ? (browser.active?.title ?? 'Bigglenet') : 'Bigglenet'}</title>
+  <title>{ready ? (browser.active?.title ?? 'bnet') : 'bnet'}</title>
 </svelte:head>
 
 {#if !ready}

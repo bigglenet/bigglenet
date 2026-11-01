@@ -61,7 +61,7 @@ function load(): Saved {
   }
 }
 
-/** Turn what someone typed ("stix", "home.biggle", "biggle://nox") into a Bigglenet address, or null. */
+/** Turn what someone typed ("stix", "home.biggle", "biggle://nox") into a bnet address, or null. */
 export function toAddress(text: string): string | null {
   const target = fromInput(text);
   return target?.kind === 'biggle' ? target.href : null;
@@ -85,13 +85,13 @@ class StartSettings {
   /** New tabs open this address (anything you could type in the address bar). Returns an error, if any. */
   useNewTab(text: string): string | null {
     const address = toAddress(text);
-    if (!address) return t("That isn't a Bigglenet address. Try something like home.biggle.");
+    if (!address) return t("That isn't a bnet address. Try something like home.biggle.");
     this.newTab = address === START ? null : address;
     this.save();
     return null;
   }
 
-  /** New tabs open the Bigglenet new tab page again. */
+  /** New tabs open bnet new tab page again. */
   useDefaultNewTab() {
     this.newTab = null;
     this.save();

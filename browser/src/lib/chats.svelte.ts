@@ -26,7 +26,7 @@ export type Reaction = { emoji: string; users: string[] };
 export type ChatMessage = {
   id: number;
   chatId: number;
-  /** Who sent it. Null for notes from the Bigglenet itself, like "Call ended". */
+  /** Who sent it. Null for notes from bnet itself, like "Call ended". */
   from: string | null;
   kind: 'text' | 'event';
   body: string;
@@ -359,7 +359,7 @@ class Chats {
         if (xhr.status >= 200 && xhr.status < 300) resolve(data as { key: string; name: string; type: string; size: number });
         else reject(new ApiError(xhr.status, String(data.error ?? 'http'), String(data.message ?? t('Couldn’t send that file.'))));
       };
-      xhr.onerror = () => reject(new ApiError(0, 'offline', t('Can’t reach the Bigglenet. Check your connection.')));
+      xhr.onerror = () => reject(new ApiError(0, 'offline', t('Can’t reach bnet. Check your connection.')));
       xhr.send(file);
     });
   }

@@ -6,7 +6,7 @@ import { siteButton } from './stamps';
 
 type Site = { name: string; url: string | null; title: string | null; status: string; live: number; direct: number; own_window: number; tld: string };
 
-const USER_AGENT = 'Bigglenet/1 (+https://bigglenet.ethembeldagli.dev)';
+const USER_AGENT = 'bnet/1 (+https://bigglenet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
 
 const resolveCache = new Map<string, { site: Site | null; at: number }>();
@@ -112,7 +112,7 @@ export async function gateway(req: Request, env: Env, name: string, rest: string
   return new Response(body, { status: res.status, headers: out });
 }
 
-// --- Live apps: normal websites shown on the Bigglenet as they are ---
+// --- Live apps: normal websites shown on bnet as they are ---
 
 /** "/x" or "https://host/x" on the app's own host → that file through this site's gateway. */
 function pointInside(value: string, name: string, base: URL): string {

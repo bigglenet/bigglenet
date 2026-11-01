@@ -1,4 +1,4 @@
--- Bigglenet 1.1: remixing sites, buttons and stamps, the weekly challenge and badges.
+-- bnet 1.1: remixing sites, buttons and stamps, the weekly challenge and badges.
 
 -- Remixing: a site made as a copy of another, and whether a site may be copied.
 ALTER TABLE names ADD COLUMN remix_of TEXT;
@@ -43,7 +43,7 @@ CREATE TABLE challenge_votes (
   PRIMARY KEY (challenge_id, user_id)
 );
 
--- Badges people have earned, and the days they used the Bigglenet (for streaks).
+-- Badges people have earned, and the days they used bnet (for streaks).
 CREATE TABLE user_badges (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   badge TEXT NOT NULL,

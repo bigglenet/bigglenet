@@ -24,7 +24,7 @@
 
 <dialog bind:this={dialog} onclose={() => (browser.external = null)} aria-labelledby="external-title">
   <div class="icon"><Icon name="external" size={22} /></div>
-  <h2 id="external-title">{t('Leave the Bigglenet?')}</h2>
+  <h2 id="external-title">{t('Leave bnet?')}</h2>
   <p>{t("This link goes to the normal web. It'll open in your regular browser, where ads and trackers aren't blocked.")}</p>
   <p class="url">{url}</p>
   <form method="dialog" class="actions">

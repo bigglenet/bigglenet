@@ -272,7 +272,7 @@ export async function inviteToClub(req: Request, env: Env, raw: string): Promise
   if (!(await env.MESSAGE_LIMIT.limit({ key: `club-invite:${me.id}` })).success) throw new HttpError(429, 'slow_down', 'Slow down a little, then try again.');
   const username = str((await readJson(req)).username).trim().toLowerCase().replace(/^@/, '');
   const other = await env.DB.prepare('SELECT id, username FROM users WHERE username = ?').bind(username).first<{ id: number; username: string }>();
-  if (!other) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on the Bigglenet.`);
+  if (!other) throw new HttpError(404, 'no_such_user', `There's nobody called ${username} on bnet.`);
   if (!(await areFriends(env, me.id, other.id))) throw new HttpError(403, 'not_friends', `You can only invite friends, and ${other.username} isn't one yet.`);
   if (await isMember(env, club.id, other.id)) return json({ already: true });
   await env.DB.prepare('INSERT OR IGNORE INTO club_invites (club_id, user_id, from_id) VALUES (?, ?, ?)').bind(club.id, other.id, me.id).run();
