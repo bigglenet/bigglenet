@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 // The bnet version (the same for the website and the apps), from the root package.json.
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
@@ -17,7 +19,8 @@ const versionFile: Plugin = {
 };
 
 export default defineConfig({
-  plugins: [svelte(), versionFile],
+  // Svelte for the app; React and Tailwind for the website people see in a normal browser (src/landing).
+  plugins: [svelte(), react({ include: /\/src\/landing\/.*\.tsx$/ }), tailwindcss(), versionFile],
   define: {
     __BUILD_ID__: JSON.stringify(buildId),
     __APP_VERSION__: JSON.stringify(version),

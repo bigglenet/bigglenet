@@ -1,0 +1,68 @@
+/* The bnet website: what people see at bigglenet.ethembeldagli.dev in a normal browser. Tailwind,
+   only for this page (it isn't loaded inside the app). Components come from Magic UI, React Bits,
+   Aceternity UI and Monet (src/landing/ui and sections.tsx). */
+@import 'tailwindcss' source(none);
+@source './';
+
+/* The page is always dark: the components' dark: styles apply under .dark. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-ink: #161616;
+  --color-ink-2: #1e1e1e;
+  --color-cream: #f6f4f0;
+  --color-sunset: #ff7a59;
+
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes shimmer-slide {
+    to {
+      transform: translate(calc(100cqw - 100%), 0);
+    }
+  }
+  @keyframes spin-around {
+    0% {
+      transform: translateZ(0) rotate(0);
+    }
+    15%,
+    35% {
+      transform: translateZ(0) rotate(90deg);
+    }
+    65%,
+    85% {
+      transform: translateZ(0) rotate(270deg);
+    }
+    100% {
+      transform: translateZ(0) rotate(360deg);
+    }
+  }
+}
+
+/* The app keeps the page a fixed size (app.css); the website scrolls like a normal page. */
+html,
+body,
+#app {
+  height: auto;
+  overflow: visible;
+  overflow-x: clip;
+  background: var(--color-ink);
+}

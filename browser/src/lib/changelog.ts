@@ -5,6 +5,11 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.3.1',
+    date: '2026-11-01',
+    changes: ['A new bnet website for people who don’t have bnet yet, with the newest sites scrolling by.'],
+  },
+  {
     version: '1.3.0',
     date: '2026-11-01',
     changes: ['Bigglenet is now called bnet. Everything else stays the same: your account, sites, friends and settings.'],

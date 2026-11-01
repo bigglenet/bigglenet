@@ -55,7 +55,7 @@ const add = (text, file) => text.trim() && (texts.get(text) ?? texts.set(text, n
 
 const walk = (dir) => readdirSync(dir).flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [join(dir, name)]));
 for (const file of walk(src)) {
-  if (!/\.(svelte|ts)$/.test(file) || file.includes('/locales/')) continue;
+  if (!/\.(svelte|tsx?)$/.test(file) || file.includes('/locales/')) continue;
   const code = readFileSync(file, 'utf8');
   const rel = relative(src, file);
   for (const m of code.matchAll(T_CALL)) add(unquote(m), rel);
