@@ -5,6 +5,11 @@ export type Release = { version: string; date: string; changes: string[] };
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.2.2',
+    date: '2026-11-01',
+    changes: ['Pets are gone, to keep the new tab page simple.'],
+  },
+  {
     version: '1.2.1',
     date: '2026-10-22',
     changes: [

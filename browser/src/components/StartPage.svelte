@@ -11,7 +11,6 @@
   import { siteHome, siteHost } from '../lib/url';
   import { BACKDROPS, startSettings as settings } from '../lib/startpage.svelte';
   import Icon from './Icon.svelte';
-  import PetCard from './PetCard.svelte';
   import StartCustomize from './StartCustomize.svelte';
 
   let { tab }: { tab: Tab } = $props();
@@ -100,10 +99,6 @@
             </li>
           {/each}
         </ul>
-      {/if}
-
-      {#if settings.shown.pet && account.user}
-        <PetCard {tab} />
       {/if}
 
       {#if settings.shown.featured}

@@ -5,7 +5,7 @@ import { t } from './i18n.svelte';
 import { registerSync, syncChanged } from './sync.svelte';
 import { START, fromInput } from './url';
 
-export type Section = 'clock' | 'search' | 'shortcuts' | 'pet' | 'featured' | 'today' | 'places' | 'latest';
+export type Section = 'clock' | 'search' | 'shortcuts' | 'featured' | 'today' | 'places' | 'latest';
 export type Shortcut = { name: string; url: string };
 export type Backdrop = 'plain' | 'sunset' | 'ocean' | 'forest' | 'candy' | 'lavender';
 
@@ -13,7 +13,6 @@ export const SECTIONS: { id: Section; label: string }[] = [
   { id: 'clock', label: 'Clock and greeting' },
   { id: 'search', label: 'Search box' },
   { id: 'shortcuts', label: 'My shortcuts' },
-  { id: 'pet', label: 'My pet' },
   { id: 'featured', label: 'home.biggle and "Make your own site"' },
   { id: 'today', label: 'Site of the day' },
   { id: 'places', label: 'Feed, clubs, events and the board' },
@@ -38,7 +37,7 @@ type Saved = { newTab: string | null; shown: Record<Section, boolean>; shortcuts
 const DEFAULTS: Saved = {
   newTab: null,
   // Every site is in Nox's index (biggle://nox); the start page can show the newest few.
-  shown: { clock: false, search: true, shortcuts: true, pet: true, featured: true, today: true, places: true, latest: false },
+  shown: { clock: false, search: true, shortcuts: true, featured: true, today: true, places: true, latest: false },
   shortcuts: [],
   backdrop: 'plain',
 };

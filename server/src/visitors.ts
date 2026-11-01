@@ -5,7 +5,6 @@ import { record } from './feed';
 import { HttpError, json, readJson, SITE_KEY_RE, siteAddress, str } from './http';
 import { addNotification } from './notifications';
 import { blockedBetween, blockedIds } from './people';
-import { feedPet } from './pets';
 import { countView } from './sitekit';
 
 const GUESTBOOK_PAGE = 30;
@@ -34,9 +33,7 @@ export async function visit(req: Request, env: Env, key: string): Promise<Respon
   const input = await readJson(req);
   // Sites waiting for approval are only seen by their owner and admins.
   if (site.status === 'live') {
-    const first = await env.DB.prepare('INSERT OR IGNORE INTO site_visits (site, day, user_id) VALUES (?, ?, ?)').bind(site.name, today(), user.id).run();
-    // The first visit of the day to a site is a snack for their pet (pets.ts).
-    if (first.meta.changes) await feedPet(env, user.id, site.name);
+    await env.DB.prepare('INSERT OR IGNORE INTO site_visits (site, day, user_id) VALUES (?, ?, ?)').bind(site.name, today(), user.id).run();
     const from = typeof input.from === 'string' && SITE_KEY_RE.test(input.from) ? input.from : null;
     await countView(env, site.name, str(input.path), from);
     // Seen it: a followed site loses its dot.
