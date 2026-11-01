@@ -6,7 +6,7 @@
   "private": true,
   "description": "The Biggle browser",
   "author": "bnet <noreply@bigglenet.ethembeldagli.dev>",
-  "homepage": "https://bigglenet.ethembeldagli.dev",
+  "homepage": "https://bnet.ethembeldagli.dev",
   "type": "module",
   "main": "main/main.js",
   "scripts": {

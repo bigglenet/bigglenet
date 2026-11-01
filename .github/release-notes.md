@@ -7,7 +7,7 @@ The Biggle browser for your computer. Pick the file for your system from **Asset
 | Windows | `Bigglenet_…_x64-setup.exe` |
 | Linux | `.AppImage`, `.deb` or `.rpm` |
 
-On a phone, open **https://bigglenet.ethembeldagli.dev** and add it to your home screen.
+On a phone, open **https://bnet.ethembeldagli.dev** and add it to your home screen.
 
 bnet updates itself: when a new version is out, it downloads in the background and offers a restart.
 

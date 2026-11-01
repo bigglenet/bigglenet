@@ -1,4 +1,4 @@
-/* The bnet website: what people see at bigglenet.ethembeldagli.dev in a normal browser. Tailwind,
+/* The bnet website: what people see at bnet.ethembeldagli.dev in a normal browser. Tailwind,
    only for this page (it isn't loaded inside the app). Components come from Magic UI, React Bits,
    Aceternity UI and Monet (src/landing/ui and sections.tsx). */
 @import 'tailwindcss' source(none);

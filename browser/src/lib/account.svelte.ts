@@ -1,7 +1,7 @@
 // Biggle ID: who's signed in to this browser. You need one to use bnet at all, with a
 // confirmed email address or Google.
 import { api, onSessionExpired, setToken } from './api';
-import { SERVER } from './config';
+import { PASSKEY_SERVER, SERVER } from './config';
 import { invite } from './invite.svelte';
 import { desktop, openExternal } from './platform';
 import { createPasskey, getPasskey } from './webauthn';
@@ -105,7 +105,7 @@ class Account {
   async passkeySignIn(signal?: AbortSignal) {
     const start = await api<{ id: string; options: Parameters<typeof getPasskey>[0] }>('POST', '/api/passkeys/login/start');
     if (desktop) {
-      await openExternal(`${SERVER}/passkey/${start.id}`);
+      await openExternal(`${PASSKEY_SERVER}/passkey/${start.id}`);
       const done = await this.waitForPasskey(start.id, signal);
       if (done.token && done.user) this.set({ token: done.token, user: done.user });
       return;
@@ -118,7 +118,7 @@ class Account {
   async addPasskey(name: string, signal?: AbortSignal) {
     const start = await api<{ id: string; options: Parameters<typeof createPasskey>[0] }>('POST', '/api/passkeys/register/start');
     if (desktop) {
-      await openExternal(`${SERVER}/passkey/${start.id}`);
+      await openExternal(`${PASSKEY_SERVER}/passkey/${start.id}`);
       await this.waitForPasskey(start.id, signal);
       return;
     }

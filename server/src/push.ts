@@ -72,7 +72,7 @@ async function vapid(env: Env, endpoint: string): Promise<string> {
   const jwk = JSON.parse(env.VAPID_PRIVATE!) as JsonWebKey;
   const key = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const header = b64url(enc.encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
-  const claims = b64url(enc.encode(JSON.stringify({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'https://bigglenet.ethembeldagli.dev' })));
+  const claims = b64url(enc.encode(JSON.stringify({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'https://bnet.ethembeldagli.dev' })));
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, enc.encode(`${header}.${claims}`)));
   return `vapid t=${header}.${claims}.${b64url(signature)}, k=${env.VAPID_PUBLIC}`;
 }

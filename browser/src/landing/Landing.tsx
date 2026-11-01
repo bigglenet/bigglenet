@@ -1,4 +1,4 @@
-// The bnet website, for anyone opening bigglenet.ethembeldagli.dev in a normal browser. bnet itself
+// The bnet website, for anyone opening bnet.ethembeldagli.dev in a normal browser. bnet itself
 // runs in the desktop app, or as an app on a phone's home screen, so this page is about getting it:
 // a download on computers, adding it to the home screen on phones. (The old get-the-app page's
 // hidden ways in still work: tap "I have it" five times quickly, or the first phone step 20 times.)

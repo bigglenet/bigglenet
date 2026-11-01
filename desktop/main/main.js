@@ -143,7 +143,7 @@ function start() {
     { urls: ['https://www.youtube-nocookie.com/*', 'https://www.youtube.com/*'] },
     (details, callback) => {
       const headers = { ...details.requestHeaders };
-      if (!headers.Referer || !/^https:/.test(headers.Referer)) headers.Referer = 'https://bigglenet.ethembeldagli.dev/';
+      if (!headers.Referer || !/^https:/.test(headers.Referer)) headers.Referer = 'https://bnet.ethembeldagli.dev/';
       callback({ requestHeaders: headers });
     },
   );

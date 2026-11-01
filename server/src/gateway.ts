@@ -6,7 +6,7 @@ import { siteButton } from './stamps';
 
 type Site = { name: string; url: string | null; title: string | null; status: string; live: number; direct: number; own_window: number; tld: string };
 
-const USER_AGENT = 'bnet/1 (+https://bigglenet.ethembeldagli.dev)';
+const USER_AGENT = 'bnet/1 (+https://bnet.ethembeldagli.dev)';
 const RESOLVE_TTL_MS = 30_000;
 
 const resolveCache = new Map<string, { site: Site | null; at: number }>();

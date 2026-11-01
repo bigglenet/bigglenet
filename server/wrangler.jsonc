@@ -55,6 +55,11 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/site/*", "/preview/*", "/files/*", "/invite/*", "/passkey/*"]
   },
-  "routes": [{ "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }],
+  // bnet.ethembeldagli.dev is the address; bigglenet.ethembeldagli.dev keeps working for the apps
+  // installed before the move (and for passkeys made there, and Google sign-in).
+  "routes": [
+    { "pattern": "bnet.ethembeldagli.dev", "custom_domain": true },
+    { "pattern": "bigglenet.ethembeldagli.dev", "custom_domain": true }
+  ],
   "workers_dev": false
 }

@@ -1730,6 +1730,7 @@ const tr: Record<string, string> = {
   'Get bnet': 'bnet’i edin',
   'Open in bnet': 'bnet’te aç',
   'A new bnet website for people who don’t have bnet yet, with the newest sites scrolling by.': 'Henüz bnet’i olmayanlar için yeni bir bnet web sitesi; en yeni siteler kayarak geçiyor.',
+  'bnet’s new address is bnet.ethembeldagli.dev. The old one still works.': 'bnet’in yeni adresi bnet.ethembeldagli.dev. Eskisi de çalışmaya devam ediyor.',
 };
 
 export default tr;

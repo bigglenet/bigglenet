@@ -22,7 +22,12 @@ type Request_ = {
 };
 
 const enabled = (env: Env) => !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
-const redirectUri = (req: Request) => `${new URL(req.url).origin}/api/auth/google/callback`;
+// Google only sends people back to the address it knows: bnet's first one (it works alongside
+// bnet.ethembeldagli.dev). Sign-ins are matched up in the database, so the address doesn't matter.
+const redirectUri = (req: Request) => {
+  const origin = new URL(req.url).origin;
+  return `${/^https:\/\/[a-z]+\.ethembeldagli\.dev$/.test(origin) ? 'https://bigglenet.ethembeldagli.dev' : origin}/api/auth/google/callback`;
+};
 
 export async function options(_req: Request, env: Env): Promise<Response> {
   // While email is off, nobody is asked to confirm one, and only Google can make new accounts.
